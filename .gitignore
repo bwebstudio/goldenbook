@@ -33,3 +33,6 @@ dist
 # VSCode
 .vscode/*
 !.vscode/extensions.json
+
+goldenbook-backend/supabase/.temp/
+**/supabase/.temp/
