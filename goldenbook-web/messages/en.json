@@ -1,0 +1,118 @@
+{
+  "nav": {
+    "picks": "Golden Picks",
+    "routes": "Golden Routes",
+    "cities": "Explore",
+    "download": "Download",
+    "logoAlt": "Goldenbook"
+  },
+  "hero": {
+    "eyebrow": "The curated city guide",
+    "headline": "The city,\ncurated.",
+    "subheadline": "Golden picks, hidden routes, and the places that actually matter — for the traveller who values taste.",
+    "cta": {
+      "appStore": "App Store",
+      "googlePlay": "Google Play"
+    },
+    "scroll": "Scroll"
+  },
+  "goldenPicks": {
+    "eyebrow": "Golden Picks",
+    "headline": "The places\nworth knowing.",
+    "subheadline": "Curated by taste. Not by algorithm.",
+    "whyWeLoveIt": "Why we love it",
+    "viewAll": "View all picks"
+  },
+  "whatNow": {
+    "eyebrow": "For you, right now",
+    "morning": "Start your morning here.",
+    "afternoon": "The perfect afternoon stop.",
+    "evening": "Where to be tonight.",
+    "night": "The city after dark.",
+    "explore": "Explore"
+  },
+  "goldenRoutes": {
+    "eyebrow": "Golden Routes",
+    "headline": "Walk the city\nlike a local.",
+    "subheadline": "Curated itineraries that connect the dots.",
+    "stops": "{count} stops",
+    "duration": "{time}",
+    "viewRoute": "View Route",
+    "viewAll": "All Routes"
+  },
+  "categories": {
+    "eyebrow": "Explore by",
+    "headline": "What are you\nlooking for?",
+    "restaurants": "Restaurants",
+    "cafes": "Cafés",
+    "culture": "Culture",
+    "shopping": "Shopping",
+    "bars": "Bars",
+    "nature": "Nature",
+    "experiences": "Experiences",
+    "hotels": "Hotels"
+  },
+  "appPreview": {
+    "eyebrow": "The app",
+    "headline": "Your city,\nin your pocket.",
+    "subheadline": "Discover places, plan routes, and save your favourites — all offline-ready.",
+    "feature1": {
+      "title": "Golden Picks",
+      "description": "Editor-curated places, updated weekly."
+    },
+    "feature2": {
+      "title": "Smart Routes",
+      "description": "Walk the city with purpose."
+    },
+    "feature3": {
+      "title": "Offline Ready",
+      "description": "No signal? No problem."
+    }
+  },
+  "finalCta": {
+    "eyebrow": "Available now",
+    "headline": "Discover the city\nbefore you arrive.",
+    "subheadline": "Download Goldenbook and start exploring Lisbon, Porto, and beyond.",
+    "appStore": "Download on the App Store",
+    "googlePlay": "Get it on Google Play",
+    "free": "Free to download"
+  },
+  "about": {
+    "title": "About Goldenbook",
+    "subtitle": "The curated city guide for the discerning traveller.",
+    "body1": "Goldenbook is a curated guide to the places that actually matter — the restaurants worth the detour, the viewpoints only locals know, the neighbourhood bars with no sign on the door.",
+    "body2": "We believe the best travel experiences come from genuine knowledge, not algorithms. Every place in Goldenbook is selected by editors with deep roots in their cities.",
+    "body3": "We started in Lisbon. We are expanding to Porto, the Algarve, and beyond."
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "subtitle": "We keep your data simple and your experience clean.",
+    "body1": "Goldenbook collects only the data necessary to personalise your experience: your saved places, preferred city, and language setting. We do not sell your data.",
+    "body2": "We use Supabase for secure authentication and data storage. Analytics are anonymised and never linked to your identity.",
+    "body3": "To request deletion of your account and data, contact us at privacy@goldenbook.app."
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "subtitle": "Simple rules for using Goldenbook.",
+    "body1": "By using Goldenbook, you agree to use the app and website for personal, non-commercial purposes only.",
+    "body2": "All editorial content — picks, routes, and descriptions — is the property of Goldenbook. You may share links, but reproduction without permission is not permitted.",
+    "body3": "We reserve the right to update these terms. Continued use of the app constitutes acceptance of any changes."
+  },
+  "contact": {
+    "title": "Get in touch",
+    "subtitle": "We read every message.",
+    "labelEmail": "Email",
+    "labelSocial": "Follow us"
+  },
+  "footer": {
+    "tagline": "The curated city guide.",
+    "links": {
+      "about": "About",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "contact": "Contact"
+    },
+    "cities": "Lisboa · Porto · Algarve · Madeira",
+    "copyright": "© {year} Goldenbook. All rights reserved."
+  }
+}

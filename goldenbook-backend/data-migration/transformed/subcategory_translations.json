@@ -1,0 +1,371 @@
+[
+  {
+    "id": "5d188c2c-1c67-d018-b31a-bd40da1c6bc8",
+    "subcategory_id": "02eefb0e-9483-a519-233c-e2d05ff7ebfa",
+    "locale": "en",
+    "name": "Hotels",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "1f5a8b1d-3e6c-7e64-ac43-ce776fd7dc1d",
+    "subcategory_id": "57e5bac2-facc-7060-3a1a-4e496e4bc087",
+    "locale": "en",
+    "name": "Tours",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "76a1a87d-61e4-d15c-3b2d-46a22a79970b",
+    "subcategory_id": "04781da5-1587-97da-0ec4-38ee1546f8b9",
+    "locale": "en",
+    "name": "Experiences",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "3e4a9973-43d2-7eb9-b077-9b7da87f6a79",
+    "subcategory_id": "37e012d7-3bb7-9f57-f85f-61a4e0b92e87",
+    "locale": "en",
+    "name": "Nightlife",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "f0fb1f51-aca9-ef0f-8068-26d5ac99e94a",
+    "subcategory_id": "a9950a06-3c4e-6d00-0afa-9e33ef10635e",
+    "locale": "en",
+    "name": "Health Wellness",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "c3c397cd-c4d3-2ec4-56dc-3f32e46fad05",
+    "subcategory_id": "e858f086-d574-7094-ea4c-4d2c5c41e654",
+    "locale": "en",
+    "name": "Real Estate",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "5b664b65-0ec0-f5ba-1011-e6cefa9e5b07",
+    "subcategory_id": "e974c458-63c9-6d0c-9c8e-28d1c61f5d74",
+    "locale": "en",
+    "name": "Parks",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "7bd9ca65-c7c7-bfdb-764c-e962b27d682a",
+    "subcategory_id": "efad3dae-95eb-10d4-1af4-e39d4d7e3918",
+    "locale": "en",
+    "name": "Natural Reserves",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "d1450347-d206-aaeb-51bc-f8a87d31b195",
+    "subcategory_id": "6c5b7ba6-282d-6871-1cfd-9d61591f16cd",
+    "locale": "en",
+    "name": "Viewpoints",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "62a901dc-2bbb-0f9e-95b9-079073d64b7c",
+    "subcategory_id": "c6462b97-3d9b-35b2-0ed1-1b6ddfa52926",
+    "locale": "en",
+    "name": "Gardens",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "c55ff122-3a00-c60f-71bc-5afcb4dfb343",
+    "subcategory_id": "32fe4add-d374-3cba-85ff-5806186531cc",
+    "locale": "en",
+    "name": "Waterfalls",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "4d8ba2e3-0094-bf97-02e6-c7659b1fa8c7",
+    "subcategory_id": "c7df18e7-f879-87d3-e427-3d4f02d6988d",
+    "locale": "en",
+    "name": "Museums",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "2503d08a-8ca6-3052-9d29-5d1b48c2ccf2",
+    "subcategory_id": "0b9582eb-75de-02e1-0f33-2abdb40be090",
+    "locale": "en",
+    "name": "Historical Sites",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "db712e14-59e3-3b51-4e66-af18cdc4d141",
+    "subcategory_id": "a5c70e80-42b8-b2a7-979d-576de51e6265",
+    "locale": "en",
+    "name": "Monuments",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "39a0f06b-c4e2-2013-d59d-c57de6335681",
+    "subcategory_id": "1787c0b1-31b8-6a18-ff0e-da715ebf05be",
+    "locale": "en",
+    "name": "Churches",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "17e69173-cbb3-c6da-1515-c3edb4b00584",
+    "subcategory_id": "8d0c6c0b-fd9a-62f1-fc96-8677902db59e",
+    "locale": "en",
+    "name": "Galleries",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "44cae58c-886c-82f7-a885-d2bf034fe643",
+    "subcategory_id": "2b2e1ca2-21ca-192a-9415-0a5c74fb4587",
+    "locale": "en",
+    "name": "Festivals",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "f0292329-57b9-9d64-062b-278b2fb0644e",
+    "subcategory_id": "925f07e6-1506-e591-09f3-603217ab900c",
+    "locale": "en",
+    "name": "Concerts",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "53709079-6850-202a-81a5-68ded59e8c7b",
+    "subcategory_id": "91952d04-8804-214c-4347-b54e8844b2eb",
+    "locale": "en",
+    "name": "Exhibitions",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "abd787b3-359a-5131-788d-1defcccc69a5",
+    "subcategory_id": "7270dc8d-7676-dd4a-f099-13ede22334e9",
+    "locale": "en",
+    "name": "Fairs",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "1d3a7205-9114-a1cd-34b7-6b04633f7d5e",
+    "subcategory_id": "1eb2594d-bd7e-773c-340e-c983744641c2",
+    "locale": "en",
+    "name": "Cultural Events",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "330e1658-86db-214f-6322-034768d77285",
+    "subcategory_id": "a501b2c7-5435-5fdb-d780-7c83e9ca034a",
+    "locale": "en",
+    "name": "Restaurants",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "c1ea088c-ed09-173d-1d4f-32c299602402",
+    "subcategory_id": "d689d17b-2334-d3eb-a6f8-ee2bd50e337c",
+    "locale": "en",
+    "name": "Bars",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "5a78f1c8-6051-e2f5-b70c-ba7648dd5cb3",
+    "subcategory_id": "405ea4fc-456c-4785-37c1-e7f072180419",
+    "locale": "en",
+    "name": "Wineries",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "b0200883-291a-556b-e9d0-f97a1b15083f",
+    "subcategory_id": "7c05ef7f-9a5c-b8a1-dfe2-38bcbfc5283f",
+    "locale": "en",
+    "name": "Cafes",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "d5658ba2-b78a-427d-125e-fc6d7cdb6c0e",
+    "subcategory_id": "c098c718-b4a8-36e0-1a8e-64b0a001ea65",
+    "locale": "en",
+    "name": "Traditional Food",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "ed2f2df1-081b-5e86-f4db-ea0cd079376c",
+    "subcategory_id": "6c03ad78-89ed-71ca-38b2-59ea56a7f169",
+    "locale": "en",
+    "name": "Malls",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "abafc20d-607b-a031-6bec-5e369a588936",
+    "subcategory_id": "898055d9-a2b7-89c3-0640-5ad2e283048f",
+    "locale": "en",
+    "name": "Local Shops",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "774fdea4-68c1-4360-791f-12b3d762acc7",
+    "subcategory_id": "3ed432d6-71f4-c8d3-f87c-94fe6ade4189",
+    "locale": "en",
+    "name": "Souvenirs",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "096166a2-2afc-0bea-b795-0b630aded2fb",
+    "subcategory_id": "999478d4-fea1-8066-45ae-646a9ce253c0",
+    "locale": "en",
+    "name": "Fashion",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "dee1c995-65dd-d89e-ee6c-920b35870b7c",
+    "subcategory_id": "cebd7568-b162-b2e3-f508-b62438bed8fa",
+    "locale": "en",
+    "name": "Crafts",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "bfa3581e-a9d4-bee3-79cf-1d019146cc7b",
+    "subcategory_id": "935c3485-dcd7-62d5-3d9f-e49ed415030b",
+    "locale": "en",
+    "name": "Jewellery",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "1490cb18-8548-d9f2-04d5-fc7b8fd7043b",
+    "subcategory_id": "336d6942-735a-8046-b93c-c4f0a9e60e75",
+    "locale": "en",
+    "name": "Watches",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "b25c46b1-7a0e-cf84-0477-b6dedaf0867f",
+    "subcategory_id": "66ac7224-23aa-c4f9-e8fe-f112b80327df",
+    "locale": "en",
+    "name": "Decoration",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "dead0742-359b-92b0-8002-457fe50c6303",
+    "subcategory_id": "b097b479-797b-6923-b84e-289ca941a5b0",
+    "locale": "en",
+    "name": "Traditional Shops",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "3b32cd6b-1f77-427e-03ae-d38ac855ba91",
+    "subcategory_id": "3bff3360-f247-a0f5-df50-17784bc528df",
+    "locale": "en",
+    "name": "Golf",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "622132bd-907a-00fe-f790-c0ba6769e336",
+    "subcategory_id": "15a6151c-0d2c-3fba-1484-cf00247c39a6",
+    "locale": "en",
+    "name": "Water Sports",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "6923e37f-8210-564a-42ab-93a5b3a37a00",
+    "subcategory_id": "141ab7e6-c3ee-a04c-7f0c-e2e469ef9dad",
+    "locale": "en",
+    "name": "Hiking",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "a76eadcc-4b6e-5704-18b4-9284d615e741",
+    "subcategory_id": "67a8a085-e40f-ae17-b3d3-3d485c6608a0",
+    "locale": "en",
+    "name": "Horse Riding",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "b889b27b-051e-966a-7c39-e66d330c8529",
+    "subcategory_id": "ba737bd0-6f20-8052-3f8d-979520fbcdb4",
+    "locale": "en",
+    "name": "Airport",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "af4cfab9-eccc-6fb5-adae-17d850974bda",
+    "subcategory_id": "7850e1e4-862a-16dc-74d6-1977468478f7",
+    "locale": "en",
+    "name": "Car Rental",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  }
+]

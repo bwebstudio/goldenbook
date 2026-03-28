@@ -1,0 +1,17 @@
+{
+  "countries": {
+    "PT": "e87c510d-53f2-45b4-6c3e-0ecb2ec30397"
+  },
+  "destinations": {
+    "algarve": "64a5271c-b0f5-c07b-b0fa-9201ba11311d",
+    "lisboa": "18d254ba-469d-e767-1bb8-f72ed9a48568",
+    "madeira": "a7077813-b0d1-1f2f-1e3d-68bf5be3670b",
+    "porto": "6a1fff4f-250b-6909-c4fe-31d6daffa0c1"
+  },
+  "media_assets": {
+    "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Falgarve.jpg?alt=media&token=61e3abc9-7464-4811-b921-3ef8c3478e71": "c8f7cd17-2215-f8ee-7f04-a24b5f4af4ec",
+    "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Flisboa.jpg?alt=media&token=c05e2ba8-5b32-4a05-88f4-5cfd5196faa5": "99e1b1b1-e6f0-f57d-e27f-f189b23c72e0",
+    "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Fmadeira.jpg?alt=media&token=0089539f-68de-4e5a-a821-08cf3481465b": "557d7980-b4ad-64a2-1dcc-836f627b0353",
+    "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Fporto.jpg?alt=media&token=de264d90-4a5c-4196-96e4-f5ac96905793": "b186253e-b92e-e869-8ca5-4894e1a677cd"
+  }
+}

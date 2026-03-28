@@ -1,0 +1,82 @@
+[
+  {
+    "id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "activities",
+    "icon_name": "PeopleIcon",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.650Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "activities"
+  },
+  {
+    "id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "slug": "beaches",
+    "icon_name": "BeachIcon",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "beaches"
+  },
+  {
+    "id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "slug": "culture",
+    "icon_name": "HandsIcon",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "culture"
+  },
+  {
+    "id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "slug": "events",
+    "icon_name": "CalendarIcon",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "events"
+  },
+  {
+    "id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "slug": "gastronomy",
+    "icon_name": "PlateIcon",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "gastronomy"
+  },
+  {
+    "id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "shops",
+    "icon_name": "ShopIcon",
+    "sort_order": 5,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "shops"
+  },
+  {
+    "id": "c26a7611-3562-d85a-08df-1b5b5a0dad91",
+    "slug": "sports",
+    "icon_name": "SwimmerIcon",
+    "sort_order": 6,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "sports"
+  },
+  {
+    "id": "09a2b5d0-8eaa-c7d6-44e5-3977242a236e",
+    "slug": "transport",
+    "icon_name": "ServicesIcon",
+    "sort_order": 7,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_id": "transport"
+  }
+]

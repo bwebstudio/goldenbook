@@ -1,0 +1,11 @@
+{
+  "updatedAt": "2026-03-12T21:15:01.752Z",
+  "stats": {
+    "total": 2022,
+    "done": 2015,
+    "uploaded": 2015,
+    "alreadyExisted": 0,
+    "skipped": 0,
+    "failed": 7
+  }
+}

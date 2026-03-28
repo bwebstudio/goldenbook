@@ -1,0 +1,116 @@
+[
+  {
+    "id": "4KIJQEe4YPAjqSt9ZqNZ",
+    "email": "goldenbook.dev@gmail.com",
+    "role": "super_admin",
+    "displayName": "Admin Principal",
+    "active": true,
+    "createdAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-01T20:07:22.311Z"
+    },
+    "createdBy": "system",
+    "permissions": {
+      "canCreateEstablishments": true,
+      "canDeleteEstablishments": true,
+      "canManageUsers": true,
+      "canViewAuditLogs": true
+    }
+  },
+  {
+    "id": "CMz27eUZS2lhemjByBKl",
+    "email": "hencerq@hotmail.com",
+    "displayName": "Henrique",
+    "role": "admin",
+    "active": true,
+    "permissions": {
+      "canCreateEstablishments": true,
+      "canDeleteEstablishments": true,
+      "canManageUsers": false,
+      "canViewAuditLogs": true
+    },
+    "lastModifiedBy": "goldenbook.dev@gmail.com",
+    "createdBy": "goldenbook.dev@gmail.com",
+    "createdAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-03T19:45:02.483Z"
+    },
+    "lastModifiedAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-03T19:45:02.483Z"
+    },
+    "version": 1
+  },
+  {
+    "id": "ZCznlpP04fWYRS4BiSlT",
+    "email": "goldenbookdircom@gmail.com",
+    "displayName": "Joaquim Leitao",
+    "role": "admin",
+    "active": true,
+    "permissions": {
+      "canCreateEstablishments": true,
+      "canDeleteEstablishments": true,
+      "canManageUsers": false,
+      "canViewAuditLogs": true
+    },
+    "lastModifiedBy": "goldenbook.dev@gmail.com",
+    "createdBy": "goldenbook.dev@gmail.com",
+    "createdAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-05T16:07:39.996Z"
+    },
+    "lastModifiedAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-05T16:07:39.996Z"
+    },
+    "version": 1
+  },
+  {
+    "id": "biAcHRzKP2ABfQHRUlXi",
+    "email": "goldenbookprod@gmail.com",
+    "displayName": "Maria Antónia",
+    "role": "admin",
+    "active": true,
+    "permissions": {
+      "canCreateEstablishments": true,
+      "canDeleteEstablishments": true,
+      "canManageUsers": false,
+      "canViewAuditLogs": true
+    },
+    "lastModifiedBy": "goldenbook.dev@gmail.com",
+    "createdBy": "goldenbook.dev@gmail.com",
+    "createdAt": {
+      "_type": "timestamp",
+      "iso": "2025-09-09T10:44:16.550Z"
+    },
+    "lastModifiedAt": {
+      "_type": "timestamp",
+      "iso": "2025-09-09T10:44:16.550Z"
+    },
+    "version": 1
+  },
+  {
+    "id": "pc4HCVJHMAbV2YwnoZSw",
+    "email": "cristina@parafernalia.pt",
+    "displayName": "Cristina Santos",
+    "role": "admin",
+    "active": true,
+    "permissions": {
+      "canCreateEstablishments": true,
+      "canDeleteEstablishments": true,
+      "canManageUsers": false,
+      "canViewAuditLogs": true
+    },
+    "lastModifiedBy": "goldenbook.dev@gmail.com",
+    "createdBy": "goldenbook.dev@gmail.com",
+    "createdAt": {
+      "_type": "timestamp",
+      "iso": "2025-09-09T10:45:32.338Z"
+    },
+    "lastModifiedAt": {
+      "_type": "timestamp",
+      "iso": "2025-09-09T10:45:32.338Z"
+    },
+    "version": 1
+  }
+]

@@ -1,0 +1,412 @@
+[
+  {
+    "id": "02eefb0e-9483-a519-233c-e2d05ff7ebfa",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "hotels",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "activities:hotels"
+  },
+  {
+    "id": "57e5bac2-facc-7060-3a1a-4e496e4bc087",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "tours",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "activities:tours"
+  },
+  {
+    "id": "04781da5-1587-97da-0ec4-38ee1546f8b9",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "experiences",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "activities:experiences"
+  },
+  {
+    "id": "37e012d7-3bb7-9f57-f85f-61a4e0b92e87",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "nightlife",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "activities:nightlife"
+  },
+  {
+    "id": "a9950a06-3c4e-6d00-0afa-9e33ef10635e",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "health_wellness",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "activities:health_wellness"
+  },
+  {
+    "id": "e858f086-d574-7094-ea4c-4d2c5c41e654",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "slug": "real_estate",
+    "sort_order": 5,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "activities:real_estate"
+  },
+  {
+    "id": "e974c458-63c9-6d0c-9c8e-28d1c61f5d74",
+    "category_id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "slug": "parks",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "beaches:parks"
+  },
+  {
+    "id": "efad3dae-95eb-10d4-1af4-e39d4d7e3918",
+    "category_id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "slug": "natural_reserves",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "beaches:natural_reserves"
+  },
+  {
+    "id": "6c5b7ba6-282d-6871-1cfd-9d61591f16cd",
+    "category_id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "slug": "viewpoints",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "beaches:viewpoints"
+  },
+  {
+    "id": "c6462b97-3d9b-35b2-0ed1-1b6ddfa52926",
+    "category_id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "slug": "gardens",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "beaches:gardens"
+  },
+  {
+    "id": "32fe4add-d374-3cba-85ff-5806186531cc",
+    "category_id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "slug": "waterfalls",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "beaches:waterfalls"
+  },
+  {
+    "id": "c7df18e7-f879-87d3-e427-3d4f02d6988d",
+    "category_id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "slug": "museums",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "culture:museums"
+  },
+  {
+    "id": "0b9582eb-75de-02e1-0f33-2abdb40be090",
+    "category_id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "slug": "historical_sites",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "culture:historical_sites"
+  },
+  {
+    "id": "a5c70e80-42b8-b2a7-979d-576de51e6265",
+    "category_id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "slug": "monuments",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "culture:monuments"
+  },
+  {
+    "id": "1787c0b1-31b8-6a18-ff0e-da715ebf05be",
+    "category_id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "slug": "churches",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "culture:churches"
+  },
+  {
+    "id": "8d0c6c0b-fd9a-62f1-fc96-8677902db59e",
+    "category_id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "slug": "galleries",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "culture:galleries"
+  },
+  {
+    "id": "2b2e1ca2-21ca-192a-9415-0a5c74fb4587",
+    "category_id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "slug": "festivals",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "events:festivals"
+  },
+  {
+    "id": "925f07e6-1506-e591-09f3-603217ab900c",
+    "category_id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "slug": "concerts",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "events:concerts"
+  },
+  {
+    "id": "91952d04-8804-214c-4347-b54e8844b2eb",
+    "category_id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "slug": "exhibitions",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "events:exhibitions"
+  },
+  {
+    "id": "7270dc8d-7676-dd4a-f099-13ede22334e9",
+    "category_id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "slug": "fairs",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "events:fairs"
+  },
+  {
+    "id": "1eb2594d-bd7e-773c-340e-c983744641c2",
+    "category_id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "slug": "cultural_events",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "events:cultural_events"
+  },
+  {
+    "id": "a501b2c7-5435-5fdb-d780-7c83e9ca034a",
+    "category_id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "slug": "restaurants",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "gastronomy:restaurants"
+  },
+  {
+    "id": "d689d17b-2334-d3eb-a6f8-ee2bd50e337c",
+    "category_id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "slug": "bars",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "gastronomy:bars"
+  },
+  {
+    "id": "405ea4fc-456c-4785-37c1-e7f072180419",
+    "category_id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "slug": "wineries",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "gastronomy:wineries"
+  },
+  {
+    "id": "7c05ef7f-9a5c-b8a1-dfe2-38bcbfc5283f",
+    "category_id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "slug": "cafes",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "gastronomy:cafes"
+  },
+  {
+    "id": "c098c718-b4a8-36e0-1a8e-64b0a001ea65",
+    "category_id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "slug": "traditional_food",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "gastronomy:traditional_food"
+  },
+  {
+    "id": "6c03ad78-89ed-71ca-38b2-59ea56a7f169",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "malls",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:malls"
+  },
+  {
+    "id": "898055d9-a2b7-89c3-0640-5ad2e283048f",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "local_shops",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:local_shops"
+  },
+  {
+    "id": "3ed432d6-71f4-c8d3-f87c-94fe6ade4189",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "souvenirs",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:souvenirs"
+  },
+  {
+    "id": "999478d4-fea1-8066-45ae-646a9ce253c0",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "fashion",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:fashion"
+  },
+  {
+    "id": "cebd7568-b162-b2e3-f508-b62438bed8fa",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "crafts",
+    "sort_order": 4,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:crafts"
+  },
+  {
+    "id": "935c3485-dcd7-62d5-3d9f-e49ed415030b",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "jewellery",
+    "sort_order": 5,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:jewellery"
+  },
+  {
+    "id": "336d6942-735a-8046-b93c-c4f0a9e60e75",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "watches",
+    "sort_order": 6,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:watches"
+  },
+  {
+    "id": "66ac7224-23aa-c4f9-e8fe-f112b80327df",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "decoration",
+    "sort_order": 7,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:decoration"
+  },
+  {
+    "id": "b097b479-797b-6923-b84e-289ca941a5b0",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "slug": "traditional_shops",
+    "sort_order": 8,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "shops:traditional_shops"
+  },
+  {
+    "id": "3bff3360-f247-a0f5-df50-17784bc528df",
+    "category_id": "c26a7611-3562-d85a-08df-1b5b5a0dad91",
+    "slug": "golf",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "sports:golf"
+  },
+  {
+    "id": "15a6151c-0d2c-3fba-1484-cf00247c39a6",
+    "category_id": "c26a7611-3562-d85a-08df-1b5b5a0dad91",
+    "slug": "water_sports",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "sports:water_sports"
+  },
+  {
+    "id": "141ab7e6-c3ee-a04c-7f0c-e2e469ef9dad",
+    "category_id": "c26a7611-3562-d85a-08df-1b5b5a0dad91",
+    "slug": "hiking",
+    "sort_order": 2,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "sports:hiking"
+  },
+  {
+    "id": "67a8a085-e40f-ae17-b3d3-3d485c6608a0",
+    "category_id": "c26a7611-3562-d85a-08df-1b5b5a0dad91",
+    "slug": "horse_riding",
+    "sort_order": 3,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "sports:horse_riding"
+  },
+  {
+    "id": "ba737bd0-6f20-8052-3f8d-979520fbcdb4",
+    "category_id": "09a2b5d0-8eaa-c7d6-44e5-3977242a236e",
+    "slug": "airport",
+    "sort_order": 0,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "transport:airport"
+  },
+  {
+    "id": "7850e1e4-862a-16dc-74d6-1977468478f7",
+    "category_id": "09a2b5d0-8eaa-c7d6-44e5-3977242a236e",
+    "slug": "car_rental",
+    "sort_order": 1,
+    "is_active": true,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z",
+    "source_firestore_key": "transport:car_rental"
+  }
+]

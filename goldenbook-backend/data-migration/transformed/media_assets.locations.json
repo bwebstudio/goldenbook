@@ -1,0 +1,54 @@
+[
+  {
+    "id": "c8f7cd17-2215-f8ee-7f04-a24b5f4af4ec",
+    "bucket": "locations",
+    "path": "locations/algarve.jpg",
+    "mime_type": "image/jpeg",
+    "width": null,
+    "height": null,
+    "size_bytes": null,
+    "alt_text": "Algarve",
+    "blurhash": null,
+    "original_url": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Falgarve.jpg?alt=media&token=61e3abc9-7464-4811-b921-3ef8c3478e71",
+    "created_at": "2026-03-12T16:37:00.912Z"
+  },
+  {
+    "id": "99e1b1b1-e6f0-f57d-e27f-f189b23c72e0",
+    "bucket": "locations",
+    "path": "locations/lisboa.jpg",
+    "mime_type": "image/jpeg",
+    "width": null,
+    "height": null,
+    "size_bytes": null,
+    "alt_text": "Lisboa",
+    "blurhash": null,
+    "original_url": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Flisboa.jpg?alt=media&token=c05e2ba8-5b32-4a05-88f4-5cfd5196faa5",
+    "created_at": "2026-03-12T16:37:00.912Z"
+  },
+  {
+    "id": "557d7980-b4ad-64a2-1dcc-836f627b0353",
+    "bucket": "locations",
+    "path": "locations/madeira.jpg",
+    "mime_type": "image/jpeg",
+    "width": null,
+    "height": null,
+    "size_bytes": null,
+    "alt_text": "Madeira",
+    "blurhash": null,
+    "original_url": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Fmadeira.jpg?alt=media&token=0089539f-68de-4e5a-a821-08cf3481465b",
+    "created_at": "2026-03-12T16:37:00.912Z"
+  },
+  {
+    "id": "b186253e-b92e-e869-8ca5-4894e1a677cd",
+    "bucket": "locations",
+    "path": "locations/porto.jpg",
+    "mime_type": "image/jpeg",
+    "width": null,
+    "height": null,
+    "size_bytes": null,
+    "alt_text": "Porto",
+    "blurhash": null,
+    "original_url": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Fporto.jpg?alt=media&token=de264d90-4a5c-4196-96e4-f5ac96905793",
+    "created_at": "2026-03-12T16:37:00.912Z"
+  }
+]

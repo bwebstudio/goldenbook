@@ -1,0 +1,129 @@
+[
+  {
+    "id": "activities",
+    "icon": "PeopleIcon",
+    "title": "Stay & Do",
+    "subcategories": [
+      "hotels",
+      "tours",
+      "experiences",
+      "nightlife",
+      "health_wellness",
+      "real_estate"
+    ]
+  },
+  {
+    "id": "beaches",
+    "title": "Nature",
+    "icon": "BeachIcon",
+    "subcategories": [
+      "parks",
+      "natural_reserves",
+      "viewpoints",
+      "gardens",
+      "waterfalls"
+    ]
+  },
+  {
+    "id": "culture",
+    "title": "Culture",
+    "icon": "HandsIcon",
+    "updateNote": "Removed unused subcategories",
+    "lastUpdatedAt": {
+      "_type": "timestamp",
+      "iso": "2025-10-01T16:47:47.002Z"
+    },
+    "subcategories": [
+      "museums",
+      "historical_sites",
+      "monuments",
+      "churches",
+      "galleries"
+    ]
+  },
+  {
+    "id": "events",
+    "title": "Events",
+    "icon": "CalendarIcon",
+    "updateNote": "Removed unused subcategories",
+    "lastUpdatedAt": {
+      "_type": "timestamp",
+      "iso": "2025-10-01T16:47:47.002Z"
+    },
+    "subcategories": [
+      "festivals",
+      "concerts",
+      "exhibitions",
+      "fairs",
+      "cultural_events"
+    ]
+  },
+  {
+    "id": "gastronomy",
+    "title": "Food & Drinks",
+    "icon": "PlateIcon",
+    "updateNote": "Removed unused subcategories",
+    "lastUpdatedAt": {
+      "_type": "timestamp",
+      "iso": "2025-10-01T16:47:47.002Z"
+    },
+    "subcategories": [
+      "restaurants",
+      "bars",
+      "wineries",
+      "cafes",
+      "traditional_food"
+    ]
+  },
+  {
+    "id": "shops",
+    "title": "Shopping",
+    "icon": "ShopIcon",
+    "updateNote": "Removed unused subcategories",
+    "lastUpdatedAt": {
+      "_type": "timestamp",
+      "iso": "2025-10-01T16:47:47.002Z"
+    },
+    "subcategories": [
+      "malls",
+      "local_shops",
+      "souvenirs",
+      "fashion",
+      "crafts",
+      "jewellery",
+      "watches",
+      "decoration",
+      "traditional_shops"
+    ]
+  },
+  {
+    "id": "sports",
+    "title": "Sports",
+    "icon": "SwimmerIcon",
+    "updateNote": "Removed unused subcategories",
+    "lastUpdatedAt": {
+      "_type": "timestamp",
+      "iso": "2025-10-01T16:47:47.002Z"
+    },
+    "subcategories": [
+      "golf",
+      "water_sports",
+      "hiking",
+      "horse_riding"
+    ]
+  },
+  {
+    "id": "transport",
+    "title": "Transport",
+    "icon": "ServicesIcon",
+    "updateNote": "Removed unused subcategories",
+    "lastUpdatedAt": {
+      "_type": "timestamp",
+      "iso": "2025-10-01T16:47:47.002Z"
+    },
+    "subcategories": [
+      "airport",
+      "car_rental"
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "3ea7bfb0-9f5f-da71-d4e2-7b5109f7bd2d",
+    "destination_id": "64a5271c-b0f5-c07b-b0fa-9201ba11311d",
+    "locale": "pt",
+    "name": "Algarve",
+    "description": null,
+    "created_at": "2026-03-12T16:37:00.912Z",
+    "updated_at": "2026-03-12T16:37:00.912Z"
+  },
+  {
+    "id": "f1639197-2844-7969-6cc7-aa6dca3a9642",
+    "destination_id": "18d254ba-469d-e767-1bb8-f72ed9a48568",
+    "locale": "pt",
+    "name": "Lisboa",
+    "description": null,
+    "created_at": "2026-03-12T16:37:00.912Z",
+    "updated_at": "2026-03-12T16:37:00.912Z"
+  },
+  {
+    "id": "021eab0a-3ba6-815c-42ba-ead2c7e69d11",
+    "destination_id": "a7077813-b0d1-1f2f-1e3d-68bf5be3670b",
+    "locale": "pt",
+    "name": "Madeira",
+    "description": null,
+    "created_at": "2026-03-12T16:37:00.912Z",
+    "updated_at": "2026-03-12T16:37:00.912Z"
+  },
+  {
+    "id": "47fbb53d-713b-9144-5197-5575a303a9be",
+    "destination_id": "6a1fff4f-250b-6909-c4fe-31d6daffa0c1",
+    "locale": "pt",
+    "name": "Porto",
+    "description": null,
+    "created_at": "2026-03-12T16:37:00.912Z",
+    "updated_at": "2026-03-12T16:37:00.912Z"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/Users/rominasanchezpomier/Desktop/Proyectos/GoldenbookApp/goldenbook-clean/src/components/concierge",
+      "/Users/rominasanchezpomier/Desktop/Proyectos/GoldenbookApp/goldenbook-clean/src/components",
+      "/Users/rominasanchezpomier/Desktop/Proyectos/GoldenbookApp/goldenbook-clean"
+    ],
+    "allow": [
+      "Bash(grep -r background /Users/rominasanchezpomier/Desktop/Proyectos/GoldenbookApp/goldenbook-backend/mobile-app/src/design --include=*.ts)"
+    ]
+  }
+}

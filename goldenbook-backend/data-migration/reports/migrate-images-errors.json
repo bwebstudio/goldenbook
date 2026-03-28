@@ -1,0 +1,58 @@
+[
+  {
+    "bucket": "establishments",
+    "path": "establishments/1763993994830_1763993922597_pizu0t.jpg",
+    "normalizedPath": "1763993994830_1763993922597_pizu0t.jpg",
+    "original_url": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/establishments%2F1763993994830_1763993922597_pizu0t.jpg?alt=media&token=f3a2c551-3f27-4537-a52c-61cbdb220a4d",
+    "message": "Bad Gateway",
+    "at": "2026-03-12T21:11:26.796Z"
+  },
+  {
+    "bucket": "drive",
+    "path": "drive/folders/18p6oLmp34GLQBvUCoX0jno7p0GyAAW05",
+    "normalizedPath": "folders/18p6oLmp34GLQBvUCoX0jno7p0GyAAW05",
+    "original_url": "https://drive.google.com/drive/folders/18p6oLmp34GLQBvUCoX0jno7p0GyAAW05?usp=drive_link",
+    "message": "Bucket not found",
+    "at": "2026-03-12T21:11:36.269Z"
+  },
+  {
+    "bucket": "drive",
+    "path": "drive/folders/1B2OjAvfCqDUpRbK7_6euUApi8ur2Tmr2",
+    "normalizedPath": "folders/1B2OjAvfCqDUpRbK7_6euUApi8ur2Tmr2",
+    "original_url": "https://drive.google.com/drive/folders/1B2OjAvfCqDUpRbK7_6euUApi8ur2Tmr2?usp=drive_link",
+    "message": "Bucket not found",
+    "at": "2026-03-12T21:11:59.186Z"
+  },
+  {
+    "bucket": "drive",
+    "path": "drive/folders/1iS8wvo3yjCkxgYqY_71-HCLUZSkTrWkN",
+    "normalizedPath": "folders/1iS8wvo3yjCkxgYqY_71-HCLUZSkTrWkN",
+    "original_url": "https://drive.google.com/drive/folders/1iS8wvo3yjCkxgYqY_71-HCLUZSkTrWkN?usp=drive_link",
+    "message": "Bucket not found",
+    "at": "2026-03-12T21:12:36.273Z"
+  },
+  {
+    "bucket": "drive",
+    "path": "drive/folders/1oQ1U5me_kJmiqa-gE8m2dJZGuG8o-OWk",
+    "normalizedPath": "folders/1oQ1U5me_kJmiqa-gE8m2dJZGuG8o-OWk",
+    "original_url": "https://drive.google.com/drive/folders/1oQ1U5me_kJmiqa-gE8m2dJZGuG8o-OWk?usp=drive_link",
+    "message": "Bucket not found",
+    "at": "2026-03-12T21:13:19.575Z"
+  },
+  {
+    "bucket": "drive",
+    "path": "drive/folders/1AhuB2ncq39tx5gHvZFTCCtsQix8yvB5f",
+    "normalizedPath": "folders/1AhuB2ncq39tx5gHvZFTCCtsQix8yvB5f",
+    "original_url": "https://drive.google.com/drive/folders/1AhuB2ncq39tx5gHvZFTCCtsQix8yvB5f?usp=drive_link",
+    "message": "Bucket not found",
+    "at": "2026-03-12T21:14:37.173Z"
+  },
+  {
+    "bucket": "establishments",
+    "path": "establishments/vila-da-carne-restaurante-madeira/image-2.jpg",
+    "normalizedPath": "vila-da-carne-restaurante-madeira/image-2.jpg",
+    "original_url": "drive.google.com/drive/folders/1hHN7gPWF_nzp4_e91wlMeKo1uZQFqfF8?usp=drive_link",
+    "message": "Failed to parse URL from drive.google.com/drive/folders/1hHN7gPWF_nzp4_e91wlMeKo1uZQFqfF8?usp=drive_link",
+    "at": "2026-03-12T21:14:45.446Z"
+  }
+]

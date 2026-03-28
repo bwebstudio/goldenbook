@@ -1,0 +1,50 @@
+[
+  {
+    "id": "algarve",
+    "name": "Algarve",
+    "country": "Portugal",
+    "featured": true,
+    "image": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Falgarve.jpg?alt=media&token=61e3abc9-7464-4811-b921-3ef8c3478e71",
+    "imageVersions": {
+      "thumbnail": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/algarve_thumbnail.jpg",
+      "medium": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/algarve_medium.jpg",
+      "original": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/algarve_original.jpg"
+    }
+  },
+  {
+    "id": "lisboa",
+    "name": "Lisboa",
+    "country": "Portugal",
+    "featured": true,
+    "image": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Flisboa.jpg?alt=media&token=c05e2ba8-5b32-4a05-88f4-5cfd5196faa5",
+    "imageVersions": {
+      "thumbnail": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/lisboa_thumbnail.jpg",
+      "medium": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/lisboa_medium.jpg",
+      "original": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/lisboa_original.jpg"
+    }
+  },
+  {
+    "id": "madeira",
+    "name": "Madeira",
+    "country": "Portugal",
+    "featured": true,
+    "image": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Fmadeira.jpg?alt=media&token=0089539f-68de-4e5a-a821-08cf3481465b",
+    "imageVersions": {
+      "thumbnail": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/madeira_thumbnail.jpg",
+      "medium": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/madeira_medium.jpg",
+      "original": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/madeira_original.jpg"
+    }
+  },
+  {
+    "id": "porto",
+    "name": "Porto",
+    "country": "Portugal",
+    "featured": true,
+    "image": "https://firebasestorage.googleapis.com/v0/b/goldenbook-a1cd1.firebasestorage.app/o/locations%2Fporto.jpg?alt=media&token=de264d90-4a5c-4196-96e4-f5ac96905793",
+    "imageVersions": {
+      "thumbnail": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/porto_thumbnail.jpg",
+      "medium": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/porto_medium.jpg",
+      "original": "https://storage.googleapis.com/goldenbook-a1cd1.firebasestorage.app/locations/porto_original.jpg"
+    }
+  }
+]

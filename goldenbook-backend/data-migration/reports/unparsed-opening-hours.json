@@ -1,0 +1,922 @@
+[
+  {
+    "source_firestore_id": "1811-bistro-restaurante-madeira",
+    "raw_segment": "18:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "5-oceanos-lisboa",
+    "raw_segment": "Domingo (Reservas até – 16:00): 12:00 - 17:00"
+  },
+  {
+    "source_firestore_id": "a-casa-vegetariana",
+    "raw_segment": "12:00 – 16:00 & 19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "a-cozinha-por-antonio-loureiro-porto",
+    "raw_segment": "Domingo e segunda: Encerrado"
+  },
+  {
+    "source_firestore_id": "a-lagosteira-algarve",
+    "raw_segment": "12:00 – 23:30"
+  },
+  {
+    "source_firestore_id": "a-marisqueira-de-matosinhos-porto",
+    "raw_segment": "segunda / monday: encerrado/ closed\nterça-feira /t uesday: 12:00 - 23:30\nquarta-feira / Wednesday: 12:00 - 23:30\nquinta-feira / thursday: 12:00 - 23:30\nsexta-feira / friday: 12:00 - 23:30\nsábado / saturday: 12:00 - 23:30\ndomingo / sunday: 12:00 - 15:30"
+  },
+  {
+    "source_firestore_id": "acosta-by-olivier-algarve",
+    "raw_segment": "11:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "acqua-restaurant-hotel-ga-palace-porto",
+    "raw_segment": "10:00 – 00:00"
+  },
+  {
+    "source_firestore_id": "adega-do-cantor-algarve",
+    "raw_segment": "11:00 ou 14:30"
+  },
+  {
+    "source_firestore_id": "adega-do-convento-lisboa",
+    "raw_segment": "Sexta e Sábado: Até – 00:00"
+  },
+  {
+    "source_firestore_id": "adega-do-pomar-madeira",
+    "raw_segment": "Todos os dias: 11:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "al-quimia-algarve",
+    "raw_segment": "Terça a sábado 19:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "al-sud-algarve",
+    "raw_segment": "Domingo e Segunda-feira: Fechado"
+  },
+  {
+    "source_firestore_id": "alexandra-matias-lisboa",
+    "raw_segment": "10:30 – 19:00"
+  },
+  {
+    "source_firestore_id": "amara-restaurant-algarve",
+    "raw_segment": "18:30 - 22:00"
+  },
+  {
+    "source_firestore_id": "amendoeira-golf-resort-algarve",
+    "raw_segment": "16:00 – 00:00"
+  },
+  {
+    "source_firestore_id": "armazens-do-chiado-lisboa",
+    "raw_segment": "Lojas: 10:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "armazens-do-chiado-lisboa",
+    "raw_segment": "Restaurantes: 10:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "arouca-geopark-porto",
+    "raw_segment": "14:00 - 17:30"
+  },
+  {
+    "source_firestore_id": "as-vides-madeira",
+    "raw_segment": "12:00 – 16:00"
+  },
+  {
+    "source_firestore_id": "as-vides-madeira",
+    "raw_segment": "19:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "as-vistas-restaurant-madeira",
+    "raw_segment": "Almoço: 12:30 – 15:30"
+  },
+  {
+    "source_firestore_id": "as-vistas-restaurant-madeira",
+    "raw_segment": "Jantar: 19:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "asia-connection-porto",
+    "raw_segment": "Domingo a quinta, 18:00 – 2:00"
+  },
+  {
+    "source_firestore_id": "asia-connection-porto",
+    "raw_segment": "Sextas e sábados, 18:00 – 2:30"
+  },
+  {
+    "source_firestore_id": "atlantic-rentacar-madeira",
+    "raw_segment": "08:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "atlantico-algarve",
+    "raw_segment": "19:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "atrevo-porto",
+    "raw_segment": "Sábado 12:30 - 15:00 e 19:00 - 22:30"
+  },
+  {
+    "source_firestore_id": "atrevo-porto",
+    "raw_segment": "Terça a sexta 19:00 - 22:30"
+  },
+  {
+    "source_firestore_id": "away-spa-algarve",
+    "raw_segment": "10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "bairro-do-avillez",
+    "raw_segment": "Taberna / Esplanada – Todos os dias: 12h00 – 00h00\nPáteo – Todos os dias: 12h30 – 15h00 & 18h30 – 23h00\nMini Bar – Domingo a Quartas: 19h00 – 01h00"
+  },
+  {
+    "source_firestore_id": "bairro-do-avillez",
+    "raw_segment": "Quintas: 19h00 – 02h00"
+  },
+  {
+    "source_firestore_id": "bairro-do-avillez",
+    "raw_segment": "Sextas e Sábados: 19h00 – 03h30\nPizzaria Lisboa – Segunda a sexta: 18h30 – 23h00"
+  },
+  {
+    "source_firestore_id": "bairro-do-avillez",
+    "raw_segment": "Sábado e domingo: 12h30 – 15h00 | 18h30 – 23h00"
+  },
+  {
+    "source_firestore_id": "be-we-concept",
+    "raw_segment": "Verão: 11:00 – 20:00\nInverno: 10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "bierhaus-porto",
+    "raw_segment": "Segunda a quinta, 18:00 – 02:00"
+  },
+  {
+    "source_firestore_id": "bierhaus-porto",
+    "raw_segment": "Sextas e sábados, 18:00 – 03:00"
+  },
+  {
+    "source_firestore_id": "binter-linhas-aereas-das-canarias-madeira",
+    "raw_segment": "6:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "blandys-wine-lodge-madeira",
+    "raw_segment": "14h00 – 18:00"
+  },
+  {
+    "source_firestore_id": "blandys-wine-lodge-madeira",
+    "raw_segment": "Feriados: Aberto(exceto datas específicas)"
+  },
+  {
+    "source_firestore_id": "brasa-fire-cocktails-madeira",
+    "raw_segment": "11:00 – 00:00"
+  },
+  {
+    "source_firestore_id": "brilhivitrine-madeira",
+    "raw_segment": "15:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "cabriolet-experiences-madeira",
+    "raw_segment": "Tours de dia inteiro(8 horas): Geralmente iniciam entre as 8:30"
+  },
+  {
+    "source_firestore_id": "cabriolet-experiences-madeira",
+    "raw_segment": "9:00"
+  },
+  {
+    "source_firestore_id": "cabriolet-experiences-madeira",
+    "raw_segment": "terminam por volta: 17:00"
+  },
+  {
+    "source_firestore_id": "cabriolet-experiences-madeira",
+    "raw_segment": "Tours de meio-dia (4 horas): Normalmente realizados de manhã ou à tarde, com horários específicos dependendo do itinerário"
+  },
+  {
+    "source_firestore_id": "cafe-do-teatro-madeira",
+    "raw_segment": "08:00 – 00:00"
+  },
+  {
+    "source_firestore_id": "cafeteria-algarve",
+    "raw_segment": "11:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "casa-da-guia-lisboa",
+    "raw_segment": "Palacete, Comércio e Serviços: 10:00 - 19:00 (Outubro a Abril)"
+  },
+  {
+    "source_firestore_id": "casa-da-guia-lisboa",
+    "raw_segment": "10:00 - 20:00 (Maio a Setembro)"
+  },
+  {
+    "source_firestore_id": "casa-da-guia-lisboa",
+    "raw_segment": "Restaurantes: 10:00 - 23:30"
+  },
+  {
+    "source_firestore_id": "casa-da-musica-porto",
+    "raw_segment": "Domingos e Feriados: 10:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "casa-do-livro-porto",
+    "raw_segment": "Segunda a quinta-feira e Domingo: 21h00 – 03:00"
+  },
+  {
+    "source_firestore_id": "casa-do-livro-porto",
+    "raw_segment": "Sexta-feira e sábado: 21h00 – 04h00"
+  },
+  {
+    "source_firestore_id": "casal-da-penha-restaurante-madeira",
+    "raw_segment": "17h30 – 22:00"
+  },
+  {
+    "source_firestore_id": "casarao-do-castelo-porto",
+    "raw_segment": "Encerrado: Domingos da parte da tarde e segunda o dia todo."
+  },
+  {
+    "source_firestore_id": "centro-comercial-colombo-lisboa",
+    "raw_segment": "10:00 - 24:00"
+  },
+  {
+    "source_firestore_id": "centro-vasco-da-gama",
+    "raw_segment": "09:00 – 24:00"
+  },
+  {
+    "source_firestore_id": "convento-das-vinhas-madeira",
+    "raw_segment": "12:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "coolzoone-madeira",
+    "raw_segment": "10:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "culto-ao-bacalhau-porto",
+    "raw_segment": "Feriados: 12h30 – 16h30 e 18h30 – 22h30"
+  },
+  {
+    "source_firestore_id": "david-rosas-algarve",
+    "raw_segment": "10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "david-rosas-liberdade-lisboa",
+    "raw_segment": "Sexta e Sábado: 10:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "desarma-restaurante-madeira",
+    "raw_segment": "19:00 – 21:00"
+  },
+  {
+    "source_firestore_id": "dona-maria-restaurante-porto",
+    "raw_segment": "Sábado e Domingo: 13:00 – 15h00 (almoço) e 19h30 – 22h30 (jantar)"
+  },
+  {
+    "source_firestore_id": "dop-restaurant-porto",
+    "raw_segment": "Jantar: 19h30 – 23:00"
+  },
+  {
+    "source_firestore_id": "el-corte-ingles",
+    "raw_segment": "10:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "embassy",
+    "raw_segment": "Seg-sáb: 10:30 – 19:00"
+  },
+  {
+    "source_firestore_id": "engenhos-do-norte-madeira",
+    "raw_segment": "segunda a sexta-feira 9:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "engenhos-do-norte-madeira",
+    "raw_segment": "sábados a domingos: 10:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "enseada-food-and-drinks-madeira",
+    "raw_segment": "segunda a sábado 16:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "enseada-food-and-drinks-madeira",
+    "raw_segment": "Domingos: fechado"
+  },
+  {
+    "source_firestore_id": "escondidinho-restaurante-porto",
+    "raw_segment": "19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "fabrica-do-ribeiro-seco-madeira",
+    "raw_segment": "14h00 – 18:00"
+  },
+  {
+    "source_firestore_id": "fabrica-do-ribeiro-seco-madeira",
+    "raw_segment": "Sábado e Domingo: Fechado"
+  },
+  {
+    "source_firestore_id": "fado-no-porto-porto",
+    "raw_segment": "Quarta-feira a domingo 13:00 - 00:00"
+  },
+  {
+    "source_firestore_id": "federico-lisboa",
+    "raw_segment": "Almoço: 12:30 – 15:00"
+  },
+  {
+    "source_firestore_id": "federico-lisboa",
+    "raw_segment": "Jantar: 19:30 – 22:30"
+  },
+  {
+    "source_firestore_id": "forum-algarve-algarve",
+    "raw_segment": "10:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "frente-mar-funchal-barreirinha-madeira",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "frente-mar-funchal-doca-do-cavacas-madeira",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "frente-mar-funchal-lido-madeira",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "frente-mar-funchal-ponta-gorda-madeira",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "fundacao-de-serralves-porto",
+    "raw_segment": "Parque e Museu de Arte Contemporânea: Segunda a Sexta-feira: 10:00 – 19h00"
+  },
+  {
+    "source_firestore_id": "fundacao-de-serralves-porto",
+    "raw_segment": "Sábado, Domingo e feriados: 10:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "fundacao-de-serralves-porto",
+    "raw_segment": "Casa de Serralves: Segunda a domingo: 10:00 – 18h00"
+  },
+  {
+    "source_firestore_id": "fundacao-de-serralves-porto",
+    "raw_segment": "Loja e Bilheteira: Segunda a domingo: 10:00 – 19h00"
+  },
+  {
+    "source_firestore_id": "fundacao-de-serralves-porto",
+    "raw_segment": "Livraria (Museu): Segunda a domingo: 10:00 – 19h00"
+  },
+  {
+    "source_firestore_id": "green-devil-safari-madeira",
+    "raw_segment": "Tours de dia inteiro(8 horas): Geralmente iniciam entre as 8:30 e as 9:00 e terminam por volta: 17:00"
+  },
+  {
+    "source_firestore_id": "green-devil-safari-madeira",
+    "raw_segment": "Tours de meio-dia(4 horas): Normalmente realizados de manhã ou à tarde, com horários específicos dependendo do itinerário"
+  },
+  {
+    "source_firestore_id": "henriques-henriques-madeira",
+    "raw_segment": "Aberto Segunda a Sexta: 9:00 – 13:00"
+  },
+  {
+    "source_firestore_id": "henriques-henriques-madeira",
+    "raw_segment": "Das 14:30 – 17:30"
+  },
+  {
+    "source_firestore_id": "hool-porto",
+    "raw_segment": "19:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "hool-porto",
+    "raw_segment": "Sexta-feira e Sábado: 12:00 – 15:00"
+  },
+  {
+    "source_firestore_id": "hool-porto",
+    "raw_segment": "19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "hool-porto",
+    "raw_segment": "19:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "infinity-haus-real-estate-design-porto",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "interforma-algarve",
+    "raw_segment": "10:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "irish-pub-vilamoura-algarve",
+    "raw_segment": "17:00 – 04:00"
+  },
+  {
+    "source_firestore_id": "joalharia-ferreira-marques",
+    "raw_segment": "Segunda à Sexta: 10h - 19h30\nSábado: 10h – 13h\nDomingo: Fechado"
+  },
+  {
+    "source_firestore_id": "ka-kendall-associados-algarve",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "ka-kendall-associados-porto",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "la-ao-fundo-restaurante-madeira",
+    "raw_segment": "12:00 – 24:00"
+  },
+  {
+    "source_firestore_id": "la-cigale-algarve",
+    "raw_segment": "Almoço 12:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "la-cigale-algarve",
+    "raw_segment": "Jantar 17:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "la-fragata-algarve",
+    "raw_segment": "17:00 – 04:00"
+  },
+  {
+    "source_firestore_id": "lapa-lapa-porto",
+    "raw_segment": "Sexta-feira e Sábado: 12:30 – 01:00"
+  },
+  {
+    "source_firestore_id": "lighthouse-carvoeiro-algarve",
+    "raw_segment": "Segunda-Sábado: 11:00 até tarde"
+  },
+  {
+    "source_firestore_id": "lighthouse-carvoeiro-algarve",
+    "raw_segment": "Almoço: 12:00-17:00"
+  },
+  {
+    "source_firestore_id": "lighthouse-carvoeiro-algarve",
+    "raw_segment": "Jantar a partir 18:00"
+  },
+  {
+    "source_firestore_id": "lisboa-a-noite-lisboa",
+    "raw_segment": "Sexta-feira, Sábado e Vésperas de Feriado: 19:30 – 01:00"
+  },
+  {
+    "source_firestore_id": "loja-das-meias-cascais-lisboa",
+    "raw_segment": "Segunda a sábado das 10:30 – 19:00"
+  },
+  {
+    "source_firestore_id": "loja-das-meias-lisboa-lisboa",
+    "raw_segment": "Lisboa (Amoreiras): Todos os dias das 10:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "loja-do-cha-madeira-madeira",
+    "raw_segment": "Sábados e domingos: 08:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "loja-do-cha-madeira-plaza-madeira-madeira",
+    "raw_segment": "09:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "loja-dos-vinhos-madeira",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "lume-pizzeria-napoletana-madeira",
+    "raw_segment": "Domingos: 12:30 – 15:30 (almoço)"
+  },
+  {
+    "source_firestore_id": "machado-joalheiro-porto",
+    "raw_segment": "Sábado e Domingo: Encerrado"
+  },
+  {
+    "source_firestore_id": "madeira-exquisite-food-on-foot-tours-madeira",
+    "raw_segment": "Duração: 3h30 a 4h"
+  },
+  {
+    "source_firestore_id": "madeira-exquisite-food-on-foot-tours-madeira",
+    "raw_segment": "Duração: 2h Workshop de Pastel de Nata"
+  },
+  {
+    "source_firestore_id": "madeira-legacy-madeira",
+    "raw_segment": "09:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "madeira-radical-madeira",
+    "raw_segment": "10:00 – 13:00"
+  },
+  {
+    "source_firestore_id": "madeira-radical-madeira",
+    "raw_segment": "15:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "madpoint-madeira",
+    "raw_segment": "09:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "mae-porto",
+    "raw_segment": "Sábado e domingo: Almoço: 12:30 – 15:00 Jantar: 18:30 – 23:30"
+  },
+  {
+    "source_firestore_id": "makan-madeira-madeira",
+    "raw_segment": "18:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "mar-do-inferno-restaurante-lisboa",
+    "raw_segment": "12:30 – 22h"
+  },
+  {
+    "source_firestore_id": "mar-do-inferno-restaurante-lisboa",
+    "raw_segment": "Quartas-feiras: Fechado"
+  },
+  {
+    "source_firestore_id": "marina-com-noelia-algarve",
+    "raw_segment": "12:30 – 15:00"
+  },
+  {
+    "source_firestore_id": "marina-com-noelia-algarve",
+    "raw_segment": "19:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "mariscar-porto",
+    "raw_segment": "Domingo e segunda: 12:30 – 23:00"
+  },
+  {
+    "source_firestore_id": "mariscar-porto",
+    "raw_segment": "Terça a quinta 15:30 – 23:00"
+  },
+  {
+    "source_firestore_id": "mariscar-porto",
+    "raw_segment": "Sexta e Sábado: 12:30 – 00:00"
+  },
+  {
+    "source_firestore_id": "medicbite-clinic-madeira",
+    "raw_segment": "09:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "mercado-do-bom-sucesso-porto",
+    "raw_segment": "Sexta-feira, sábado e véspera de feriados: 08:00 – 24:00"
+  },
+  {
+    "source_firestore_id": "monte-palace-madeira-madeira",
+    "raw_segment": "Jardim Tropical: Aberto diariamente: 09:30 – 18:00"
+  },
+  {
+    "source_firestore_id": "monte-palace-madeira-madeira",
+    "raw_segment": "Museu Monte Palace: Aberto diariamente: 10:00 – 16:30"
+  },
+  {
+    "source_firestore_id": "mud-factory-under-design-porto",
+    "raw_segment": "10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "municipio-da-calheta-madeira",
+    "raw_segment": "09:00 – 16:00"
+  },
+  {
+    "source_firestore_id": "municipio-de-almada-lisboa",
+    "raw_segment": "Segunda a sexta, das 9:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "municipio-de-camara-de-lobos-madeira",
+    "raw_segment": "09:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "municipio-de-porto-moniz-madeira",
+    "raw_segment": "Sábados: 10:00 – 12:30"
+  },
+  {
+    "source_firestore_id": "municipio-de-santa-cruz-madeira",
+    "raw_segment": "Segunda a sexta-feira,: 09:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "municipio-de-sintra-lisboa",
+    "raw_segment": "Segunda a sexta, das 9:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "municipio-do-funchal-madeira",
+    "raw_segment": "feriados: 09:00 – 15:30"
+  },
+  {
+    "source_firestore_id": "nameza-restaurante-lisboa",
+    "raw_segment": "Domingo e Segunda-feira: Fechado"
+  },
+  {
+    "source_firestore_id": "nataliya-roso-properties-algarve",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "norma-porto",
+    "raw_segment": "Domingo e Segunda: Encerrado"
+  },
+  {
+    "source_firestore_id": "novo-casarao-do-castelo-porto",
+    "raw_segment": "Segunda e Quinta a domingo: 12:00 – 15:00 e 19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "o-gaveto-restaurante-porto",
+    "raw_segment": "Segunda, Quarta a domingo: 12:00 – 23:30"
+  },
+  {
+    "source_firestore_id": "olive-algarve",
+    "raw_segment": "10:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "olive-algarve",
+    "raw_segment": "10:00 – 22h30"
+  },
+  {
+    "source_firestore_id": "optica-da-se-madeira",
+    "raw_segment": "Sábados: 09:00 – 13:00"
+  },
+  {
+    "source_firestore_id": "optica-jomil-lisboa",
+    "raw_segment": "Segunda a sexta-feira, das 10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "optica-jomil-lisboa",
+    "raw_segment": "Sábado, das 10:00 – 13:00"
+  },
+  {
+    "source_firestore_id": "palacio-biester",
+    "raw_segment": "10:00 – 18:30"
+  },
+  {
+    "source_firestore_id": "palacio-da-bolsa-porto",
+    "raw_segment": "Novembro a março: 09:00 - 12:30 / 14:00 - 17h30"
+  },
+  {
+    "source_firestore_id": "palacio-da-bolsa-porto",
+    "raw_segment": "Abril a outubro: 09:00 - 18:30"
+  },
+  {
+    "source_firestore_id": "palm-spot-restaurant-madeira",
+    "raw_segment": "12:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "parrilla-natural-algarve",
+    "raw_segment": "VERÃO: De maio a outubro, aberto para jantar de segunda a sábado, 18h até tarde"
+  },
+  {
+    "source_firestore_id": "parrilla-natural-algarve",
+    "raw_segment": "INVERNO: De novembro a abril, aberto para jantar de quarta a sábado, 18h até tarde, e aos domingos para almoço."
+  },
+  {
+    "source_firestore_id": "parrilla-natural-algarve",
+    "raw_segment": "Fechado: segunda e terças-feiras."
+  },
+  {
+    "source_firestore_id": "passeio-dos-clerigos-porto",
+    "raw_segment": "Moda e ótica: Segunda a sábado:10:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "passeio-dos-clerigos-porto",
+    "raw_segment": "Domingo e feriados: 11:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "passeio-dos-clerigos-porto",
+    "raw_segment": "Restauração: 12:00 – 23h00"
+  },
+  {
+    "source_firestore_id": "passeio-dos-clerigos-porto",
+    "raw_segment": "Fim-de-semana: até 01:00"
+  },
+  {
+    "source_firestore_id": "passeio-dos-clerigos-porto",
+    "raw_segment": "Cafetaria: 9:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "patek-philippe",
+    "raw_segment": "Seg. a sáb: 10:00 – 13:00 & 14:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "paulo-miranda-joalheiro-algarve",
+    "raw_segment": "10:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "peixaria-no-mercado-madeira",
+    "raw_segment": "11:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "pinetrees-riding-centre-algarve",
+    "raw_segment": "Feriados: 09:30 – 13:30"
+  },
+  {
+    "source_firestore_id": "poncha-da-imperatriz-wine-food-madeira",
+    "raw_segment": "Sexta e Sábado: 16:00 – 02:0"
+  },
+  {
+    "source_firestore_id": "portaliano-madeira",
+    "raw_segment": "Sexta-feira e Sábado: 12:00 – 15:00 / 18:00 – 21:30"
+  },
+  {
+    "source_firestore_id": "porto-santa-maria-lisboa",
+    "raw_segment": "Segunda a domingo, das 12:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "porto-santo-line-madeira",
+    "raw_segment": "Outubro a Dezembro: Segunda a sexta-feira: 9:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "porto-santo-line-madeira",
+    "raw_segment": "Sábados e domingos: 9:00 – 13:00 / 14:30 – 18:00"
+  },
+  {
+    "source_firestore_id": "porto-santo-line-madeira",
+    "raw_segment": "Junho a Setembro: Segunda a domingo: 9:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "pregar-porto",
+    "raw_segment": "Sexta e Sábado: 12:00 - 00:00"
+  },
+  {
+    "source_firestore_id": "prima-caju-madeira",
+    "raw_segment": "Sábados, Domingos, Feriados: 10:00 – 16:00"
+  },
+  {
+    "source_firestore_id": "primavera-ristorante-trattoria-algarve",
+    "raw_segment": "12:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "privaty-luxury-collection-algarve",
+    "raw_segment": "9:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "quinta-de-faro-algarve",
+    "raw_segment": "9:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "quinta-dos-sentidos-algarve",
+    "raw_segment": "9:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "refuse-lisboa",
+    "raw_segment": "Segunda a sábado, das 12:00 – 15:00 e das 19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "restaurante-antiqvvm-porto",
+    "raw_segment": "Domingo e segunda-feira: Encerrado"
+  },
+  {
+    "source_firestore_id": "restaurante-doc-porto",
+    "raw_segment": "Almoço: 12:30 – 15:30"
+  },
+  {
+    "source_firestore_id": "restaurante-doc-porto",
+    "raw_segment": "Jantar: 19:30 – 22:30"
+  },
+  {
+    "source_firestore_id": "restaurante-panoramico-do-hotel-elevador-porto",
+    "raw_segment": "Almoço:: 12:30 – 15:00"
+  },
+  {
+    "source_firestore_id": "restaurante-panoramico-do-hotel-elevador-porto",
+    "raw_segment": "Jantar:: 19:30 – 22:00"
+  },
+  {
+    "source_firestore_id": "restaurante-terreiro-porto",
+    "raw_segment": "Sexta e Sábado: 12:30 - 15:00 e 19:30 - 23:00"
+  },
+  {
+    "source_firestore_id": "roberto-coin-lisboa",
+    "raw_segment": "Seg. a Sáb: 10h - 13h"
+  },
+  {
+    "source_firestore_id": "romaria-de-baco-lisboa",
+    "raw_segment": "Segunda a domingo, das 11:00 – 00:00"
+  },
+  {
+    "source_firestore_id": "sala-lisboa",
+    "raw_segment": "Segunda a sábado, das 12:00 – 15:00 e das 19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "sand-city-algarve",
+    "raw_segment": "10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "sense-of-madeira-madeira",
+    "raw_segment": "11:00 – 14:00"
+  },
+  {
+    "source_firestore_id": "sense-of-madeira-madeira",
+    "raw_segment": "15:00 – 18:00"
+  },
+  {
+    "source_firestore_id": "sensorial-spa-algarve",
+    "raw_segment": "10:00 - 19:00"
+  },
+  {
+    "source_firestore_id": "sol-poente-restaurante-madeira",
+    "raw_segment": "09:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "solar-moinho-de-vento-porto",
+    "raw_segment": "Sexta-feira, Sábado e Vésperas de Feriado: 12:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "solar-moinho-de-vento-porto",
+    "raw_segment": "Domingo e Feriados: Encerrado"
+  },
+  {
+    "source_firestore_id": "sun-spot-cafe-madeira",
+    "raw_segment": "10:00 – 22:00"
+  },
+  {
+    "source_firestore_id": "tacho-real-lisboa",
+    "raw_segment": "Segunda a domingo, das 12:00 – 15:00 e das 19:00 – 23:00."
+  },
+  {
+    "source_firestore_id": "taj-mahal-indian-restaurant-madeira",
+    "raw_segment": "Almoço: 12:00 – 15:00"
+  },
+  {
+    "source_firestore_id": "taj-mahal-indian-restaurant-madeira",
+    "raw_segment": "Jantar: 18:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "teleferico-do-jardim-botanico-madeira",
+    "raw_segment": "09:00 – 17:00"
+  },
+  {
+    "source_firestore_id": "the-yeatman-wine-spa-porto",
+    "raw_segment": "Spa: Diariamente: 10:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "the-yeatman-wine-spa-porto",
+    "raw_segment": "Ginásio e Piscina Interior: Diariamente: 08:00 – 20:00"
+  },
+  {
+    "source_firestore_id": "tipografia-restaurante-mediterraneo-madeira",
+    "raw_segment": "Almoço: 12:00 – 15:00"
+  },
+  {
+    "source_firestore_id": "tipografia-restaurante-mediterraneo-madeira",
+    "raw_segment": "Jantar: 19:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "tipografia-restaurante-mediterraneo-madeira",
+    "raw_segment": "Encerrado: Segundas-feiras"
+  },
+  {
+    "source_firestore_id": "uddo-algarve",
+    "raw_segment": "18:30 – 22:30."
+  },
+  {
+    "source_firestore_id": "universo-de-memorias-joao-carlos-abreu-madeira",
+    "raw_segment": "Sábado e Domingo: Encerrado"
+  },
+  {
+    "source_firestore_id": "universo-de-memorias-joao-carlos-abreu-madeira",
+    "raw_segment": "Feriados: Encerrado"
+  },
+  {
+    "source_firestore_id": "universo-de-memorias-joao-carlos-abreu-madeira",
+    "raw_segment": "Encerramento sazonal: de 27 de novembro a 4 de dezembro"
+  },
+  {
+    "source_firestore_id": "uva-by-calem-porto",
+    "raw_segment": "Sexta-feira e sábado: 12:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "varilux-essilor-madeira",
+    "raw_segment": "10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "vermuteria-gastro-bar-porto",
+    "raw_segment": "Sextas e sábados: 17:00 – 02:30"
+  },
+  {
+    "source_firestore_id": "victoria-restaurante-madeira",
+    "raw_segment": "11:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "vila-da-carne-restaurante-madeira",
+    "raw_segment": "12:00 – 23:00"
+  },
+  {
+    "source_firestore_id": "vila-do-peixe-restaurante-madeira",
+    "raw_segment": "12:00 – 23:30"
+  },
+  {
+    "source_firestore_id": "vila-vita-collection-algarve",
+    "raw_segment": "09:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "vmtmadeira-madeira",
+    "raw_segment": "Partidas diárias: 10h30 e 15:00"
+  },
+  {
+    "source_firestore_id": "well-vale-do-lobo-restaurante-beach-club-algarve",
+    "raw_segment": "Restaurante WELL: 11:30 – 23:00."
+  },
+  {
+    "source_firestore_id": "well-vale-do-lobo-restaurante-beach-club-algarve",
+    "raw_segment": "Beach Club: 09:00 – 18:00."
+  },
+  {
+    "source_firestore_id": "willies-algarve",
+    "raw_segment": "19:00 – 22:30"
+  },
+  {
+    "source_firestore_id": "willies-algarve",
+    "raw_segment": "Fechado: Quarta-feira"
+  },
+  {
+    "source_firestore_id": "wish-restaurant-sushi-porto",
+    "raw_segment": "Sexta-feira e sábado: 12:00 – 01:00"
+  },
+  {
+    "source_firestore_id": "world-trg",
+    "raw_segment": "Seg. – sex.: 10:00 – 19:00"
+  },
+  {
+    "source_firestore_id": "zapata-by-chakall-porto",
+    "raw_segment": "Sextas e sábados: 18:00 – 02:30"
+  },
+  {
+    "source_firestore_id": "zoah-store-porto",
+    "raw_segment": "Segunda a Sábaddo: 10:00 –19:00"
+  }
+]

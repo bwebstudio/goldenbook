@@ -1,0 +1,66 @@
+[
+  {
+    "id": "NT913k9iTHAGxCPGKAL6",
+    "type": "subscription_reset_migration",
+    "version": "1.0",
+    "executedAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-03T17:25:49.736Z"
+    },
+    "executedBy": "system",
+    "status": "completed",
+    "recordsProcessed": 325,
+    "description": "Añadido campo subscriptionValue y reseteados campos featured, trending, reviewCount y rating para producción",
+    "fieldsAdded": [
+      "subscriptionValue"
+    ],
+    "fieldsReset": [
+      "featured",
+      "trending",
+      "reviewCount",
+      "rating"
+    ]
+  },
+  {
+    "id": "gC45TkFCmPssgRcVg6LW",
+    "type": "audit_fields_migration",
+    "version": "1.0",
+    "executedAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-02T20:14:33.106Z"
+    },
+    "executedBy": "system",
+    "status": "completed",
+    "recordsProcessed": 325,
+    "description": "Añadidos campos de auditoría básicos a establishments existentes"
+  },
+  {
+    "id": "sgKOnheTmwu2nxSjpGjR",
+    "type": "translations_google_migration",
+    "version": "1.0",
+    "executedAt": {
+      "_type": "timestamp",
+      "iso": "2025-06-05T14:59:24.454Z"
+    },
+    "executedBy": "system",
+    "status": "completed",
+    "recordsProcessed": 325,
+    "translationsAdded": 325,
+    "apiCallsUsed": 650,
+    "description": "Traducciones añadidas usando Google Translate API",
+    "fieldsAdded": [
+      "translations"
+    ],
+    "languages": [
+      "pt",
+      "en"
+    ],
+    "translatedFields": [
+      "fullDescription",
+      "shortDescription",
+      "openingHours",
+      "categories",
+      "subcategories"
+    ]
+  }
+]

@@ -1,0 +1,4573 @@
+[
+  {
+    "id": "n43XemiLYgdkKxS3IfDV",
+    "type": "translation_sync_fix",
+    "executedAt": {
+      "_type": "timestamp",
+      "iso": "2025-07-12T13:14:43.109Z"
+    },
+    "executedBy": "translation-fix-script",
+    "status": "completed",
+    "establishmentsCorrected": 290,
+    "errors": 0,
+    "corrections": [
+      {
+        "id": "5-oceanos-lisboa",
+        "name": "5 OCEANOS",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "a-lagosteira-algarve",
+        "name": "A LAGOSTEIRA",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "a-marisqueira-de-matosinhos-porto",
+        "name": "A MARISQUEIRA DE MATOSINHOS",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy",
+          "sports"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "acosta-by-olivier-algarve",
+        "name": "ÀCOSTA BY OLIVIER",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "acqua-restaurant-hotel-ga-palace-porto",
+        "name": "ACQUA RESTAURANT HOTEL GA PALACE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "adega-do-convento-lisboa",
+        "name": "ADEGA DO CONVENTO",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "adega-do-pomar-madeira",
+        "name": "ADEGA DO POMAR",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "adega-sao-nicolau-porto",
+        "name": "ADEGA SÃO NICOLAU",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "agua-e-sal-lisboa",
+        "name": "ÁGUA E SAL",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "al-quimia-algarve",
+        "name": "AL QUIMIA",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "alcino-cardosas-store-porto",
+        "name": "ALCINO",
+        "translationsFromEn": [
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "alcino-flores-store-porto",
+        "name": "ALCINO",
+        "translationsFromEn": [
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "alcino-workshop-store-porto",
+        "name": "ALCINO",
+        "translationsFromEn": [
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "alexandra-matias-lisboa",
+        "name": "ALEXANDRA MATIAS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "almada-terrace-porto",
+        "name": "ALMADA TERRACE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "amada-moura-lisboa",
+        "name": "AMADA MOURA",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "amara-restaurant-algarve",
+        "name": "AMARA RESTAURANT",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "amendoeira-golf-resort-algarve",
+        "name": "AMENDOEIRA GOLF RESORT",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "sports"
+        ]
+      },
+      {
+        "id": "armazens-do-chiado-lisboa",
+        "name": "ARMAZENS DO CHIADO",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "arneiro-1969-lisboa",
+        "name": "ARNEIRO 1969",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "arouca-geopark-porto",
+        "name": "AROUCA GEOPARK",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "sports"
+        ]
+      },
+      {
+        "id": "arquinho-do-castelo-porto",
+        "name": "ARQUINHO DO CASTELO",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "arribas-sintra-hotel-lisboa",
+        "name": "ARRIBAS SINTRA HOTEL",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "as-vistas-restaurant-madeira",
+        "name": "AS VISTAS RESTAURANT",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "asia-connection-porto",
+        "name": "ASIA CONNECTION",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "atlantic-rentacar-madeira",
+        "name": "ATLANTIC RENT-A-CAR",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "transport"
+        ]
+      },
+      {
+        "id": "atlantic-restaurante-madeira",
+        "name": "ATLANTIC RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "atlantico-algarve",
+        "name": "ATLÂNTICO",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "atrevo-porto",
+        "name": "ATREVO",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "azul-e-branco-lisboa",
+        "name": "AZUL E BRANCO",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "barbour-lisboa",
+        "name": "BARBOUR",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "barbour-loios-porto",
+        "name": "BARBOUR",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "barbour-norteshopping-porto",
+        "name": "BARBOUR",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "bettina-corallo-lisboa",
+        "name": "BETTINA CORALLO",
+        "translationsFromEn": [
+          "activities",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "bico-cultura-do-vinho-lisboa",
+        "name": "BICO CULTURA DO VINHO",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "bierhaus-porto",
+        "name": "BIERHAUS",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "binter-linhas-aereas-das-canarias-madeira",
+        "name": "BINTER LINHAS AÉREAS DAS CANÁRIAS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "transport"
+        ]
+      },
+      {
+        "id": "black-trumpet-lisboa",
+        "name": "BLACK TRUMPET",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "blandys-wine-lodge-madeira",
+        "name": "BLANDY’S WINE LODGE",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "bougainvillea-terrace-lisboa",
+        "name": "BOUGAINVILLEA TERRACE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "brasa-fire-cocktails-madeira",
+        "name": "BRASA – FIRE & COCKTAILS",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "brilhivitrine-madeira",
+        "name": "BRILHIVITRINE",
+        "translationsFromEn": [
+          "activities",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "cafe-do-teatro-madeira",
+        "name": "CAFÉ DO TEATRO",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "cafeteria-algarve",
+        "name": "CAFETERIA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "caminhos-cruzados-porto",
+        "name": "CAMINHOS CRUZADOS",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "capsute-neobistro-lisboa",
+        "name": "CAPSULE NEO-BISTRO",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "casa-da-guia-lisboa",
+        "name": "CASA DA GUIA",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy",
+          "shops"
+        ]
+      },
+      {
+        "id": "casa-da-musica-porto",
+        "name": "CASA DA MÚSICA",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "events"
+        ]
+      },
+      {
+        "id": "casa-de-cha-da-boa-nova-porto",
+        "name": "CASA DE CHÁ DA BOA NOVA",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "casa-do-livro-porto",
+        "name": "CASA DO LIVRO",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "casa-reia-lisboa",
+        "name": "CASA RÊIA",
+        "translationsFromEn": [
+          "activities",
+          "culture",
+          "events"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture",
+          "events"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "casal-da-penha-restaurante-madeira",
+        "name": "CASAL DA PENHA RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "casarao-do-castelo-porto",
+        "name": "CASARÃO DO CASTELO",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "castanheiro-boutique-hotel-madeira",
+        "name": "CASTANHEIRO BOUTIQUE HOTEL",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "centro-comercial-colombo-lisboa",
+        "name": "CENTRO COMERCIAL COLOMBO",
+        "translationsFromEn": [
+          "activities",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "chapelaria-azevedo-rua-lisboa",
+        "name": "CHAPELARIA AZEVEDO RUA",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "churrasqueira-oriq-algarve",
+        "name": "CHURRASQUEIRA ORIQ",
+        "translationsFromEn": [
+          "beaches",
+          "transport"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "transport"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "coachella-restaurant-madeira",
+        "name": "COACHELLA RESTAURANT",
+        "translationsFromEn": [
+          "events",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "events",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "conceptica-lisboa",
+        "name": "CONCEPTICA",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "condes-de-ericeira-lisboa",
+        "name": "CONDES DE ERICEIRA",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "conserveira-de-lisboa-lisboa",
+        "name": "CONSERVEIRA DE LISBOA",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "convento-do-espinheiro-lisboa",
+        "name": "CONVENTO DO ESPINHEIRO",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "coolzoone-madeira",
+        "name": "COOLZOONE",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "coquine-porto",
+        "name": "COQUINE",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "culto-ao-bacalhau-porto",
+        "name": "CULTO AO BACALHAU",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "david-rosas-algarve",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "david-rosas-aliados-porto",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "david-rosas-boavista-porto",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "david-rosas-el-corte-ingles-lisboa",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "david-rosas-liberdade-lisboa",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "david-rosas-madeira",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "david-rosas-norteshopping-porto",
+        "name": "DAVID ROSAS",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "desarma-restaurante-madeira",
+        "name": "DESARMA RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "divanidivani-by-natuzzi-lisboa",
+        "name": "DIVANI&DIVANI BY NATUZZI",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "divino-restaurant-lounge-porto",
+        "name": "DIVINO RESTAURANT & LOUNGE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "dona-maria-restaurante-porto",
+        "name": "DONA MARIA RESTAURANTE",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "dop-restaurant-porto",
+        "name": "DOP RESTAURANT",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "dorey-tyles-and-antiques-lisboa",
+        "name": "D’OREY TYLES AND ANTIQUES",
+        "translationsFromEn": [
+          "activities",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "downunder-lisboa",
+        "name": "DOWNUNDER",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "ecosuncharters-algarve",
+        "name": "ECOSUNCHARTERS",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "elements-7580-lisboa-lisboa",
+        "name": "ELEMENTS 75’80 LISBOA",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "elements-7580-matosinhos-porto",
+        "name": "ELEMENTS 75’80 MATOSINHOS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "elements-7580-porto-porto",
+        "name": "ELEMENTS 75’80 PORTO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "elements-7580-sedeheadquarters-porto",
+        "name": "ELEMENTS 75’80 SEDE/HEADQUARTERS",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "elevador-restaurante-lisboa",
+        "name": "ELEVADOR RESTAURANTE",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "elisabetta-franchi-lisboa",
+        "name": "ELISABETTA FRANCHI",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "elisabetta-franchi-porto",
+        "name": "ELISABETTA FRANCHI",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "engenhos-do-norte-madeira",
+        "name": "ENGENHOS DO NORTE",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "enseada-food-and-drinks-madeira",
+        "name": "ENSEADA FOOD AND DRINKS",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "escama-porto",
+        "name": "ESCAMA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "escondidinho-restaurante-porto",
+        "name": "ESCONDIDINHO RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "espadim-1985-lisboa",
+        "name": "ESPADIM 1985",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "estrela-do-mar-lisboa",
+        "name": "ESTRELA DO MAR",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "fabrica-do-ribeiro-seco-madeira",
+        "name": "FÁBRICA DO RIBEIRO SÊCO",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "fabrica-sto-antonio-madeira",
+        "name": "FÁBRICA STO ANTÓNIO",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "fado-no-porto-porto",
+        "name": "FADO NO PORTO",
+        "translationsFromEn": [
+          "activities",
+          "culture",
+          "events",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture",
+          "events",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "fashion-clinic-men-lisboa",
+        "name": "FASHION CLINIC MEN",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "fashion-clinic-women-lisboa",
+        "name": "FASHION CLINIC WOMEN",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "fe-wine-club-porto",
+        "name": "FÉ WINE & CLUB",
+        "translationsFromEn": [
+          "beaches",
+          "events"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "events"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "federica-porto",
+        "name": "FEDERICA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "federico-lisboa",
+        "name": "FEDERICO",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "forum-algarve-algarve",
+        "name": "FORUM ALGARVE",
+        "translationsFromEn": [
+          "activities",
+          "events",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "events",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "fred-perry-lisboa",
+        "name": "FRED PERRY",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "fred-perry-porto",
+        "name": "FRED PERRY",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "frente-mar-funchal-barreirinha-madeira",
+        "name": "FRENTE MAR FUNCHAL – BARREIRINHA",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "frente-mar-funchal-doca-do-cavacas-madeira",
+        "name": "FRENTE MAR FUNCHAL – DOCA DO CAVACAS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "frente-mar-funchal-lido-madeira",
+        "name": "FRENTE MAR FUNCHAL – LIDO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "frente-mar-funchal-ponta-gorda-madeira",
+        "name": "FRENTE MAR FUNCHAL – PONTA GORDA",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "fundacao-amalia-rodrigues-lisboa",
+        "name": "FUNDAÇÃO AMÁLIA RODRIGUES",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "activities",
+          "culture",
+          "events"
+        ]
+      },
+      {
+        "id": "fundacao-de-serralves-porto",
+        "name": "FUNDAÇÃO DE SERRALVES",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "culture",
+          "events"
+        ]
+      },
+      {
+        "id": "galeria-fernando-santos-porto",
+        "name": "GALERIA FERNANDO SANTOS",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "culture",
+          "events"
+        ]
+      },
+      {
+        "id": "golden-residence-madeira",
+        "name": "GOLDEN RESIDENCE",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "granado-lisboa",
+        "name": "GRANADO",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "green-devil-safari-madeira",
+        "name": "GREEN DEVIL SAFARI",
+        "translationsFromEn": [
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "sports"
+        ]
+      },
+      {
+        "id": "habitat-terra-e-fogo-porto",
+        "name": "HABITAT TERRA E FOGO",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy",
+          "shops"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "henriques-henriques-madeira",
+        "name": "HENRIQUES & HENRIQUES",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "herdade-1980-porto",
+        "name": "HERDADE 1980",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "herdade-dos-grous-lisboa",
+        "name": "HERDADE DOS GROUS",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "hilton-vilamoura-algarve",
+        "name": "HILTON VILAMOURA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "sports",
+          "transport"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "sports",
+          "transport"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "hool-porto",
+        "name": "HOOL",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "hoteis-do-bom-jesus-porto",
+        "name": "HOTEIS DO BOM JESUS",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "hotel-da-oliveira-porto",
+        "name": "HOTEL DA OLIVEIRA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "hotel-do-parque-porto",
+        "name": "HOTEL DO PARQUE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "hotel-do-templo-porto",
+        "name": "HOTEL DO TEMPLO",
+        "translationsFromEn": [
+          "activities",
+          "events"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "events"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "hotel-dos-templarios-lisboa",
+        "name": "HOTEL DOS TEMPLÁRIOS",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "hotel-elevador-porto",
+        "name": "HOTEL ELEVADOR",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "infinity-haus-real-estate-design-porto",
+        "name": "INFINITY HAUS – Real Estate & Design",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "interforma-algarve",
+        "name": "INTERFORMA",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "irish-pub-vilamoura-algarve",
+        "name": "IRISH PUB VILAMOURA",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "jacaranda-chafariz-madeira",
+        "name": "JACARANDÁ- CHAFARIZ",
+        "translationsFromEn": [
+          "gastronomy",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "gastronomy",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "just-porto",
+        "name": "JUST",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "justinos-madeira-wines-madeira",
+        "name": "JUSTINO’S MADEIRA WINES",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "ka-kendall-associados-algarve",
+        "name": "K&A- KENDALL & ASSOCIADOS",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "ka-kendall-associados-porto",
+        "name": "K&A- KENDALL & ASSOCIADOS",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "la-ao-fundo-restaurante-madeira",
+        "name": "LÁ AO FUNDO RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "la-cigale-algarve",
+        "name": "LA CIGALE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "la-fragata-algarve",
+        "name": "LÁ FRAGATA",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "lapa-lapa-porto",
+        "name": "LAPA LAPA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "lider-restaurante-bar-porto",
+        "name": "LIDER RESTAURANTE BAR",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "lighthouse-carvoeiro-algarve",
+        "name": "LIGHTHOUSE CARVOEIRO",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "events"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "events"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "loja-das-meias-cascais-lisboa",
+        "name": "LOJA DAS MEIAS",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "loja-das-meias-lisboa-lisboa",
+        "name": "LOJA DAS MEIAS",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "loja-das-tabuas-porto",
+        "name": "LOJA DAS TÁBUAS",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "loja-do-cha-madeira-madeira",
+        "name": "LOJA DO CHÁ MADEIRA",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "loja-do-cha-madeira-plaza-madeira-madeira",
+        "name": "LOJA DO CHÁ MADEIRA – PLAZA MADEIRA",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "loja-dos-vinhos-madeira",
+        "name": "LOJA DOS VINHOS",
+        "translationsFromEn": [
+          "shops"
+        ],
+        "translationsFromPt": [
+          "shops"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy",
+          "shops"
+        ]
+      },
+      {
+        "id": "lume-pizzeria-napoletana-madeira",
+        "name": "LUME PIZZERIA NAPOLETANA",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "machado-joalheiro-lisboa",
+        "name": "MACHADO JOALHEIRO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "machado-joalheiro-porto",
+        "name": "MACHADO JOALHEIRO",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "madeira-exquisite-food-on-foot-tours-madeira",
+        "name": "MADEIRA EXQUISITE – FOOD ON FOOT TOURS",
+        "translationsFromEn": [
+          "activities",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "madeira-legacy-madeira",
+        "name": "MADEIRA LEGACY",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "madeira-radical-madeira",
+        "name": "MADEIRA RADICAL",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "madpoint-madeira",
+        "name": "MADPOINT",
+        "translationsFromEn": [
+          "beaches",
+          "transport"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "transport"
+        ],
+        "translationsTo": [
+          "transport"
+        ]
+      },
+      {
+        "id": "mae-porto",
+        "name": "MÃE",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "mar-do-inferno-restaurante-lisboa",
+        "name": "MAR DO INFERNO RESTAURANTE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "marcolino-porto",
+        "name": "MARCOLINO",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "marina-com-noelia-algarve",
+        "name": "MARINA COM NOÉLIA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "mariscar-porto",
+        "name": "MARISCAR",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "marlene-vieira-lisboa",
+        "name": "MARLENE VIEIRA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "medicbite-clinic-madeira",
+        "name": "MEDICBITE CLINIC",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "melia-madeira-mare-madeira",
+        "name": "MELIÁ MADEIRA MARE",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "mercado-do-bom-sucesso-porto",
+        "name": "MERCADO BOM SUCESSO",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy",
+          "shops"
+        ]
+      },
+      {
+        "id": "miranda-restaurante-lisboa",
+        "name": "MIRANDA RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "moagem-industrial-lodge-lisboa",
+        "name": "MOAGEM INDUSTRIAL LODGE",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "montblanc-porto",
+        "name": "MONTBLANC",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "monte-palace-madeira-madeira",
+        "name": "MONTE PALACE MADEIRA",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "beaches"
+        ]
+      },
+      {
+        "id": "mud-factory-under-design-porto",
+        "name": "MUD – FACTORY UNDER DESIGN",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "municipio-da-calheta-madeira",
+        "name": "MUNICÍPIO DA CALHETA",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-almada-lisboa",
+        "name": "MUNICÍPIO DE ALMADA",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-aveiro-porto",
+        "name": "MUNICÍPIO DE AVEIRO",
+        "translationsFromEn": [
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-barcelos-porto",
+        "name": "MUNICÍPIO DE BARCELOS",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-camara-de-lobos-madeira",
+        "name": "MUNICÍPIO DE CÂMARA DE LOBOS",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-cascais-lisboa",
+        "name": "MUNICÍPIO DE CASCAIS",
+        "translationsFromEn": [
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-gondomar-porto",
+        "name": "MUNICÍPIO DE GONDOMAR",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-guimaraes-porto",
+        "name": "MUNICÍPIO DE GUIMARÃES",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-matosinhos-porto",
+        "name": "MUNICÍPIO DE MATOSINHOS",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-porto-moniz-madeira",
+        "name": "MUNICÍPIO DE PORTO MONIZ",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-santa-cruz-madeira",
+        "name": "MUNICÍPIO DE SANTA CRUZ",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-santa-maria-da-feira-porto",
+        "name": "MUNICÍPIO DE SANTA MARIA DA FEIRA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-sintra-lisboa",
+        "name": "MUNICÍPIO DE SINTRA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "events"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "events"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-vila-do-conde-porto",
+        "name": "MUNICÍPIO DE VILA DO CONDE",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-de-vila-nova-de-gaia-porto",
+        "name": "MUNICÍPIO DE VILA NOVA DE GAIA",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "municipio-do-funchal-madeira",
+        "name": "MUNICÍPIO DO FUNCHAL",
+        "translationsFromEn": [
+          "culture",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture",
+          "events",
+          "gastronomy",
+          "shops",
+          "sports",
+          "transport"
+        ]
+      },
+      {
+        "id": "museu-nacional-de-arte-antiga-lisboa",
+        "name": "MUSEU NACIONAL DE ARTE ANTIGA",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "culture"
+        ]
+      },
+      {
+        "id": "n50-store-lisboa",
+        "name": "N.50 STORE",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "nameza-restaurante-lisboa",
+        "name": "NAMEZA RESTAURANTE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "no-convento-lisboa",
+        "name": "NO CONVENTO",
+        "translationsFromEn": [
+          "beaches",
+          "events",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "events",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "norma-porto",
+        "name": "NORMA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "nortada-restaurante-lisboa",
+        "name": "NORTADA RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "norteshopping-porto",
+        "name": "NORTESHOPPING",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "novo-casarao-do-castelo-porto",
+        "name": "NOVO CASARÃO DO CASTELO",
+        "translationsFromEn": [
+          "activities",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "o-gaveto-restaurante-porto",
+        "name": "O GAVETO RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "events",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "events",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "o-marinheiro-algarve",
+        "name": "O MARINHEIRO",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "oculista-valbom-cascais-lisboa",
+        "name": "OCULISTA VALBOM CASCAIS",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "oculista-valbom-estoril-lisboa",
+        "name": "OCULISTA VALBOM ESTORIL",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "old-navy-algarve",
+        "name": "OLD NAVY",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "olive-algarve",
+        "name": "OLIVE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "optica-da-se-madeira",
+        "name": "ÓPTICA DA SÉ",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "optica-jomil-lisboa",
+        "name": "ÓPTICA JOMIL",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "ourivesaria-sarmento-lisboa",
+        "name": "OURIVESARIA SARMENTO",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "palacio-da-bolsa-porto",
+        "name": "PALÁCIO DA BOLSA",
+        "translationsFromEn": [
+          "activities",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture"
+        ],
+        "translationsTo": [
+          "culture",
+          "events"
+        ]
+      },
+      {
+        "id": "palm-spot-restaurant-madeira",
+        "name": "PALM SPOT RESTAURANT",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "panamar-porto",
+        "name": "PANAMAR",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "events"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "events"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "paraiso-lisboa",
+        "name": "PARAÍSO",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "parrilla-natural-algarve",
+        "name": "PARRILLA NATURAL",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "passeio-dos-clerigos-porto",
+        "name": "PASSEIO DOS CLÉRIGOS",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "paulo-miranda-joalheiro-algarve",
+        "name": "PAULO MIRANDA JOALHEIRO",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "peixaria-na-avenida-madeira",
+        "name": "PEIXARIA NA AVENIDA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "events"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "events"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "pereira-d-oliveiravinhos-madeira",
+        "name": "PEREIRA D’ OLIVEIRA(VINHOS)",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "pinetrees-riding-centre-algarve",
+        "name": "PINETREES RIDING CENTRE",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "activities",
+          "sports"
+        ]
+      },
+      {
+        "id": "pinko-lisboa",
+        "name": "PINKO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "pinko-porto",
+        "name": "PINKO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "pires-joalheiros-porto",
+        "name": "PIRES JOALHEIROS",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "pomellato-lisboa",
+        "name": "POMELLATO",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "pomellato-porto",
+        "name": "POMELLATO",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "poncha-da-imperatriz-wine-food-madeira",
+        "name": "PONCHA DA IMPERATRIZ – WINE & FOOD",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "portaliano-madeira",
+        "name": "PORTALIANO",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "porto-santa-maria-lisboa",
+        "name": "PORTO SANTA MARIA",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "porto-santo-line-madeira",
+        "name": "PORTO SANTO LINE",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "portovella-lodges-bungalows-porto",
+        "name": "PORTOVELLA – LODGES & BUNGALOWS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "praca-boavista-porto",
+        "name": "PRAÇA BOAVISTA",
+        "translationsFromEn": [
+          "activities",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "praia-da-luz-restaurante-porto",
+        "name": "PRAIA DA LUZ RESTAURANTE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "pregar-porto",
+        "name": "PRÉGAR",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy",
+          "transport"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy",
+          "transport"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "privaty-luxury-collection-algarve",
+        "name": "PRIVATY LUXURY COLLECTION",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "projeto-vimoc-porto",
+        "name": "PROJETO VIMOC",
+        "translationsFromEn": [
+          "activities",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "quinta-da-chocapalha-lisboa",
+        "name": "QUINTA DA CHOCAPALHA",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "quinta-da-moscadinha-madeira",
+        "name": "QUINTA DA MOSCADINHA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "quinta-da-regaleira-lisboa",
+        "name": "QUINTA DA REGALEIRA",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches",
+          "culture"
+        ]
+      },
+      {
+        "id": "quinta-da-roeda-porto",
+        "name": "QUINTA DA ROÊDA",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "quinta-de-faro-algarve",
+        "name": "QUINTA DE FARO",
+        "translationsFromEn": [
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "quinta-dos-sentidos-algarve",
+        "name": "QUINTA DOS SENTIDOS",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "quintas-farm-houses-porto",
+        "name": "QUINTÃS FARM HOUSES",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "refuse-lisboa",
+        "name": "REFUSE",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "reitoria-porto",
+        "name": "REITORIA",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-antiqvvm-porto",
+        "name": "RESTAURANTE ANTIQVVM",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-doc-porto",
+        "name": "RESTAURANTE DOC",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-dos-combatentes-madeira",
+        "name": "RESTAURANTE DOS COMBATENTES",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-emotivo-porto",
+        "name": "RESTAURANTE EMOTIVO",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-gourmet-lisboa",
+        "name": "RESTAURANTE GOURMET",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-pvp-pao-vinho-e-petiscos-madeira",
+        "name": "RESTAURANTE PVP – PÃO VINHO E PETISCOS",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-terreiro-porto",
+        "name": "RESTAURANTE TERREIRO",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "restaurante-vintage-lisboa",
+        "name": "RESTAURANTE VINTAGE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "roberto-coin-lisboa",
+        "name": "ROBERTO COIN",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "rolex-madeira",
+        "name": "ROLEX",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "rolex-porto",
+        "name": "ROLEX",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "romaria-de-baco-lisboa",
+        "name": "ROMARIA DE BACO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "sala-lisboa",
+        "name": "SÁLA",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "sand-city-algarve",
+        "name": "SAND CITY",
+        "translationsFromEn": [
+          "beaches",
+          "culture",
+          "events"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture",
+          "events"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches"
+        ]
+      },
+      {
+        "id": "sen-colombo-lisboa",
+        "name": "SEN COLOMBO",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "sense-of-madeira-madeira",
+        "name": "SENSE OF MADEIRA",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "settlers-realty-lisboa",
+        "name": "SETTLERS REALTY",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "sidra-quinta-da-moscadinha-madeira",
+        "name": "SIDRA – QUINTA DA MOSCADINHA",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "simplicio-arneiro-lisboa",
+        "name": "SIMPLICIO & ARNEIRO",
+        "translationsFromEn": [
+          "beaches",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "sol-poente-restaurante-madeira",
+        "name": "SOL POENTE RESTAURANTE",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "solar-moinho-de-vento-porto",
+        "name": "SOLAR MOINHO DE VENTO",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "sult-restaurante-lisboa",
+        "name": "SULT RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "sun-spot-cafe-madeira",
+        "name": "SUN SPOT CAFÉ",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "taberna-rio-porto",
+        "name": "TABERNA RIO",
+        "translationsFromEn": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "teleferico-do-jardim-botanico-madeira",
+        "name": "TELEFÉRICO DO JARDIM BOTÂNICO",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "terra-nova-porto",
+        "name": "TERRA NOVA",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "the-agency-cascais-lisboa",
+        "name": "THE AGENCY CASCAIS",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "the-gastronomic-restaurant-porto",
+        "name": "THE GASTRONOMIC RESTAURANT",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "the-gin-house-porto",
+        "name": "THE GIN HOUSE",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "the-lisboa",
+        "name": "THE",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "the-porto",
+        "name": "THE",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "the-royal-cocktail-club-porto",
+        "name": "THE ROYAL COCKTAIL CLUB",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "the-tasting-room-lisboa",
+        "name": "THE TASTING ROOM",
+        "translationsFromEn": [
+          "activities"
+        ],
+        "translationsFromPt": [
+          "activities"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "the-vintage-house-porto",
+        "name": "THE VINTAGE HOUSE",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "the-yeatman-wine-spa-porto",
+        "name": "THE YEATMAN WINE SPA",
+        "translationsFromEn": [
+          "activities",
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "tinto-brasa-lisboa",
+        "name": "TINTO & BRASA",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "tipografia-restaurante-mediterraneo-madeira",
+        "name": "TIPOGRAFIA – RESTAURANTE MEDITERRÂNEO",
+        "translationsFromEn": [
+          "activities",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "tous-lisboa",
+        "name": "TOUS",
+        "translationsFromEn": [
+          "culture",
+          "shops"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "shops"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "tudor-lisboa-lisboa",
+        "name": "TUDOR",
+        "translationsFromEn": [
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "tudor-porto",
+        "name": "TUDOR",
+        "translationsFromEn": [
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "uddo-algarve",
+        "name": "UDDO",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "universo-de-memorias-joao-carlos-abreu-madeira",
+        "name": "UNIVERSO DE MEMÓRIAS JOÃO CARLOS ABREU",
+        "translationsFromEn": [
+          "beaches",
+          "culture"
+        ],
+        "translationsFromPt": [
+          "beaches",
+          "culture"
+        ],
+        "translationsTo": [
+          "activities",
+          "culture"
+        ]
+      },
+      {
+        "id": "uva-by-calem-porto",
+        "name": "UVA BY CALÉM",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "vale-da-lapa-village-resort-algarve",
+        "name": "VALE DA LAPA VILLAGE RESORT",
+        "translationsFromEn": [
+          "activities",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "varilux-essilor-madeira",
+        "name": "VARILUX ESSILOR",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "vermuteria-gastro-bar-porto",
+        "name": "VERMUTERIA GASTRO BAR",
+        "translationsFromEn": [
+          "activities",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "vidago-palace-porto",
+        "name": "VIDAGO PALACE",
+        "translationsFromEn": [
+          "activities",
+          "beaches",
+          "sports"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "beaches",
+          "sports"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "vila-da-carne-restaurante-madeira",
+        "name": "VILA DA CARNE RESTAURANTE",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "vila-vita-collection-algarve",
+        "name": "VILA VITA COLLECTION",
+        "translationsFromEn": [
+          "culture"
+        ],
+        "translationsFromPt": [
+          "culture"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "vinha-restaurant-porto",
+        "name": "VINHA RESTAURANT",
+        "translationsFromEn": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "activities",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "vitra-clinic-algarve",
+        "name": "VITRA CLINIC",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "activities"
+        ]
+      },
+      {
+        "id": "vmtmadeira-madeira",
+        "name": "VMT-MADEIRA",
+        "translationsFromEn": [
+          "events"
+        ],
+        "translationsFromPt": [
+          "events"
+        ],
+        "translationsTo": [
+          "activities",
+          "beaches"
+        ]
+      },
+      {
+        "id": "well-vale-do-lobo-restaurante-beach-club-algarve",
+        "name": "WELL VALE DO LOBO RESTAURANTE & BEACH CLUB",
+        "translationsFromEn": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "activities",
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "wesley-lisboa",
+        "name": "WESLEY",
+        "translationsFromEn": [
+          "beaches"
+        ],
+        "translationsFromPt": [
+          "beaches"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      },
+      {
+        "id": "wish-restaurant-sushi-porto",
+        "name": "WISH RESTAURANT & SUSHI",
+        "translationsFromEn": [
+          "culture",
+          "events",
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "culture",
+          "events",
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "gastronomy"
+        ]
+      },
+      {
+        "id": "zoah-store-porto",
+        "name": "ZOAH STORE",
+        "translationsFromEn": [
+          "gastronomy"
+        ],
+        "translationsFromPt": [
+          "gastronomy"
+        ],
+        "translationsTo": [
+          "shops"
+        ]
+      }
+    ],
+    "description": "Sincronización de traducciones de categorías con categorías actuales"
+  }
+]

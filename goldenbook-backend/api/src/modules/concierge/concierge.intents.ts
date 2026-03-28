@@ -1,0 +1,255 @@
+// ─── Concierge Intent Registry ────────────────────────────────────────────────
+//
+// This is the single source of truth for all Concierge intents.
+// Closed system — no AI, no dynamic generation. All intents are curated.
+//
+// V2 TODO: consider moving this to a DB table for admin editability.
+
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening'
+
+export interface ConciergeIntent {
+  id: string
+  title: string
+  subtitle: string
+  /** Material Symbols / icon name used by the frontend */
+  icon: string
+  /** Editorial labels shown on intent cards */
+  labels: string[]
+  /** DB place_type values that qualify places for this intent */
+  placeTypes: string[]
+  /** Category slugs for secondary filtering (informational — used in future DB tag join) */
+  categorySlugs: string[]
+  /** Tags matched against short_description / editorial_summary for scoring */
+  tags: string[]
+  /** Times of day where this intent is most appropriate */
+  preferredTimeOfDay: TimeOfDay[]
+  /** User-input keywords that map to this intent (order matters: earlier = higher weight) */
+  keywords: string[]
+  /** Tie-breaking priority 1–10 (higher wins) */
+  priority: number
+}
+
+export const INTENT_REGISTRY: ConciergeIntent[] = [
+  {
+    id: 'romantic_dinner',
+    title: 'Romantic dinner',
+    subtitle: 'Atmospheric tables for two',
+    icon: 'restaurant',
+    labels: ["Editor's choice"],
+    placeTypes: ['restaurant'],
+    categorySlugs: ['restaurant', 'fine-dining', 'dinner'],
+    tags: ['romantic', 'date-night', 'atmospheric', 'fine-dining', 'intimate', 'candlelit', 'couple'],
+    preferredTimeOfDay: ['evening'],
+    keywords: ['romantic', 'romance', 'date', 'dinner', 'couple', 'anniversary', 'intimate'],
+    priority: 9,
+  },
+  {
+    id: 'hidden_gems',
+    title: 'Hidden gems',
+    subtitle: 'Curated places away from the crowds',
+    icon: 'diamond',
+    labels: ["Editor's choice"],
+    placeTypes: ['restaurant', 'bar', 'cafe', 'shop', 'venue'],
+    categorySlugs: [],
+    tags: ['hidden', 'secret', 'local', 'neighbourhood', 'off-the-beaten-path', 'gem', 'undiscovered'],
+    preferredTimeOfDay: ['morning', 'afternoon', 'evening'],
+    keywords: ['hidden', 'secret', 'local', 'gem', 'discover', 'undiscovered', 'off beaten'],
+    priority: 8,
+  },
+  {
+    id: 'sunset_drinks',
+    title: 'Sunset drinks',
+    subtitle: 'The golden hour, elevated',
+    icon: 'wb_sunny',
+    labels: ['Highly recommended'],
+    placeTypes: ['bar', 'restaurant'],
+    categorySlugs: ['rooftop', 'terrace', 'view', 'bar'],
+    tags: ['rooftop', 'terrace', 'view', 'sunset', 'outdoor', 'panoramic', 'golden-hour'],
+    preferredTimeOfDay: ['afternoon', 'evening'],
+    keywords: ['sunset', 'rooftop', 'terrace', 'view', 'outdoor', 'panoramic', 'golden hour'],
+    priority: 8,
+  },
+  {
+    id: 'quiet_wine_bar',
+    title: 'Quiet wine bar',
+    subtitle: 'Elegant pours and a slower pace',
+    icon: 'wine_bar',
+    labels: ['Highly recommended'],
+    placeTypes: ['bar'],
+    categorySlugs: ['bar', 'wine-bar', 'wine'],
+    tags: ['wine', 'quiet', 'intimate', 'wine-bar', 'natural-wine', 'sommelier'],
+    preferredTimeOfDay: ['afternoon', 'evening'],
+    keywords: ['wine', 'wines', 'vino', 'winery', 'wine bar', 'natural wine'],
+    priority: 7,
+  },
+  {
+    id: 'cocktail_bars',
+    title: 'Cocktail bars',
+    subtitle: 'Handcrafted drinks and craft spirits',
+    icon: 'local_bar',
+    labels: ['Highly recommended'],
+    placeTypes: ['bar'],
+    categorySlugs: ['cocktail-bar', 'bar', 'speakeasy'],
+    tags: ['cocktails', 'craft-drinks', 'speakeasy', 'mixology', 'spirits', 'bartender'],
+    preferredTimeOfDay: ['afternoon', 'evening'],
+    keywords: ['cocktail', 'cocktails', 'drink', 'drinks', 'spirits', 'mixology', 'speakeasy'],
+    priority: 7,
+  },
+  {
+    id: 'late_night_jazz',
+    title: 'Late-night jazz',
+    subtitle: 'Sophisticated music after dark',
+    icon: 'music_note',
+    labels: ['Hidden gem'],
+    placeTypes: ['bar', 'venue'],
+    categorySlugs: ['jazz', 'live-music', 'nightclub', 'music'],
+    tags: ['jazz', 'live-music', 'music', 'nightlife', 'late-night', 'blues'],
+    preferredTimeOfDay: ['evening'],
+    keywords: ['jazz', 'music', 'live music', 'nightlife', 'night', 'blues', 'concert'],
+    priority: 6,
+  },
+  {
+    id: 'long_lunch',
+    title: 'Long lunch',
+    subtitle: 'Unhurried midday dining at its finest',
+    icon: 'restaurant',
+    labels: ["Chef's recommendation"],
+    placeTypes: ['restaurant'],
+    categorySlugs: ['restaurant', 'brasserie', 'bistro', 'lunch'],
+    tags: ['lunch', 'leisurely', 'brasserie', 'bistro', 'midday', 'sunday-lunch'],
+    preferredTimeOfDay: ['afternoon'],
+    keywords: ['lunch', 'midday', 'afternoon dining', 'brasserie', 'bistro', 'leisurely'],
+    priority: 6,
+  },
+  {
+    id: 'after_dinner_drinks',
+    title: 'After-dinner drinks',
+    subtitle: 'A refined cap to the evening',
+    icon: 'nightlife',
+    labels: ['Evening essential'],
+    placeTypes: ['bar'],
+    categorySlugs: ['bar', 'cocktail-bar', 'lounge', 'whisky-bar'],
+    tags: ['digestif', 'lounge', 'after-dinner', 'whisky', 'spirits', 'nightcap'],
+    preferredTimeOfDay: ['evening'],
+    keywords: ['after dinner', 'nightcap', 'lounge', 'digestif', 'late drinks', 'whisky', 'whiskey'],
+    priority: 6,
+  },
+  {
+    id: 'coffee_and_work',
+    title: 'Coffee & work',
+    subtitle: 'Thoughtfully brewed and quiet',
+    icon: 'coffee',
+    labels: ['Perfect for mornings'],
+    placeTypes: ['cafe'],
+    categorySlugs: ['cafe', 'coffee', 'specialty-coffee'],
+    tags: ['coffee', 'specialty-coffee', 'wifi', 'quiet', 'work', 'cafe', 'espresso', 'brunch'],
+    preferredTimeOfDay: ['morning', 'afternoon'],
+    keywords: ['coffee', 'cafe', 'espresso', 'work', 'laptop', 'breakfast', 'brunch', 'morning'],
+    priority: 5,
+  },
+  {
+    id: 'gallery_afternoon',
+    title: 'Gallery afternoon',
+    subtitle: 'Art, culture and refined spaces',
+    icon: 'museum',
+    labels: ['Cultural highlight'],
+    placeTypes: ['museum', 'activity'],
+    categorySlugs: ['gallery', 'museum', 'art', 'culture'],
+    tags: ['gallery', 'art', 'museum', 'culture', 'contemporary', 'exhibition', 'design'],
+    preferredTimeOfDay: ['morning', 'afternoon'],
+    keywords: ['gallery', 'art', 'museum', 'culture', 'exhibition', 'contemporary', 'design'],
+    priority: 5,
+  },
+  {
+    id: 'design_shopping',
+    title: 'Design shopping',
+    subtitle: 'Curated boutiques and independent stores',
+    icon: 'shopping_bag',
+    labels: ['Curated selection'],
+    placeTypes: ['shop'],
+    categorySlugs: ['boutique', 'design', 'fashion', 'shop', 'concept-store'],
+    tags: ['boutique', 'design', 'fashion', 'concept-store', 'independent', 'shopping'],
+    preferredTimeOfDay: ['morning', 'afternoon'],
+    keywords: ['shop', 'shopping', 'boutique', 'fashion', 'design', 'concept store', 'buy'],
+    priority: 4,
+  },
+]
+
+// Fast lookup by id
+export const INTENT_MAP = new Map<string, ConciergeIntent>(
+  INTENT_REGISTRY.map((intent) => [intent.id, intent]),
+)
+
+export function getIntentById(id: string): ConciergeIntent | undefined {
+  return INTENT_MAP.get(id)
+}
+
+// ─── Intent label i18n ────────────────────────────────────────────────────────
+//
+// Locale-aware labels for intent titles / subtitles / editorial labels.
+// Resolution order: exact locale → locale family → 'en'
+
+export interface IntentLabels {
+  title: string
+  subtitle: string
+  labels: string[]
+}
+
+const INTENT_LABELS_I18N: Record<string, Partial<Record<string, IntentLabels>>> = {
+  romantic_dinner: {
+    en: { title: 'Romantic dinner',       subtitle: 'Atmospheric tables for two',            labels: ["Editor's choice"] },
+    pt: { title: 'Jantar romântico',      subtitle: 'Mesas intimistas para dois',            labels: ['Escolha do editor'] },
+  },
+  hidden_gems: {
+    en: { title: 'Hidden gems',           subtitle: 'Curated places away from the crowds',   labels: ["Editor's choice"] },
+    pt: { title: 'Lugares secretos',      subtitle: 'Lugares longe das multidões',            labels: ['Escolha do editor'] },
+  },
+  sunset_drinks: {
+    en: { title: 'Sunset drinks',         subtitle: 'The golden hour, elevated',             labels: ['Highly recommended'] },
+    pt: { title: 'Drinks ao pôr do sol',  subtitle: 'A hora dourada, elevada',               labels: ['Muito recomendado'] },
+  },
+  quiet_wine_bar: {
+    en: { title: 'Quiet wine bar',        subtitle: 'Elegant pours and a slower pace',       labels: ['Highly recommended'] },
+    pt: { title: 'Bar de vinhos',         subtitle: 'Vinhos refinados e um ritmo mais lento', labels: ['Muito recomendado'] },
+  },
+  cocktail_bars: {
+    en: { title: 'Cocktail bars',         subtitle: 'Handcrafted drinks and craft spirits',  labels: ['Highly recommended'] },
+    pt: { title: 'Bares de cocktails',    subtitle: 'Bebidas artesanais e destilados',       labels: ['Muito recomendado'] },
+  },
+  late_night_jazz: {
+    en: { title: 'Late-night jazz',       subtitle: 'Sophisticated music after dark',        labels: ['Hidden gem'] },
+    pt: { title: 'Jazz nocturno',         subtitle: 'Música sofisticada depois do anoitecer', labels: ['Joia escondida'] },
+  },
+  long_lunch: {
+    en: { title: 'Long lunch',            subtitle: 'Unhurried midday dining at its finest', labels: ["Chef's recommendation"] },
+    pt: { title: 'Almoço longo',          subtitle: 'Refeição de meio-dia sem pressa',       labels: ['Recomendação do chef'] },
+  },
+  after_dinner_drinks: {
+    en: { title: 'After-dinner drinks',   subtitle: 'A refined cap to the evening',          labels: ['Evening essential'] },
+    pt: { title: 'Digestivos',            subtitle: 'Um final refinado para a noite',        labels: ['Essencial à noite'] },
+  },
+  coffee_and_work: {
+    en: { title: 'Coffee & work',         subtitle: 'Thoughtfully brewed and quiet',         labels: ['Perfect for mornings'] },
+    pt: { title: 'Café & trabalho',       subtitle: 'Café de especialidade e tranquilidade', labels: ['Perfeito de manhã'] },
+  },
+  gallery_afternoon: {
+    en: { title: 'Gallery afternoon',     subtitle: 'Art, culture and refined spaces',       labels: ['Cultural highlight'] },
+    pt: { title: 'Tarde em galeria',      subtitle: 'Arte, cultura e espaços refinados',     labels: ['Destaque cultural'] },
+  },
+  design_shopping: {
+    en: { title: 'Design shopping',       subtitle: 'Curated boutiques and independent stores', labels: ['Curated selection'] },
+    pt: { title: 'Compras de design',     subtitle: 'Boutiques e lojas independentes',       labels: ['Seleção curada'] },
+  },
+}
+
+export function getIntentLabels(intentId: string, locale: string): IntentLabels {
+  const localeMap = INTENT_LABELS_I18N[intentId]
+  if (!localeMap) {
+    const intent = getIntentById(intentId)
+    return intent
+      ? { title: intent.title, subtitle: intent.subtitle, labels: intent.labels }
+      : { title: intentId, subtitle: '', labels: [] }
+  }
+  const localeFamily = locale.split('-')[0]
+  return localeMap[locale] ?? localeMap[localeFamily] ?? localeMap['en']!
+}

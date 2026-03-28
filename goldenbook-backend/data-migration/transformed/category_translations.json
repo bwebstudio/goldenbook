@@ -1,0 +1,74 @@
+[
+  {
+    "id": "266eab77-a256-7c3a-66c4-5797beb06ce5",
+    "category_id": "0bcd1a75-9213-6e5f-623d-e00835dae01b",
+    "locale": "en",
+    "name": "Stay & Do",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "9b8019a4-0a9b-dc21-6dae-590d4366665e",
+    "category_id": "9503ce4f-d713-9c18-d8d7-aecc267a8ec0",
+    "locale": "en",
+    "name": "Nature",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "2f2cedca-9db2-79d1-6237-a044359f7fde",
+    "category_id": "8eede68d-4e47-c3c4-b9c1-422a38bf9877",
+    "locale": "en",
+    "name": "Culture",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "921f8bdb-3cc3-7e38-7f28-5c99431991bf",
+    "category_id": "b34801c1-6c87-55f8-0d70-292652acd569",
+    "locale": "en",
+    "name": "Events",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "633a357b-803d-441f-3efc-cbf1f56fd8b9",
+    "category_id": "bdb3b756-9cde-ffcf-442a-72302f397034",
+    "locale": "en",
+    "name": "Food & Drinks",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "16ffc187-f92d-a32d-5a2b-edbb4934215a",
+    "category_id": "2252caf7-c09c-a804-3617-e55e592ecc92",
+    "locale": "en",
+    "name": "Shopping",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "20456e04-730e-96d6-7a57-22288b777645",
+    "category_id": "c26a7611-3562-d85a-08df-1b5b5a0dad91",
+    "locale": "en",
+    "name": "Sports",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  },
+  {
+    "id": "8cbecfe4-c7a7-4b21-214d-15a2932d9f83",
+    "category_id": "09a2b5d0-8eaa-c7d6-44e5-3977242a236e",
+    "locale": "en",
+    "name": "Transport",
+    "description": null,
+    "created_at": "2026-03-12T16:36:18.651Z",
+    "updated_at": "2026-03-12T16:36:18.651Z"
+  }
+]

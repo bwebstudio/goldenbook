@@ -1,0 +1,45 @@
+{
+  "exportedAt": "2026-03-12T16:29:11.581Z",
+  "collections": [
+    {
+      "collection": "locations",
+      "status": "ok",
+      "count": 4
+    },
+    {
+      "collection": "categories",
+      "status": "ok",
+      "count": 8
+    },
+    {
+      "collection": "establishments",
+      "status": "ok",
+      "count": 288
+    },
+    {
+      "collection": "users",
+      "status": "ok",
+      "count": 391
+    },
+    {
+      "collection": "admin_users",
+      "status": "ok",
+      "count": 5
+    },
+    {
+      "collection": "audit_logs",
+      "status": "ok",
+      "count": 1112
+    },
+    {
+      "collection": "migration_logs",
+      "status": "ok",
+      "count": 3
+    },
+    {
+      "collection": "translation_fix_logs",
+      "status": "ok",
+      "count": 1
+    }
+  ]
+}
