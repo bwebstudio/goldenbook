@@ -1,4 +1,6 @@
 import type { PlaceRow, CategoryRow, OpeningHourRow, GalleryRow, NearbyGemRow, OtherLocationRow } from './places.query'
+import type { BookingDTO, BookingMode, PlaceBookingInput } from '../booking/booking.types'
+import { resolveBookingDTO } from '../booking/booking.resolver'
 
 interface MediaAssetDTO { bucket: string | null; path: string | null }
 
@@ -43,6 +45,7 @@ export interface PlaceDetailDTO {
   slug: string
   name: string
   city: { slug: string; name: string }
+  citySlugs: string[]
   heroImage: MediaAssetDTO
   rating: number | null
   tags: string[]
@@ -92,6 +95,29 @@ export interface PlaceDetailDTO {
     cityName: string
     heroImage: MediaAssetDTO
   }[]
+  booking: BookingDTO
+  // Raw booking fields for admin/editorial use
+  bookingAdmin: {
+    bookingEnabled: boolean
+    bookingMode: string
+    bookingLabel: string | null
+    reservationRelevant: boolean
+    reservationConfidence: number | null
+    reservationSource: string | null
+    reservationLastReviewedAt: string | null
+  }
+  // Suggestion data for editorial review
+  suggestion: {
+    relevant: boolean | null
+    mode: string | null
+    label: string | null
+    url: string | null
+    confidence: number | null
+    reason: string | null
+    source: string | null
+    generatedAt: string | null
+    dismissed: boolean
+  } | null
 }
 
 export function toPlaceDetailDTO(
@@ -101,6 +127,7 @@ export function toPlaceDetailDTO(
   gallery: GalleryRow[],
   nearbyGems: NearbyGemRow[],
   otherLocations: OtherLocationRow[],
+  citySlugs?: string[],
 ): PlaceDetailDTO {
   const lat = toFloat(place.latitude)
   const lon = toFloat(place.longitude)
@@ -112,11 +139,27 @@ export function toPlaceDetailDTO(
 
   const { bookingUrl, reservationPhone } = normalizeBooking(place.booking_url)
 
+  // Build booking input for the resolver
+  const bookingInput: PlaceBookingInput = {
+    id: place.id,
+    booking_enabled: place.booking_enabled,
+    booking_mode: (place.booking_mode ?? 'none') as BookingMode,
+    booking_url: place.booking_url,
+    booking_label: place.booking_label,
+    website_url: place.website_url,
+    phone: place.phone,
+    reservation_relevant: place.reservation_relevant,
+    category_slugs: categories.filter(c => c.type === 'category').map(c => c.slug),
+    subcategory_slugs: categories.filter(c => c.type === 'subcategory').map(c => c.slug),
+  }
+  const booking = resolveBookingDTO(bookingInput)
+
   return {
     id: place.id,
     slug: place.slug,
     name: place.name,
     city: { slug: place.city_slug, name: place.city_name },
+    citySlugs: citySlugs ?? [place.city_slug],
     heroImage: { bucket: place.hero_bucket, path: place.hero_path },
     rating: place.popularity_score,
     tags: [],
@@ -176,5 +219,32 @@ export function toPlaceDetailDTO(
       cityName: l.city_name,
       heroImage: { bucket: l.hero_bucket, path: l.hero_path },
     })),
+    booking,
+    bookingAdmin: {
+      bookingEnabled: place.booking_enabled,
+      bookingMode: place.booking_mode ?? 'none',
+      bookingLabel: place.booking_label,
+      reservationRelevant: place.reservation_relevant,
+      reservationConfidence: place.reservation_confidence != null
+        ? Number(place.reservation_confidence)
+        : null,
+      reservationSource: place.reservation_source,
+      reservationLastReviewedAt: place.reservation_last_reviewed_at,
+    },
+    suggestion: place.suggestion_generated_at
+      ? {
+          relevant: place.suggestion_relevant,
+          mode: place.suggestion_mode,
+          label: place.suggestion_label,
+          url: place.suggestion_url,
+          confidence: place.suggestion_confidence != null
+            ? Number(place.suggestion_confidence)
+            : null,
+          reason: place.suggestion_reason,
+          source: place.suggestion_source,
+          generatedAt: place.suggestion_generated_at,
+          dismissed: place.suggestion_dismissed,
+        }
+      : null,
   }
 }

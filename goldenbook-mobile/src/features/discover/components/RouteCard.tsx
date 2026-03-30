@@ -47,11 +47,20 @@ export function RouteCard({ route }: RouteCardProps) {
         />
       )}
 
-      {/* Navy overlay — 0.88 opacity keeps image subtly visible */}
+      {/* Dark base overlay */}
       <View
         style={{
           ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'rgba(34,45,82,0.96)',
+          backgroundColor: 'rgba(0,0,0,0.45)',
+        }}
+        pointerEvents="none"
+      />
+
+      {/* Goldenbook blue overlay — almost fully opaque for cinematic navy look */}
+      <View
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: 'rgba(17,35,67,0.88)',
         }}
         pointerEvents="none"
       />

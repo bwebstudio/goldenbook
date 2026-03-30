@@ -1,1 +1,1 @@
-export type { PlaceDetailDTO, MediaAsset } from '@/types/api';
+export type { PlaceDetailDTO, MediaAsset, BookingDTO, BookingCTA } from '@/types/api';

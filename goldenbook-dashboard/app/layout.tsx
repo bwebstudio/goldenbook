@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Roboto } from "next/font/google";
+import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const roboto = Roboto({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "Goldenbook Dashboard",
-  description: "Internal management dashboard for Goldenbook",
+  title: "Goldenbook",
+  description: "Goldenbook management platform",
 };
 
 export default function RootLayout({
@@ -18,8 +19,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full`}>
-      <body className="h-full bg-surface">{children}</body>
+    <html lang="en" className={`${roboto.className} h-full`}>
+      <body className="h-full bg-surface">
+        <I18nProvider>{children}</I18nProvider>
+      </body>
     </html>
   );
 }

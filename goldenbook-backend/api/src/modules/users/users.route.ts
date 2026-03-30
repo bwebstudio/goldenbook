@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { authenticate } from '../../shared/auth/authPlugin'
 import { getDashboardAdminUserByEmail } from '../../shared/auth/dashboardAuth'
+import { getBusinessClientByUserId } from '../../shared/auth/businessAuth'
 import { getUserById, upsertUserOnFirstAccess } from './users.query'
 import { toMeDTO } from './users.dto'
 
@@ -20,8 +21,11 @@ export async function usersRoutes(app: FastifyInstance) {
       user = await upsertUserOnFirstAccess(userId)
     }
 
-    const adminUser = await getDashboardAdminUserByEmail(email)
+    const [adminUser, businessClient] = await Promise.all([
+      getDashboardAdminUserByEmail(email),
+      getBusinessClientByUserId(userId).catch(() => null),
+    ])
 
-    return reply.send(toMeDTO(user, email, adminUser))
+    return reply.send(toMeDTO(user, email, adminUser, businessClient))
   })
 }

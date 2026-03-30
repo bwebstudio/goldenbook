@@ -1,7 +1,7 @@
 import type { DashboardMeResponse, DashboardSession, DashboardUser } from "@/types/auth";
 import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
@@ -91,18 +91,32 @@ export async function fetchCurrentUser(accessToken: string): Promise<DashboardUs
 }
 
 export function mapCurrentUser(data: DashboardMeResponse): DashboardUser | null {
-  if (!data.dashboardRole) {
-    return null;
+  // Admin users get their dashboardRole directly
+  if (data.dashboardRole) {
+    return {
+      id: data.id,
+      email: data.email,
+      displayName: data.displayName,
+      fullName: data.fullName,
+      name: data.fullName ?? data.displayName ?? data.email,
+      role: data.dashboardRole,
+    };
   }
 
-  return {
-    id: data.id,
-    email: data.email,
-    displayName: data.displayName,
-    fullName: data.fullName,
-    name: data.fullName ?? data.displayName ?? data.email,
-    role: data.dashboardRole,
-  };
+  // Business clients get access via businessClient field
+  if (data.businessClient) {
+    return {
+      id: data.id,
+      email: data.email,
+      displayName: data.displayName,
+      fullName: data.fullName,
+      name: data.fullName ?? data.displayName ?? data.email,
+      role: "business_client",
+      businessClient: data.businessClient,
+    };
+  }
+
+  return null;
 }
 
 export function getCookieValue(cookieHeader: string | null | undefined, name: string): string | null {

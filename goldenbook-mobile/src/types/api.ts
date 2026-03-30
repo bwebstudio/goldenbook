@@ -166,6 +166,7 @@ export interface DiscoverPlaceCard {
   name: string;
   heroImage: MediaAsset;
   shortDescription: string | null;
+  isSponsored?: boolean;
 }
 
 export interface DiscoverCategory {
@@ -182,6 +183,30 @@ export interface DiscoverRoute {
   summary: string | null;
   heroImage: MediaAsset;
   placesCount: number;
+}
+
+// --- Booking CTA (matches backend BookingCTA / BookingDTO) ---
+
+export type BookingPlatform =
+  | 'booking'
+  | 'thefork'
+  | 'viator'
+  | 'getyourguide'
+  | 'website'
+  | 'contact';
+
+export interface BookingCTA {
+  enabled: boolean;
+  mode: string;
+  label: string;
+  url: string | null;
+  platform: BookingPlatform;
+  trackable: boolean;
+}
+
+export interface BookingDTO {
+  enabled: boolean;
+  cta: BookingCTA | null;
 }
 
 // --- Place Detail (matches backend PlaceDetailDTO exactly) ---
@@ -240,6 +265,7 @@ export interface PlaceDetailDTO {
     cityName: string;
     heroImage: MediaAsset;
   }[];
+  booking: BookingDTO;
 }
 
 // --- Routes (matches backend RouteCardDTO / RouteDetailDTO exactly) ---

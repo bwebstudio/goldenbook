@@ -75,19 +75,7 @@ export default function DiscoverScreen() {
               </View>
             )}
 
-            {/* 4. Hidden Spots Near You — vertical list */}
-            {data.hiddenSpotsNearYou.length > 0 && (
-              <View>
-                <SectionHeader title={t.discover.hiddenSpotsNearYou} onSeeAll={() => {}} />
-                <View className="px-6 gap-5">
-                  {data.hiddenSpotsNearYou.map((place) => (
-                    <PlaceCard key={place.id} place={place} variant="horizontal" />
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* 5. Golden Picks — horizontal portrait cards */}
+            {/* 4. Golden Picks — horizontal portrait cards */}
             {data.editorsPicks.length > 0 && (
               <View>
                 <SectionHeader title={t.discover.goldenPicks} onSeeAll={() => router.push('/golden-picks')} />
@@ -104,7 +92,19 @@ export default function DiscoverScreen() {
               </View>
             )}
 
-            {/* 6. Categories */}
+            {/* 5. Hidden Spots Near You — 3 visible in home, See All for full list */}
+            {data.hiddenSpotsNearYou.length > 0 && (
+              <View>
+                <SectionHeader title={t.discover.hiddenSpotsNearYou} onSeeAll={() => router.push('/hidden-spots')} />
+                <View className="px-6 gap-5">
+                  {data.hiddenSpotsNearYou.slice(0, 3).map((place) => (
+                    <PlaceCard key={place.id} place={place} variant="horizontal" />
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* 6. Explore by Category */}
             {data.categories.length > 0 && (
               <View>
                 <SectionHeader title={t.discover.exploreByCategory} />

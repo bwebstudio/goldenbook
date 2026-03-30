@@ -82,16 +82,19 @@ interface PlaceCardDTO {
   name: string
   heroImage: MediaAssetDTO
   shortDescription: string | null
+  isSponsored?: boolean
 }
 
 function toPlaceCard(row: PlaceCardRow): PlaceCardDTO {
-  return {
+  const dto: PlaceCardDTO = {
     id: row.id,
     slug: row.slug,
     name: row.name,
     heroImage: { bucket: row.hero_bucket, path: row.hero_path },
     shortDescription: row.short_description,
   }
+  if (row.is_sponsored) dto.isSponsored = true
+  return dto
 }
 
 // ─── Discover DTO ─────────────────────────────────────────────────────────────

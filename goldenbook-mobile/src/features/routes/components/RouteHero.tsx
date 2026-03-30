@@ -55,9 +55,15 @@ export function RouteHero({
         style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
       />
 
-      {/* Full-height gradient: subtle dark top (back btn) → clear middle → heavy navy bottom */}
+      {/* Dark base overlay for contrast */}
+      <View
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }}
+        pointerEvents="none"
+      />
+
+      {/* Goldenbook blue gradient: dark top (back btn) → clear middle → strong navy bottom */}
       <LinearGradient
-        colors={['rgba(0,0,0,0.40)', 'transparent', 'rgba(34,45,82,0.58)', 'rgba(34,45,82,0.96)']}
+        colors={['rgba(17,35,67,0.50)', 'transparent', 'rgba(17,35,67,0.65)', 'rgba(17,35,67,0.94)']}
         locations={[0, 0.28, 0.60, 1]}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         pointerEvents="none"

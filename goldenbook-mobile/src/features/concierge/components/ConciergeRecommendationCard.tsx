@@ -56,10 +56,10 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
           aspectRatio={16 / 10}
           borderRadius={0}
         />
-        {/* Overlay */}
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <View style={styles.overlay} />
-        </View>
+        {/* Dark base overlay for contrast */}
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' }} pointerEvents="none" />
+        {/* Goldenbook blue overlay */}
+        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(17,35,67,0.55)' }} pointerEvents="none" />
         {/* Badges */}
         {recommendation.badges.length > 0 && (
           <View style={styles.badges}>
@@ -109,10 +109,6 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     width: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(34,45,82,0.35)',
   },
   badges: {
     position: 'absolute',

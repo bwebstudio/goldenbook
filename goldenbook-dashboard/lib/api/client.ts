@@ -4,15 +4,19 @@
 
 import { AUTH_COOKIE_NAMES, getBrowserAccessToken } from "@/lib/api/auth";
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 export class ApiError extends Error {
+  public readonly data: Record<string, unknown>;
+
   constructor(
     public readonly status: number,
-    message: string
+    message: string,
+    data?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "ApiError";
+    this.data = data ?? {};
   }
 }
 
@@ -87,7 +91,7 @@ export async function apiGet<T>(path: string, params?: Record<string, string>): 
   return res.json() as Promise<T>;
 }
 
-async function apiWrite<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
+async function apiWrite<T>(method: "POST" | "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
   const res = await requestWithAuthRetry(`${BASE_URL}${path}`, {
     method,
     headers: await buildHeaders({ "Content-Type": "application/json" }),
@@ -97,11 +101,13 @@ async function apiWrite<T>(method: "POST" | "PUT", path: string, body: unknown):
 
   if (!res.ok) {
     let message = `API error ${res.status} for ${method} ${path}`;
+    let data: Record<string, unknown> = {};
     try {
-      const json = await res.json() as { message?: string };
-      if (json.message) message = json.message;
+      const json = await res.json() as Record<string, unknown>;
+      if (json.message && typeof json.message === "string") message = json.message;
+      data = json;
     } catch { /* ignore parse failure */ }
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, data);
   }
 
   return res.json() as Promise<T>;
@@ -148,4 +154,8 @@ export function apiPost<T>(path: string, body: unknown): Promise<T> {
 
 export function apiPut<T>(path: string, body: unknown): Promise<T> {
   return apiWrite<T>("PUT", path, body);
+}
+
+export function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return apiWrite<T>("PATCH", path, body);
 }

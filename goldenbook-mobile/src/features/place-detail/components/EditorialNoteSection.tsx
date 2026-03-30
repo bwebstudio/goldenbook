@@ -9,12 +9,6 @@ interface EditorialNoteSectionProps {
    */
   goldenbookNote: string | null;
   /**
-   * Extended editorial body — sourced from admin dashboard.
-   * Field: places.why_we_love_it (backend)
-   * Shown only if provided; no placeholder.
-   */
-  whyWeLoveIt: string | null;
-  /**
    * Insider tip from editors — sourced from admin dashboard.
    * Field: places.insider_tip (backend)
    * Falls back to placeholder if null.
@@ -24,7 +18,6 @@ interface EditorialNoteSectionProps {
 
 export function EditorialNoteSection({
   goldenbookNote,
-  whyWeLoveIt,
   insiderTip,
 }: EditorialNoteSectionProps) {
   const t = useTranslation();
@@ -75,24 +68,6 @@ export function EditorialNoteSection({
           </View>
         </View>
       </View>
-
-      {/* ── Why We Love It ─────────────────────────────────────────────────
-          Content source: places.why_we_love_it (admin dashboard)
-          No placeholder — only shown when backend provides content.
-      ─────────────────────────────────────────────────────────────────── */}
-      {whyWeLoveIt && (
-        <View>
-          <Text className="text-[10px] font-bold text-primary uppercase tracking-widest mb-6">
-            {t.place.whyWeLoveIt}
-          </Text>
-          <Text
-            className="text-navy/70 leading-relaxed text-base"
-            style={{ fontFamily: 'Inter_300Light' }}
-          >
-            {whyWeLoveIt}
-          </Text>
-        </View>
-      )}
 
       {/* ── Insider Tip ────────────────────────────────────────────────────
           Content source: places.insider_tip (admin dashboard)

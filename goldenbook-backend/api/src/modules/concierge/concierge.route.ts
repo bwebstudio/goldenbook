@@ -26,6 +26,7 @@ import {
   type OnboardingProfile,
   parseInterests,
 } from '../../shared/onboarding/onboarding.scoring'
+import { getActiveVisibilityPlaceIds } from '../visibility/visibility.query'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -144,9 +145,19 @@ export async function conciergeRoutes(app: FastifyInstance) {
       fetchLimit,
     )
 
-    // Score candidates in application layer — onboarding profile is additive boost
+    // Get concierge boost IDs for priority bonus
+    let boostIds: Set<string> = new Set()
+    try {
+      const ids = await getActiveVisibilityPlaceIds('concierge_boost', 20)
+      boostIds = new Set(ids)
+    } catch {}
+
+    // Score candidates — boosted places get +25 priority bonus
     const scored = candidates
-      .map((place) => ({ place, score: scoreConciergePlace(place, resolvedIntent, profile) }))
+      .map((place) => ({
+        place,
+        score: scoreConciergePlace(place, resolvedIntent, profile) + (boostIds.has(place.id) ? 25 : 0),
+      }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)

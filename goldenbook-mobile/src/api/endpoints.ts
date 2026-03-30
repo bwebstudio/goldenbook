@@ -74,6 +74,29 @@ export const api = {
   unsaveRoute: (routeId: string) =>
     apiClient.delete(`/me/saved/routes/${routeId}`).then((r) => r.data),
 
+  // ── Booking tracking ───────────────────────────────────────────────────────
+  trackBookingClick: (params: {
+    placeId: string;
+    provider: string;
+    bookingMode: string;
+    targetUrl?: string | null;
+    locale?: string;
+    city?: string;
+    sessionId?: string;
+  }) =>
+    apiClient.post('/booking/click', params).catch(() => {}),
+
+  trackBookingImpression: (params: {
+    placeId: string;
+    provider: string;
+    bookingMode: string;
+    targetUrl?: string | null;
+    locale?: string;
+    city?: string;
+    sessionId?: string;
+  }) =>
+    apiClient.post('/booking/impression', params).catch(() => {}),
+
   // ── Concierge ─────────────────────────────────────────────────────────────
   conciergeBootstrap: (city?: string, locale = 'en') =>
     apiClient

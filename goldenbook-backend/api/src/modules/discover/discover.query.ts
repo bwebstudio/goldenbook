@@ -1,4 +1,5 @@
 import { db } from '../../db/postgres'
+import { getActiveVisibilityPlaceIds } from '../visibility/visibility.query'
 
 // ─── Shared hero image lateral ────────────────────────────────────────────────
 // Reused across multiple queries as an inline comment — see LATERAL blocks below.
@@ -135,6 +136,7 @@ export interface PlaceCardRow {
   hero_bucket: string | null
   hero_path: string | null
   short_description: string | null
+  is_sponsored?: boolean
 }
 
 // ─── Editorial collection places (editors_picks, hidden_spots, etc.) ──────────
@@ -230,17 +232,76 @@ async function getPlacesFallback(
   return rows
 }
 
+// ─── Visibility-driven places ────────────────────────────────────────────────
+// Fetches places assigned via place_visibility table for a given surface.
+
+async function getVisibilityPlaces(
+  citySlug: string,
+  locale: string,
+  surface: string,
+  limit: number,
+): Promise<PlaceCardRow[]> {
+  try {
+    const placeIds = await getActiveVisibilityPlaceIds(surface, limit)
+    if (placeIds.length === 0) return []
+
+    const { rows } = await db.query<PlaceCardRow>(`
+      SELECT
+        p.id, p.slug,
+        COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name) AS name,
+        hero_img.bucket AS hero_bucket, hero_img.path AS hero_path,
+        COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS short_description
+      FROM places p
+      JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
+      LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $2
+      LEFT JOIN place_translations pt_lang ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
+      LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+      LEFT JOIN LATERAL (
+        SELECT ma.bucket, ma.path FROM place_images pi JOIN media_assets ma ON ma.id = pi.asset_id
+        WHERE pi.place_id = p.id AND pi.image_role IN ('hero','cover')
+        ORDER BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC LIMIT 1
+      ) hero_img ON true
+      WHERE p.id = ANY($3) AND p.status = 'published'
+    `, [citySlug, locale, placeIds])
+
+    // Preserve priority order from placeIds
+    const byId = new Map(rows.map(r => [r.id, r]))
+    return placeIds.map(id => byId.get(id)).filter((r): r is PlaceCardRow => !!r)
+  } catch {
+    return [] // table may not exist yet
+  }
+}
+
+function deduplicatePlaces(places: PlaceCardRow[]): PlaceCardRow[] {
+  const seen = new Set<string>()
+  return places.filter(p => {
+    if (seen.has(p.id)) return false
+    seen.add(p.id)
+    return true
+  })
+}
+
 export async function getEditorsPicks(citySlug: string, locale: string, limit = 8): Promise<PlaceCardRow[]> {
-  const curated = await getCollectionPlaces(citySlug, locale, 'editors_picks', limit)
-  if (curated.length > 0) return curated
-  return getPlacesFallback(citySlug, locale, limit, 0)
+  // 1. Manual visibility assignments
+  const promoted = await getVisibilityPlaces(citySlug, locale, 'golden_picks', limit)
+  if (promoted.length >= limit) return promoted
+  // 2. Curated editorial collections
+  const curated = await getCollectionPlaces(citySlug, locale, 'editors_picks', limit - promoted.length)
+  const combined = deduplicatePlaces([...promoted, ...curated])
+  if (combined.length >= limit) return combined.slice(0, limit)
+  // 3. Fallback
+  const fallback = await getPlacesFallback(citySlug, locale, limit - combined.length, 0)
+  return deduplicatePlaces([...combined, ...fallback]).slice(0, limit)
 }
 
 export async function getHiddenSpots(citySlug: string, locale: string, limit = 6): Promise<PlaceCardRow[]> {
-  const curated = await getCollectionPlaces(citySlug, locale, 'hidden_spots', limit)
-  if (curated.length > 0) return curated
-  // Offset to return a different slice from editorsPicks fallback
-  return getPlacesFallback(citySlug, locale, limit, 8)
+  const promoted = await getVisibilityPlaces(citySlug, locale, 'hidden_spots', limit)
+  if (promoted.length >= limit) return promoted
+  const curated = await getCollectionPlaces(citySlug, locale, 'hidden_spots', limit - promoted.length)
+  const combined = deduplicatePlaces([...promoted, ...curated])
+  if (combined.length >= limit) return combined.slice(0, limit)
+  const fallback = await getPlacesFallback(citySlug, locale, limit - combined.length, 8)
+  return deduplicatePlaces([...combined, ...fallback]).slice(0, limit)
 }
 
 // ─── New on Goldenbook ────────────────────────────────────────────────────────
@@ -252,11 +313,15 @@ export async function getNewPlaces(
   locale: string,
   limit = 8,
 ): Promise<PlaceCardRow[]> {
-  // Try curated collection first
-  const curated = await getCollectionPlaces(citySlug, locale, 'new_on_goldenbook', limit)
-  if (curated.length > 0) return curated
+  // 1. Visibility-promoted new place (sponsored/superadmin)
+  const promoted = await getVisibilityPlaces(citySlug, locale, 'new_on_goldenbook', 1)
 
-  // Fallback: most recently published places
+  // 2. Curated collection
+  const curated = await getCollectionPlaces(citySlug, locale, 'new_on_goldenbook', limit)
+  const combined = deduplicatePlaces([...promoted, ...curated])
+  if (combined.length >= limit) return combined.slice(0, limit)
+
+  // 3. Fallback: most recently published places
   const { rows } = await db.query<PlaceCardRow>(
     `
     SELECT
@@ -287,9 +352,9 @@ export async function getNewPlaces(
     ORDER BY p.published_at DESC NULLS LAST, p.created_at DESC
     LIMIT $3
     `,
-    [citySlug, locale, limit],
+    [citySlug, locale, limit - combined.length],
   )
-  return rows
+  return deduplicatePlaces([...combined, ...rows]).slice(0, limit)
 }
 
 // ─── Categories ───────────────────────────────────────────────────────────────

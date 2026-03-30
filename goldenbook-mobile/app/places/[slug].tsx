@@ -73,7 +73,6 @@ export default function PlaceDetailScreen() {
             See EditorialNoteSection for placeholder constants and TODO comments. */}
         <EditorialNoteSection
           goldenbookNote={data.goldenbookNote}
-          whyWeLoveIt={data.whyWeLoveIt}
           insiderTip={data.insiderTip}
         />
 

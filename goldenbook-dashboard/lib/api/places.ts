@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from "./client";
+import { apiGet, apiPost, apiPut, apiDelete } from "./client";
 import type {
   MapPlacesResponseDTO,
   MapPlaceDTO,
@@ -7,6 +7,8 @@ import type {
   AdminPlaceResponseDTO,
   AdminCategoriesResponseDTO,
   AdminCategoryDTO,
+  AdminPlaceListResponseDTO,
+  AdminPlaceListItem,
 } from "@/types/api/place";
 
 // GET /api/v1/map/places?city={citySlug}
@@ -19,8 +21,9 @@ export async function fetchPlacesForCity(citySlug: string): Promise<MapPlaceDTO[
 
 // GET /api/v1/places/:slug
 // Returns full place detail. Used for the edit/detail page.
-export async function fetchPlaceBySlug(slug: string): Promise<PlaceDetailDTO> {
-  return apiGet<PlaceDetailDTO>(`/api/v1/places/${encodeURIComponent(slug)}`);
+// Default locale is 'pt' because Portuguese is the source of truth for editorial.
+export async function fetchPlaceBySlug(slug: string, locale = "pt"): Promise<PlaceDetailDTO> {
+  return apiGet<PlaceDetailDTO>(`/api/v1/places/${encodeURIComponent(slug)}`, { locale });
 }
 
 // GET /api/v1/admin/categories
@@ -40,4 +43,16 @@ export async function createPlace(payload: AdminPlacePayload): Promise<AdminPlac
 // Updates an existing place by internal UUID. Only sends changed fields.
 export async function updatePlace(id: string, payload: AdminPlacePayload): Promise<AdminPlaceResponseDTO> {
   return apiPut<AdminPlaceResponseDTO>(`/api/v1/admin/places/${encodeURIComponent(id)}`, payload);
+}
+
+// GET /api/v1/admin/places
+// Lightweight list with booking + suggestion metadata for filtering.
+export async function fetchAdminPlacesList(): Promise<AdminPlaceListItem[]> {
+  const data = await apiGet<AdminPlaceListResponseDTO>("/api/v1/admin/places");
+  return data.items;
+}
+
+// DELETE /api/v1/admin/places/:id
+export async function deletePlaceById(id: string): Promise<void> {
+  await apiDelete(`/api/v1/admin/places/${encodeURIComponent(id)}`);
 }

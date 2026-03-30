@@ -48,9 +48,15 @@ export function EditorialHeroCard({ hero }: EditorialHeroCardProps) {
         style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
       />
 
-      {/* Gradient overlay: transparent top → navy bottom */}
+      {/* Dark base overlay for contrast */}
+      <View
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }}
+        pointerEvents="none"
+      />
+
+      {/* Goldenbook blue gradient overlay */}
       <LinearGradient
-        colors={['transparent', 'rgba(34,45,82,0.6)', 'rgba(34,45,82,0.92)']}
+        colors={['transparent', 'rgba(17,35,67,0.55)', 'rgba(17,35,67,0.85)']}
         locations={[0.3, 0.62, 1]}
         style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: HERO_HEIGHT * 0.75 }}
         pointerEvents="none"

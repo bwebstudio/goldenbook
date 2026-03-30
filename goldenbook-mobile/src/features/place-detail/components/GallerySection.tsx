@@ -35,7 +35,8 @@ export function GallerySection({ gallery }: GallerySectionProps) {
 
   if (!gallery.length) return null;
 
-  const sorted = [...gallery].sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99));
+  const BASE_GALLERY_LIMIT = 4;
+  const sorted = [...gallery].sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99)).slice(0, BASE_GALLERY_LIMIT);
   const urls = sorted.map((item) => getStorageUrl(item.bucket, item.path));
 
   const openViewer = (index: number) => {

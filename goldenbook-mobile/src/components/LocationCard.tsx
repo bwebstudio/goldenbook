@@ -74,9 +74,15 @@ export function LocationCard({ locality, selected, onPress }: LocationCardProps)
           imageStyle={styles.imageInner}
           resizeMode="cover"
         >
-          {/* ── Gradient scrim ─────────────────────────────────────────── */}
+          {/* ── Dark base overlay for contrast ────────────────────────── */}
+          <View
+            style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' }}
+            pointerEvents="none"
+          />
+
+          {/* ── Goldenbook blue gradient scrim ────────────────────────── */}
           <LinearGradient
-            colors={['transparent', 'rgba(15,20,40,0.90)']}
+            colors={['transparent', 'rgba(17,35,67,0.55)']}
             locations={[0.35, 1]}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}

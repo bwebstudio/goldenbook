@@ -179,6 +179,13 @@ export const pt: Translations = {
     curatedNearby: 'Perto de Ti',
     moreFrom: 'Mais de',
     reserve: 'Reservar',
+    bookOnBooking: 'Reservar no Booking.com',
+    reserveOnTheFork: 'Reservar no TheFork',
+    checkAvailability: 'Ver disponibilidade',
+    contactToReserve: 'Contactar para reservar',
+    website: 'Website',
+    call: 'Ligar',
+    directions: 'Direções',
     map: 'Mapa',
     away: 'de distância',
     editorsFavorite: 'Favorito da Redação',
@@ -186,6 +193,8 @@ export const pt: Translations = {
     exceptional: 'Excecional',
     goldenbookNotePlaceholder: 'Um endereço verdadeiramente essencial nesta cidade. Cada detalhe foi escolhido com intenção — é exatamente o tipo de lugar que o Goldenbook existe para revelar.',
     insiderTipPlaceholder: 'Chega cedo ou reserva com antecedência. As horas mais tranquilas revelam uma atmosfera completamente diferente, e o serviço é muito mais atento quando não está cheio.',
+    readMore: 'Ler mais',
+    readLess: 'Ler menos',
   },
 
   goldenPicks: {

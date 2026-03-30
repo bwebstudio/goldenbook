@@ -18,6 +18,15 @@ const envSchema = z.object({
   // Example: https://xyz.supabase.co
   // If not set, Concierge recommendation images will be returned as null.
   STORAGE_BASE_URL: z.string().url().optional(),
+  // Stripe — test mode keys for checkout integration
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  // Stripe webhook endpoint secret — used to verify webhook signatures
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  // URL the dashboard runs on — used for Stripe redirect URLs
+  DASHBOARD_URL: z.string().url().default('http://localhost:3000'),
+  // Comma-separated list of allowed CORS origins (production)
+  // Example: https://goldenbook.vercel.app,https://dashboard.goldenbook.com
+  CORS_ORIGINS: z.string().optional(),
 })
 
 const result = envSchema.safeParse(process.env)

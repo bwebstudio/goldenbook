@@ -29,6 +29,18 @@ const bookingOrEmpty = z
   )
   .optional()
 
+const bookingModeEnum = z.enum([
+  'none',
+  'affiliate_booking',
+  'affiliate_thefork',
+  'affiliate_viator',
+  'affiliate_getyourguide',
+  'direct_website',
+  'contact_only',
+])
+
+const reservationSourceEnum = z.enum(['manual', 'ai_suggested', 'imported'])
+
 export const createPlaceSchema = z.object({
   name:             z.string().min(2, 'Name must be at least 2 characters'),
   slug:             z
@@ -41,6 +53,7 @@ export const createPlaceSchema = z.object({
   whyWeLoveIt:      z.string().optional(),
   insiderTip:       z.string().optional(),
   citySlug:         z.string().min(1, 'City is required'),
+  citySlugs:        z.array(z.string().min(1)).optional(),
   addressLine:      z.string().optional(),
   websiteUrl:       urlOrEmpty,
   phone:            z.string().optional(),
@@ -50,6 +63,13 @@ export const createPlaceSchema = z.object({
   subcategorySlug:  z.string().optional(),
   status:           z.enum(['draft', 'published', 'archived']).default('draft'),
   featured:         z.boolean().default(false),
+  // Booking fields
+  bookingEnabled:          z.boolean().default(false),
+  bookingMode:             bookingModeEnum.default('none'),
+  bookingLabel:            z.string().optional(),
+  bookingNotes:            z.string().optional(),
+  reservationRelevant:     z.boolean().default(false),
+  reservationSource:       reservationSourceEnum.optional(),
 })
 
 export const updatePlaceSchema = z.object({
@@ -61,6 +81,7 @@ export const updatePlaceSchema = z.object({
   whyWeLoveIt:      z.string().optional(),
   insiderTip:       z.string().optional(),
   citySlug:         z.string().min(1).optional(),
+  citySlugs:        z.array(z.string().min(1)).optional(),
   addressLine:      z.string().optional(),
   websiteUrl:       urlOrEmpty,
   phone:            z.string().optional(),
@@ -70,6 +91,13 @@ export const updatePlaceSchema = z.object({
   subcategorySlug:  z.string().optional(),
   status:           z.enum(['draft', 'published', 'archived']).optional(),
   featured:         z.boolean().optional(),
+  // Booking fields
+  bookingEnabled:          z.boolean().optional(),
+  bookingMode:             bookingModeEnum.optional(),
+  bookingLabel:            z.string().optional(),
+  bookingNotes:            z.string().optional(),
+  reservationRelevant:     z.boolean().optional(),
+  reservationSource:       reservationSourceEnum.optional(),
 })
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>
@@ -78,10 +106,11 @@ export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>
 // ─── Response DTO ─────────────────────────────────────────────────────────────
 
 export interface AdminPlaceResponseDTO {
-  id:       string
-  slug:     string
-  name:     string
-  status:   string
-  featured: boolean
-  citySlug: string
+  id:        string
+  slug:      string
+  name:      string
+  status:    string
+  featured:  boolean
+  citySlug:  string
+  citySlugs: string[]
 }

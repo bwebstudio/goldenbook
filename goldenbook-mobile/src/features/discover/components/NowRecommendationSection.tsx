@@ -79,13 +79,27 @@ export function NowRecommendationSection({ now, cityName }: NowRecommendationSec
         style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
       />
 
-      {/* Gradient overlay: subtle top tint → strong navy bottom */}
+      {/* Dark base overlay for contrast */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: 16,
+          backgroundColor: 'rgba(0,0,0,0.35)',
+        }}
+        pointerEvents="none"
+      />
+
+      {/* Goldenbook blue gradient overlay */}
       <LinearGradient
         colors={[
-          'rgba(0,0,0,0.08)',
           'transparent',
-          'rgba(34,45,82,0.55)',
-          'rgba(34,45,82,0.94)',
+          'transparent',
+          'rgba(17,35,67,0.55)',
+          'rgba(17,35,67,0.88)',
         ]}
         locations={[0, 0.28, 0.62, 1]}
         style={{

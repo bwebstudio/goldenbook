@@ -1,6 +1,7 @@
 import { db } from '../../../db/postgres'
 import { AppError, NotFoundError, ValidationError } from '../../../shared/errors/AppError'
 import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from './admin-places.dto'
+import { translateFields } from '../../../lib/translation/deepl'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,51 @@ function nullify(v: string | undefined): string | null {
   return v === undefined || v === '' ? null : v
 }
 
+/** Resolve multiple city slugs to destination IDs. */
+async function resolveDestinationIds(slugs: string[]): Promise<{ id: string; slug: string }[]> {
+  if (slugs.length === 0) return []
+  const placeholders = slugs.map((_, i) => `$${i + 1}`).join(', ')
+  const { rows } = await db.query<{ id: string; slug: string }>(
+    `SELECT id, slug FROM destinations WHERE slug IN (${placeholders}) AND is_active = true`,
+    slugs,
+  )
+  return rows
+}
+
+/** Sync place_destinations join table. Adds missing, removes stale. */
+async function syncPlaceDestinations(
+  client: { query: typeof db.query },
+  placeId: string,
+  destinationIds: string[],
+): Promise<void> {
+  // Remove old links not in the new set
+  if (destinationIds.length > 0) {
+    const placeholders = destinationIds.map((_, i) => `$${i + 2}`).join(', ')
+    await client.query(
+      `DELETE FROM place_destinations WHERE place_id = $1 AND destination_id NOT IN (${placeholders})`,
+      [placeId, ...destinationIds],
+    )
+  } else {
+    await client.query(`DELETE FROM place_destinations WHERE place_id = $1`, [placeId])
+  }
+  // Insert new links
+  for (const destId of destinationIds) {
+    await client.query(
+      `INSERT INTO place_destinations (place_id, destination_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [placeId, destId],
+    )
+  }
+}
+
+/** Get all city slugs for a place from the join table. */
+async function getPlaceCitySlugs(placeId: string): Promise<string[]> {
+  const { rows } = await db.query<{ slug: string }>(
+    `SELECT d.slug FROM place_destinations pd JOIN destinations d ON d.id = pd.destination_id WHERE pd.place_id = $1 ORDER BY d.name`,
+    [placeId],
+  )
+  return rows.map((r) => r.slug)
+}
+
 // ─── Create place ─────────────────────────────────────────────────────────────
 
 export async function createPlace(
@@ -66,44 +112,53 @@ export async function createPlace(
       throw new AppError(409, `Slug "${input.slug}" is already taken`, 'SLUG_CONFLICT')
     }
 
+    // Check if booking columns exist
+    const hasBookingCols = await client.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_name = 'places' AND column_name = 'booking_enabled' LIMIT 1`
+    ).then(r => r.rows.length > 0)
+
     // Insert place
-    const { rows: placed } = await client.query<{
-      id: string
-      slug: string
-      status: string
-      featured: boolean
-    }>(
-      `
-      INSERT INTO places (
-        destination_id, slug, name,
-        short_description, full_description,
-        address_line, website_url, phone, email, booking_url,
-        status, featured, place_type,
-        is_active, published_at
-      ) VALUES (
-        $1, $2, $3,
-        $4, $5,
-        $6, $7, $8, $9, $10,
-        $11, $12, 'other',
-        true,
-        CASE WHEN $11 = 'published' THEN now() ELSE NULL END
+    const insertCols = [
+      'destination_id', 'slug', 'name',
+      'short_description', 'full_description',
+      'address_line', 'website_url', 'phone', 'email', 'booking_url',
+      'status', 'featured', 'place_type',
+      'is_active', 'published_at',
+    ]
+    const insertVals = [
+      '$1', '$2', '$3',
+      '$4', '$5',
+      '$6', '$7', '$8', '$9', '$10',
+      '$11', '$12', `'other'`,
+      'true',
+      `CASE WHEN $11 = 'published' THEN now() ELSE NULL END`,
+    ]
+    const insertParams: unknown[] = [
+      destinationId, input.slug, input.name,
+      nullify(input.shortDescription), nullify(input.fullDescription),
+      nullify(input.addressLine), nullify(input.websiteUrl),
+      nullify(input.phone), nullify(input.email), nullify(input.bookingUrl),
+      input.status, input.featured,
+    ]
+
+    if (hasBookingCols) {
+      insertCols.push('booking_enabled', 'booking_mode', 'booking_label', 'booking_notes', 'reservation_relevant', 'reservation_source')
+      insertVals.push('$13', `COALESCE($14, 'none')::booking_mode`, '$15', '$16', '$17', '$18::reservation_source')
+      insertParams.push(
+        input.bookingEnabled ?? false,
+        input.bookingMode ?? 'none',
+        nullify(input.bookingLabel),
+        nullify(input.bookingNotes),
+        input.reservationRelevant ?? false,
+        input.reservationSource ?? null,
       )
-      RETURNING id, slug, status, featured
-      `,
-      [
-        destinationId,
-        input.slug,
-        input.name,
-        nullify(input.shortDescription),
-        nullify(input.fullDescription),
-        nullify(input.addressLine),
-        nullify(input.websiteUrl),
-        nullify(input.phone),
-        nullify(input.email),
-        nullify(input.bookingUrl),
-        input.status,
-        input.featured,
-      ],
+    }
+
+    const { rows: placed } = await client.query<{
+      id: string; slug: string; status: string; featured: boolean
+    }>(
+      `INSERT INTO places (${insertCols.join(', ')}) VALUES (${insertVals.join(', ')}) RETURNING id, slug, status, featured`,
+      insertParams,
     )
     const place = placed[0]
 
@@ -144,15 +199,26 @@ export async function createPlace(
       [place.id, categoryId, subcategoryId],
     )
 
+    // Sync place_destinations join table
+    const allCitySlugs = input.citySlugs?.length ? input.citySlugs : [input.citySlug]
+    const destRows = await resolveDestinationIds(allCitySlugs)
+    const allDestIds = destRows.map((r) => r.id)
+    // Always include the primary destination
+    if (!allDestIds.includes(destinationId)) allDestIds.push(destinationId)
+    await syncPlaceDestinations(client, place.id, allDestIds)
+
     await client.query('COMMIT')
 
+    const citySlugs = await getPlaceCitySlugs(place.id)
+
     return {
-      id:       place.id,
-      slug:     place.slug,
-      name:     input.name,
-      status:   place.status,
-      featured: place.featured,
-      citySlug: input.citySlug,
+      id:        place.id,
+      slug:      place.slug,
+      name:      input.name,
+      status:    place.status,
+      featured:  place.featured,
+      citySlug:  input.citySlug,
+      citySlugs,
     }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -236,6 +302,31 @@ export async function updatePlace(
     if (input.bookingUrl   !== undefined) addField('booking_url',    nullify(input.bookingUrl))
     if (input.featured     !== undefined) addField('featured',       input.featured)
 
+    // Booking fields — only if the booking migration has been applied
+    const hasBookingColumns = await client.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_name = 'places' AND column_name = 'booking_enabled' LIMIT 1`
+    ).then(r => r.rows.length > 0)
+
+    if (hasBookingColumns) {
+      if (input.bookingEnabled      !== undefined) addField('booking_enabled',      input.bookingEnabled)
+      if (input.bookingMode         !== undefined) {
+        setClauses.push(`booking_mode = $${i}::booking_mode`)
+        params.push(input.bookingMode)
+        i++
+      }
+      if (input.bookingLabel        !== undefined) addField('booking_label',        nullify(input.bookingLabel))
+      if (input.bookingNotes        !== undefined) addField('booking_notes',        nullify(input.bookingNotes))
+      if (input.reservationRelevant !== undefined) addField('reservation_relevant', input.reservationRelevant)
+      if (input.reservationSource   !== undefined) {
+        setClauses.push(`reservation_source = $${i}::reservation_source`)
+        params.push(input.reservationSource ?? null)
+        i++
+      }
+      if (input.bookingEnabled !== undefined || input.bookingMode !== undefined) {
+        setClauses.push(`reservation_last_reviewed_at = now()`)
+      }
+    }
+
     // Handle status + published_at together
     if (input.status !== undefined) {
       addField('status', input.status)
@@ -265,47 +356,90 @@ export async function updatePlace(
       input.insiderTip       !== undefined
 
     if (hasTranslationUpdate) {
-      // Fetch current translation as fallback
-      const { rows: currentTrans } = await client.query<{
-        name: string | null
-        short_description: string | null
-        full_description: string | null
-        goldenbook_note: string | null
-        why_we_love_it: string | null
-        insider_tip: string | null
+      // Fetch current PT translation as fallback
+      const { rows: currentPt } = await client.query<{
+        name: string | null; short_description: string | null; full_description: string | null
+        goldenbook_note: string | null; why_we_love_it: string | null; insider_tip: string | null
       }>(
         `SELECT name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip
+         FROM place_translations WHERE place_id = $1 AND locale = 'pt' LIMIT 1`,
+        [placeId],
+      )
+      const ptPrev = currentPt[0] ?? {}
+
+      // Build the PT values
+      const ptName = input.name ?? ptPrev.name ?? ''
+      const ptShort = input.shortDescription !== undefined ? nullify(input.shortDescription) : ptPrev.short_description
+      const ptFull = input.fullDescription !== undefined ? nullify(input.fullDescription) : ptPrev.full_description
+      const ptNote = input.goldenbookNote !== undefined ? nullify(input.goldenbookNote) : ptPrev.goldenbook_note
+      const ptWhy = input.whyWeLoveIt !== undefined ? nullify(input.whyWeLoveIt) : ptPrev.why_we_love_it
+      const ptTip = input.insiderTip !== undefined ? nullify(input.insiderTip) : ptPrev.insider_tip
+
+      // 1. Save Portuguese (source of truth)
+      await client.query(
+        `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip)
+         VALUES ($1, 'pt', $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (place_id, locale) DO UPDATE SET
+           name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
+           goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
+           updated_at = now()`,
+        [placeId, ptName, ptShort, ptFull, ptNote, ptWhy, ptTip],
+      )
+
+      // 2. Check if EN has a manual override
+      const { rows: enRow } = await client.query<{ translation_override: boolean }>(
+        `SELECT COALESCE(translation_override, false) AS translation_override
          FROM place_translations WHERE place_id = $1 AND locale = 'en' LIMIT 1`,
         [placeId],
       )
-      const ct = currentTrans[0] ?? {}
+      const hasOverride = enRow[0]?.translation_override ?? false
 
-      await client.query(
-        `
-        INSERT INTO place_translations (
-          place_id, locale, name,
-          short_description, full_description,
-          goldenbook_note, why_we_love_it, insider_tip
-        ) VALUES ($1, 'en', $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (place_id, locale) DO UPDATE SET
-          name              = EXCLUDED.name,
-          short_description = EXCLUDED.short_description,
-          full_description  = EXCLUDED.full_description,
-          goldenbook_note   = EXCLUDED.goldenbook_note,
-          why_we_love_it    = EXCLUDED.why_we_love_it,
-          insider_tip       = EXCLUDED.insider_tip,
-          updated_at        = now()
-        `,
-        [
-          placeId,
-          input.name             ?? ct.name,
-          input.shortDescription !== undefined ? nullify(input.shortDescription) : ct.short_description,
-          input.fullDescription  !== undefined ? nullify(input.fullDescription)  : ct.full_description,
-          input.goldenbookNote   !== undefined ? nullify(input.goldenbookNote)   : ct.goldenbook_note,
-          input.whyWeLoveIt      !== undefined ? nullify(input.whyWeLoveIt)      : ct.why_we_love_it,
-          input.insiderTip       !== undefined ? nullify(input.insiderTip)       : ct.insider_tip,
-        ],
-      )
+      // 3. Auto-translate to EN if no manual override
+      if (!hasOverride) {
+        // Release client before async translation (commit PT first)
+        await client.query('SAVEPOINT pre_translate')
+
+        try {
+          const translated = await translateFields({
+            name: ptName,
+            short_description: ptShort,
+            full_description: ptFull,
+            goldenbook_note: ptNote,
+            insider_tip: ptTip,
+          })
+
+          await client.query(
+            `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip)
+             VALUES ($1, 'en', $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (place_id, locale) DO UPDATE SET
+               name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
+               goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
+               updated_at = now()`,
+            [
+              placeId,
+              translated.name ?? ptName,
+              translated.short_description ?? ptShort,
+              translated.full_description ?? ptFull,
+              translated.goldenbook_note ?? ptNote,
+              translated.why_we_love_it ?? ptWhy,
+              translated.insider_tip ?? ptTip,
+            ],
+          )
+        } catch (translationErr) {
+          console.error('[translation] Auto-translate failed, using PT as EN fallback:', translationErr)
+          await client.query('ROLLBACK TO SAVEPOINT pre_translate')
+          // Save PT content as EN fallback
+          await client.query(
+            `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip)
+             VALUES ($1, 'en', $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (place_id, locale) DO UPDATE SET
+               name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
+               goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
+               updated_at = now()`,
+            [placeId, ptName, ptShort, ptFull, ptNote, ptWhy, ptTip],
+          )
+        }
+      }
     }
 
     // Replace primary category if categorySlug is being changed
@@ -320,6 +454,22 @@ export async function updatePlace(
         VALUES ($1, $2, $3, true, 0)
         `,
         [placeId, categoryId, subcategoryId],
+      )
+    }
+
+    // Sync place_destinations join table if citySlugs is provided
+    if (input.citySlugs?.length) {
+      const destRows = await resolveDestinationIds(input.citySlugs)
+      const allDestIds = destRows.map((r) => r.id)
+      // Ensure primary destination is included
+      const primaryDestId = destinationId ?? existing.destination_id
+      if (!allDestIds.includes(primaryDestId)) allDestIds.push(primaryDestId)
+      await syncPlaceDestinations(client, placeId, allDestIds)
+    } else if (destinationId) {
+      // Only primary city changed, ensure it's in the join table
+      await client.query(
+        `INSERT INTO place_destinations (place_id, destination_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [placeId, destinationId],
       )
     }
 
@@ -342,13 +492,16 @@ export async function updatePlace(
       [placeId],
     )
 
+    const citySlugs = await getPlaceCitySlugs(placeId)
+
     return {
-      id:       placeId,
-      slug:     final[0].slug,
-      name:     final[0].name,
-      status:   final[0].status,
-      featured: final[0].featured,
-      citySlug: final[0].city_slug,
+      id:        placeId,
+      slug:      final[0].slug,
+      name:      final[0].name,
+      status:    final[0].status,
+      featured:  final[0].featured,
+      citySlug:  final[0].city_slug,
+      citySlugs,
     }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -356,4 +509,11 @@ export async function updatePlace(
   } finally {
     client.release()
   }
+}
+
+// ─── Delete place ─────────────────────────────────────────────────────────────
+
+export async function deletePlace(placeId: string): Promise<void> {
+  const { rowCount } = await db.query('DELETE FROM places WHERE id = $1', [placeId])
+  if (!rowCount) throw new NotFoundError('Place')
 }

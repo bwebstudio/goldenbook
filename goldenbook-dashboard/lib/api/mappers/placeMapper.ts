@@ -1,7 +1,7 @@
 // Mappers from backend API response shapes → dashboard UI shapes.
 // Keep backend types and UI types strictly separate.
 
-import type { MapPlaceDTO, PlaceDetailDTO } from "@/types/api/place";
+import type { MapPlaceDTO, PlaceDetailDTO, BookingMode, ReservationSource, AdminPlaceListItem } from "@/types/api/place";
 import type { UIPlace, UIPlaceDetail } from "@/types/ui/place";
 import { getStorageUrl } from "@/lib/utils/storage";
 
@@ -34,6 +34,12 @@ export function mapMapPlaceToUI(dto: MapPlaceDTO): UIPlace {
     featured: false, // TODO: cross-reference with discover.editorsPicks when needed
     editorsPick: false, // TODO: cross-reference with discover.editorsPicks when needed
     mainImage: getStorageUrl(dto.heroImage.bucket, dto.heroImage.path),
+    bookingEnabled: false,
+    hasSuggestion: false,
+    suggestionRelevant: null,
+    suggestionMode: null,
+    suggestionConfidence: null,
+    suggestionDismissed: false,
   };
 }
 
@@ -46,6 +52,7 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     name: dto.name,
     city: dto.city.name,
     citySlug: dto.city.slug,
+    citySlugs: dto.citySlugs ?? [dto.city.slug],
     shortDescription: dto.shortDescription,
     fullDescription: dto.fullDescription,
     goldenbookNote: dto.goldenbookNote,
@@ -64,6 +71,40 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     gallery: dto.gallery
       .map((g) => getStorageUrl(g.bucket, g.path))
       .filter((url): url is string => url !== null),
+    // Booking fields (from bookingAdmin)
+    bookingEnabled: dto.bookingAdmin?.bookingEnabled ?? false,
+    bookingMode: (dto.bookingAdmin?.bookingMode ?? "none") as BookingMode,
+    bookingLabel: dto.bookingAdmin?.bookingLabel ?? null,
+    bookingNotes: null, // Not exposed in detail endpoint; edit-only
+    reservationRelevant: dto.bookingAdmin?.reservationRelevant ?? false,
+    reservationConfidence: dto.bookingAdmin?.reservationConfidence ?? null,
+    reservationSource: (dto.bookingAdmin?.reservationSource as ReservationSource) ?? null,
+    reservationLastReviewedAt: dto.bookingAdmin?.reservationLastReviewedAt ?? null,
+    suggestion: dto.suggestion ?? null,
+  };
+}
+
+// Map an AdminPlaceListItem (from GET /api/v1/admin/places) to a UIPlace.
+export function mapAdminListItemToUI(dto: AdminPlaceListItem): UIPlace {
+  const catSlug = dto.category_slug ?? "";
+  return {
+    id: dto.id,
+    slug: dto.slug,
+    name: dto.name,
+    city: dto.city_name,
+    category: catSlug ? slugToTitle(catSlug) : "—",
+    categorySlugs: catSlug ? [catSlug] : [],
+    status: dto.status as UIPlace["status"],
+    address: null,
+    featured: false,
+    editorsPick: false,
+    mainImage: getStorageUrl(dto.hero_bucket, dto.hero_path),
+    bookingEnabled: dto.booking_enabled,
+    hasSuggestion: dto.has_suggestion,
+    suggestionRelevant: dto.suggestion_relevant,
+    suggestionMode: dto.suggestion_mode,
+    suggestionConfidence: dto.suggestion_confidence,
+    suggestionDismissed: dto.suggestion_dismissed,
   };
 }
 

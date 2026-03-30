@@ -99,9 +99,15 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
           style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
         />
 
-        {/* Overlay: real gradient transparent → navy */}
+        {/* Dark base overlay for contrast */}
+        <View
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)' }}
+          pointerEvents="none"
+        />
+
+        {/* Goldenbook blue gradient overlay */}
         <LinearGradient
-          colors={['transparent', 'rgba(34,45,82,0.72)', 'rgba(34,45,82,0.96)']}
+          colors={['transparent', 'rgba(17,35,67,0.55)', 'rgba(17,35,67,0.88)']}
           locations={[0, 0.55, 1]}
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: CARD_HEIGHT * 0.65 }}
         />

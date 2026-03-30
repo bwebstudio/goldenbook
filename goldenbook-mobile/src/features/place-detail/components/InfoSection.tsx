@@ -1,6 +1,10 @@
-import { View, Text, TouchableOpacity, Linking } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Linking, type NativeSyntheticEvent, type TextLayoutEventData } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/i18n';
 import type { PlaceDetailDTO } from '../types';
+
+const MAX_LINES = 4;
 
 interface InfoSectionProps {
   shortDescription: string | null;
@@ -10,9 +14,19 @@ interface InfoSectionProps {
 }
 
 export function InfoSection({ shortDescription, fullDescription, contact, location }: InfoSectionProps) {
+  const t = useTranslation();
   const hasDescription = shortDescription || fullDescription;
   const hasContact = contact.phone || contact.email || contact.website;
   const hasAddress = location.address;
+
+  const [expanded, setExpanded] = useState(false);
+  const [needsTruncation, setNeedsTruncation] = useState(false);
+
+  const onTextLayout = useCallback((e: NativeSyntheticEvent<TextLayoutEventData>) => {
+    if (e.nativeEvent.lines.length > MAX_LINES) {
+      setNeedsTruncation(true);
+    }
+  }, []);
 
   if (!hasDescription && !hasContact && !hasAddress) return null;
 
@@ -30,12 +44,23 @@ export function InfoSection({ shortDescription, fullDescription, contact, locati
             </Text>
           )}
           {fullDescription && fullDescription !== shortDescription && (
-            <Text
-              className="text-sm text-navy/70 leading-relaxed"
-              style={{ fontFamily: 'Inter_300Light' }}
-            >
-              {fullDescription}
-            </Text>
+            <View>
+              <Text
+                className="text-sm text-navy/70 leading-relaxed"
+                style={{ fontFamily: 'Inter_300Light' }}
+                numberOfLines={expanded ? undefined : MAX_LINES}
+                onTextLayout={onTextLayout}
+              >
+                {fullDescription}
+              </Text>
+              {needsTruncation && (
+                <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7} className="mt-2">
+                  <Text className="text-xs font-semibold text-primary">
+                    {expanded ? t.place.readLess : t.place.readMore}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
         </View>
       )}

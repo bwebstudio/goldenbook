@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import { AppError } from './shared/errors/AppError'
+import { CampaignValidationError } from './modules/campaigns/campaigns.validation'
 import { env } from './config/env'
 
 import { healthRoutes } from './modules/health/health.route'
@@ -18,8 +19,22 @@ import { conciergeRoutes } from './modules/concierge/concierge.route'
 import { adminPlacesRoutes } from './modules/admin/places/admin-places.route'
 import { adminCategoriesRoutes } from './modules/admin/categories/admin-categories.route'
 import { adminRoutesRoutes } from './modules/admin/routes/admin-routes.route'
+import { adminSuggestionsRoutes } from './modules/admin/suggestions/admin-suggestions.route'
+import { adminAnalyticsRoutes } from './modules/admin/analytics/admin-analytics.route'
+import { campaignAnalyticsRoutes } from './modules/admin/analytics/campaign-analytics.route'
+import { bookingTrackingRoutes } from './modules/booking-tracking/booking-tracking.route'
+import { candidatesRoutes } from './modules/booking-candidates/candidates.route'
+import { visibilityRoutes } from './modules/visibility/visibility.route'
 import { authRoutes } from './modules/auth/auth.route'
 import { webRoutes } from './modules/web/web.route'
+import { businessPortalRoutes } from './modules/business-portal/business-portal.route'
+import { placeEventsRoutes } from './modules/place-events/place-events.route'
+import { adminPricingRoutes } from './modules/admin/pricing/admin-pricing.route'
+import { adminCampaignsRoutes } from './modules/admin/campaigns/admin-campaigns.route'
+import { pricingRoutes } from './modules/pricing/pricing.route'
+import { campaignsRoutes } from './modules/campaigns/campaigns.route'
+import { campaignsTrackingRoutes } from './modules/campaigns/campaigns-tracking.route'
+import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
 
 export function buildApp() {
   const app = Fastify({
@@ -31,8 +46,14 @@ export function buildApp() {
     },
   })
 
-  // Plugins
-  app.register(cors, { origin: true })
+  // CORS — restrict origins in production, allow all in development
+  const corsOrigins = env.CORS_ORIGINS
+    ? env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
+    : true
+  app.register(cors, {
+    origin: corsOrigins,
+    credentials: true,
+  })
 
   // Routes
   app.register(healthRoutes,      { prefix: env.API_PREFIX })
@@ -50,11 +71,38 @@ export function buildApp() {
   app.register(adminPlacesRoutes,      { prefix: env.API_PREFIX })
   app.register(adminCategoriesRoutes,  { prefix: env.API_PREFIX })
   app.register(adminRoutesRoutes,      { prefix: env.API_PREFIX })
+  app.register(adminSuggestionsRoutes, { prefix: env.API_PREFIX })
+  app.register(adminAnalyticsRoutes,   { prefix: env.API_PREFIX })
+  app.register(campaignAnalyticsRoutes, { prefix: env.API_PREFIX })
+  app.register(bookingTrackingRoutes,  { prefix: env.API_PREFIX })
+  app.register(candidatesRoutes,       { prefix: env.API_PREFIX })
+  app.register(visibilityRoutes,       { prefix: env.API_PREFIX })
   app.register(authRoutes,             { prefix: env.API_PREFIX })
   app.register(webRoutes,              { prefix: env.API_PREFIX })
+  app.register(businessPortalRoutes,   { prefix: env.API_PREFIX })
+  app.register(placeEventsRoutes,      { prefix: env.API_PREFIX })
+  app.register(adminPricingRoutes,     { prefix: env.API_PREFIX })
+  app.register(adminCampaignsRoutes,  { prefix: env.API_PREFIX })
+  app.register(pricingRoutes,          { prefix: env.API_PREFIX })
+  app.register(campaignsRoutes,        { prefix: env.API_PREFIX })
+  app.register(campaignsTrackingRoutes, { prefix: env.API_PREFIX })
+
+  // Stripe webhook — registered in its own encapsulated context so
+  // the raw-body content-type parser doesn't affect other routes.
+  app.register(stripeWebhookRoutes,    { prefix: env.API_PREFIX })
 
   // Global error handler
   app.setErrorHandler((error, _request, reply) => {
+    // Campaign validation errors carry next_available + alternatives
+    if (error instanceof CampaignValidationError) {
+      return reply.status(error.statusCode).send({
+        error: error.code ?? 'NOT_AVAILABLE',
+        message: error.message,
+        next_available: error.next_available,
+        alternatives: error.alternatives,
+      })
+    }
+
     if (error instanceof AppError) {
       return reply.status(error.statusCode).send({
         error: error.code ?? 'ERROR',

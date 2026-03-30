@@ -180,6 +180,22 @@ export async function getCategoryPlaces(
   locale: string,
   limit = 50,
 ): Promise<CategoryPlaceRow[]> {
+  // Get manually pinned category_feature places first
+  let pinnedIds: string[] = []
+  try {
+    const { rows: pinned } = await db.query<{ place_id: string }>(`
+      SELECT pv.place_id FROM place_visibility pv
+      JOIN places p ON p.id = pv.place_id AND p.status = 'published'
+      JOIN destinations d ON d.id = p.destination_id AND d.slug = $2
+      JOIN place_categories pc ON pc.place_id = p.id AND pc.category_id = $1
+      WHERE pv.surface = 'category_feature' AND pv.is_active = true
+        AND (pv.starts_at IS NULL OR pv.starts_at <= now())
+        AND (pv.ends_at IS NULL OR pv.ends_at >= now())
+      ORDER BY pv.priority DESC
+    `, [categoryId, citySlug])
+    pinnedIds = pinned.map(r => r.place_id)
+  } catch {}
+
   const { rows } = await db.query<CategoryPlaceRow>(
     `
     SELECT id, slug, name, summary, hero_bucket, hero_path, city_name
@@ -194,7 +210,8 @@ export async function getCategoryPlaces(
         COALESCE(dt.name, dt_lang.name, dt_fb.name, d.name)                                        AS city_name,
         pc.is_primary,
         pc.sort_order,
-        p.featured
+        p.featured,
+        CASE WHEN p.id = ANY($5) THEN 1 ELSE 0 END AS is_pinned
       FROM (
         SELECT DISTINCT ON (pc2.place_id) pc2.place_id, pc2.is_primary, pc2.sort_order
         FROM place_categories pc2
@@ -226,10 +243,10 @@ export async function getCategoryPlaces(
       ) hero_img ON true
       ORDER BY p.id
     ) uniq
-    ORDER BY is_primary DESC, sort_order ASC, featured DESC
+    ORDER BY is_pinned DESC, is_primary DESC, sort_order ASC, featured DESC
     LIMIT $4
     `,
-    [categoryId, citySlug, locale, limit],
+    [categoryId, citySlug, locale, limit, pinnedIds],
   )
   return rows
 }

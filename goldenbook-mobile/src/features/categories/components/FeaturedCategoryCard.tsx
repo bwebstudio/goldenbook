@@ -26,8 +26,15 @@ export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
         borderRadius={16}
       />
 
+      {/* Dark base overlay for contrast */}
+      <View
+        style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' }}
+        pointerEvents="none"
+      />
+
+      {/* Goldenbook blue gradient overlay */}
       <LinearGradient
-        colors={['transparent', 'rgba(34,45,82,0.85)']}
+        colors={['transparent', 'rgba(17,35,67,0.55)']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0.4 }}
         end={{ x: 0, y: 1 }}

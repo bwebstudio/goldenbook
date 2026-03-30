@@ -177,6 +177,13 @@ export const en = {
     curatedNearby: 'Curated Nearby',
     moreFrom: 'More from',
     reserve: 'Reserve',
+    bookOnBooking: 'Book on Booking.com',
+    reserveOnTheFork: 'Reserve on TheFork',
+    checkAvailability: 'Check availability',
+    contactToReserve: 'Contact to reserve',
+    website: 'Website',
+    call: 'Call',
+    directions: 'Directions',
     map: 'Map',
     away: 'away',
     editorsFavorite: "Editor's Favorite",
@@ -184,6 +191,8 @@ export const en = {
     exceptional: 'Exceptional',
     goldenbookNotePlaceholder: 'A truly essential address in this city. Every detail here has been chosen with intention — this is exactly the kind of place Goldenbook exists to surface.',
     insiderTipPlaceholder: 'Arrive early or book well ahead. The quieter hours reveal a completely different atmosphere, and the staff are far more attentive when it isn\'t crowded.',
+    readMore: 'Read more',
+    readLess: 'Read less',
   },
 
   goldenPicks: {

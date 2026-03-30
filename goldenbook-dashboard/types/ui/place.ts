@@ -20,7 +20,16 @@ export interface UIPlace {
   editorsPick: boolean;
   /** Full Supabase Storage URL, or null if no image is set */
   mainImage: string | null;
+  // Booking/suggestion metadata for list filtering
+  bookingEnabled: boolean;
+  hasSuggestion: boolean;
+  suggestionRelevant: boolean | null;
+  suggestionMode: string | null;
+  suggestionConfidence: number | null;
+  suggestionDismissed: boolean;
 }
+
+import type { BookingMode, ReservationSource } from "@/types/api/place";
 
 // Richer shape for the edit/detail page, mapped from PlaceDetailDTO
 export interface UIPlaceDetail {
@@ -29,6 +38,7 @@ export interface UIPlaceDetail {
   name: string;
   city: string;
   citySlug: string;
+  citySlugs: string[];
   shortDescription: string | null;
   fullDescription: string | null;
   goldenbookNote: string | null;
@@ -45,4 +55,25 @@ export interface UIPlaceDetail {
   subcategories: { id: string; slug: string; name: string }[];
   mainImage: string | null;
   gallery: string[];
+  // Booking fields
+  bookingEnabled: boolean;
+  bookingMode: BookingMode;
+  bookingLabel: string | null;
+  bookingNotes: string | null;
+  reservationRelevant: boolean;
+  reservationConfidence: number | null;
+  reservationSource: ReservationSource | null;
+  reservationLastReviewedAt: string | null;
+  // Suggestion
+  suggestion: {
+    relevant: boolean | null;
+    mode: string | null;
+    label: string | null;
+    url: string | null;
+    confidence: number | null;
+    reason: string | null;
+    source: string | null;
+    generatedAt: string | null;
+    dismissed: boolean;
+  } | null;
 }

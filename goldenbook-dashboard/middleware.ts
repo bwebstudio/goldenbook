@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { refreshDashboardSession, shouldRefreshSession } from "@/lib/api/auth";
 import { applySessionCookies, clearSessionCookies, getSessionFromRequest } from "@/lib/auth/cookies";
 
-const PROTECTED_PREFIXES = ["/dashboard", "/places", "/categories", "/routes", "/users", "/settings"] as const;
+const PROTECTED_PREFIXES = ["/dashboard", "/places", "/categories", "/routes", "/users", "/settings", "/placements", "/placement-requests", "/analytics", "/portal", "/review-queue", "/pricing"] as const;
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
@@ -72,5 +72,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/dashboard/:path*", "/places/:path*", "/categories/:path*", "/routes/:path*", "/users/:path*", "/settings/:path*"],
+  matcher: ["/login", "/dashboard/:path*", "/places/:path*", "/categories/:path*", "/routes/:path*", "/users/:path*", "/settings/:path*", "/placements/:path*", "/placement-requests/:path*", "/analytics/:path*", "/portal/:path*", "/review-queue/:path*", "/pricing/:path*"],
 };

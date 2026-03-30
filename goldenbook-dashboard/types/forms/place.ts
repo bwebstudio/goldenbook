@@ -1,6 +1,8 @@
 // Form value types for the place edit/create form.
 // Separate from API types (types/api/) and UI display types (types/ui/).
 
+import type { BookingMode, ReservationSource } from "@/types/api/place";
+
 export interface PlaceFormValues {
   name: string;
   slug: string;
@@ -9,8 +11,10 @@ export interface PlaceFormValues {
   goldenbookNote: string;
   whyWeLoveIt: string;
   insiderTip: string;
-  /** City slug — used as the API key. Displayed as city name in the dropdown. */
+  /** Primary city slug — used as the API key. */
   citySlug: string;
+  /** All city slugs — for multi-city places. */
+  citySlugs: string[];
   address: string;
   website: string;
   phone: string;
@@ -25,6 +29,13 @@ export interface PlaceFormValues {
   featured: boolean;
   /** NOTE: editorsPick has no DB column yet — sent in payload but not persisted by the backend. */
   editorsPick: boolean;
+  // Booking / Reservations
+  reservationRelevant: boolean;
+  bookingEnabled: boolean;
+  bookingMode: BookingMode;
+  bookingLabel: string;
+  bookingNotes: string;
+  reservationSource: ReservationSource | "";
 }
 
 export type PlaceFormErrors = Partial<Record<keyof PlaceFormValues, string>>;
@@ -38,6 +49,7 @@ export const EMPTY_PLACE_FORM: PlaceFormValues = {
   whyWeLoveIt: "",
   insiderTip: "",
   citySlug: "",
+  citySlugs: [],
   address: "",
   website: "",
   phone: "",
@@ -48,6 +60,12 @@ export const EMPTY_PLACE_FORM: PlaceFormValues = {
   status: "published",
   featured: false,
   editorsPick: false,
+  reservationRelevant: false,
+  bookingEnabled: false,
+  bookingMode: "none",
+  bookingLabel: "",
+  bookingNotes: "",
+  reservationSource: "",
 };
 
 // ── Validation ──────────────────────────────────────────────────────────────
@@ -78,8 +96,8 @@ export function validatePlaceForm(
     errors.slug = "Slug is required.";
   }
 
-  if (!values.citySlug) {
-    errors.citySlug = "Please select a city.";
+  if (!values.citySlug && (!values.citySlugs || values.citySlugs.length === 0)) {
+    errors.citySlug = "Please select at least one city.";
   }
 
   if (!values.categorySlug) {

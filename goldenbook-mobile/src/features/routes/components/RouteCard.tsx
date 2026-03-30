@@ -52,10 +52,18 @@ export function RouteCard({ route, featured = false }: RouteCardProps) {
           style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
         />
 
-        {/* Subtle overlay */}
+        {/* Dark base overlay for contrast */}
         <View
           className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(34,45,82,0.28)' }}
+          style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}
+          pointerEvents="none"
+        />
+
+        {/* Goldenbook blue overlay */}
+        <View
+          className="absolute inset-0"
+          style={{ backgroundColor: 'rgba(17,35,67,0.55)' }}
+          pointerEvents="none"
         />
 
         {/* Featured badge — only shown when explicitly featured from backend */}

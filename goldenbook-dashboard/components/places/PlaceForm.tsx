@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { UIPlaceDetail } from "@/types/ui/place";
@@ -11,12 +10,18 @@ import {
   validatePlaceForm,
   isFormValid,
 } from "@/types/forms/place";
-import { createPlace, updatePlace } from "@/lib/api/places";
+import { createPlace, updatePlace, deletePlaceById } from "@/lib/api/places";
+import { applySuggestion, dismissSuggestion, generateSuggestionForPlace } from "@/lib/api/suggestions";
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/lib/i18n";
 import FormSection from "@/components/ui/FormSection";
 import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
 import Toggle from "@/components/ui/Toggle";
+import PlaceCandidates from "@/components/places/PlaceCandidates";
+import PlaceVisibility from "@/components/places/PlaceVisibility";
+import PlaceMedia from "@/components/places/PlaceMedia";
+import PlaceTranslations from "@/components/places/PlaceTranslations";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 // Auto-generate slug from name
@@ -29,11 +34,7 @@ function toSlug(name: string) {
     .replace(/^-|-$/g, "");
 }
 
-const statusOptions: { value: PlaceFormValues["status"]; label: string }[] = [
-  { value: "draft",     label: "Draft — Not visible to users" },
-  { value: "published", label: "Published — Visible to all users" },
-  { value: "archived",  label: "Archived — Hidden and no longer active" },
-];
+// Status options are built inside the component to access translations
 
 interface CategoryOption {
   slug: string;
@@ -52,11 +53,21 @@ interface PlaceFormProps {
    * Subcategory dropdown is filtered to the selected category.
    */
   categories?: CategoryOption[];
+  /** Current user role — controls which sections are visible */
+  userRole?: "super_admin" | "editor" | "business_client";
 }
 
-export default function PlaceForm({ place, cities = [], categories = [] }: PlaceFormProps) {
+export default function PlaceForm({ place, cities = [], categories = [], userRole = "editor" }: PlaceFormProps) {
   const router    = useRouter();
+  const t         = useT();
+  const pf        = t.placeForm;
   const isEditing = !!place;
+
+  const statusOptions: { value: PlaceFormValues["status"]; label: string }[] = [
+    { value: "draft",     label: pf.statusDraft },
+    { value: "published", label: pf.statusPublished },
+    { value: "archived",  label: pf.statusArchived },
+  ];
 
   // ── Form state ─────────────────────────────────────────────────────────────
 
@@ -72,6 +83,7 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
       whyWeLoveIt:      place.whyWeLoveIt       ?? "",
       insiderTip:       place.insiderTip        ?? "",
       citySlug:         place.citySlug,
+      citySlugs:        place.citySlugs?.length ? place.citySlugs : [place.citySlug],
       address:          place.address           ?? "",
       website:          place.website           ?? "",
       phone:            place.phone             ?? "",
@@ -82,6 +94,12 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
       status:           "published",
       featured:         false,
       editorsPick:      false,
+      reservationRelevant: place.reservationRelevant ?? false,
+      bookingEnabled:      place.bookingEnabled ?? false,
+      bookingMode:         place.bookingMode ?? "none",
+      bookingLabel:        place.bookingLabel ?? "",
+      bookingNotes:        place.bookingNotes ?? "",
+      reservationSource:   place.reservationSource ?? "",
     };
   });
 
@@ -153,9 +171,9 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
         shortDescription: form.shortDescription || undefined,
         fullDescription:  form.fullDescription  || undefined,
         goldenbookNote:   form.goldenbookNote   || undefined,
-        whyWeLoveIt:      form.whyWeLoveIt      || undefined,
         insiderTip:       form.insiderTip       || undefined,
-        citySlug:         form.citySlug,
+        citySlug:         form.citySlug || form.citySlugs[0] || '',
+        citySlugs:        form.citySlugs,
         addressLine:      form.address          || undefined,
         websiteUrl:       form.website          || undefined,
         phone:            form.phone            || undefined,
@@ -165,6 +183,13 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
         subcategorySlug:  form.subcategorySlug  || undefined,
         status:           form.status,
         featured:         form.featured,
+        // Booking fields
+        bookingEnabled:      form.bookingEnabled,
+        bookingMode:         form.bookingMode,
+        bookingLabel:        form.bookingLabel   || undefined,
+        bookingNotes:        form.bookingNotes   || undefined,
+        reservationRelevant: form.reservationRelevant,
+        reservationSource:   form.reservationSource || undefined,
       };
 
       if (isEditing) {
@@ -205,9 +230,15 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
-  function confirmDelete() {
+  async function confirmDelete() {
     setShowDeleteConfirm(false);
-    // TODO: Call DELETE /api/v1/admin/places/:id when the backend supports it.
+    if (!place) return;
+    try {
+      await deletePlaceById(place.id);
+      router.push("/places");
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not delete this place.");
+    }
   }
 
   // ── Derived dropdown options ───────────────────────────────────────────────
@@ -230,7 +261,7 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
         {saveError && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 flex items-center justify-between gap-4">
             <p className="text-sm text-red-800">
-              <span className="font-semibold">Save failed.</span>{" "}
+              <span className="font-semibold">{pf.saveFailed}</span>{" "}
               {saveError}
             </p>
             <button
@@ -250,18 +281,18 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
         {/* ── Save success ── */}
         {saveStatus === "success" && (
           <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4">
-            <p className="text-sm text-green-800 font-semibold">Changes saved.</p>
+            <p className="text-sm text-green-800 font-semibold">{pf.changesSaved}</p>
           </div>
         )}
 
         {/* ── A. Basic Information ── */}
         <FormSection
-          title="Basic Information"
-          description="The main details that describe this place."
+          title={pf.basicInfo}
+          description={pf.basicInfoDesc}
         >
           <InputField
             id="name"
-            label="Place name"
+            label={pf.placeName}
             value={form.name}
             onChange={handleNameChange}
             placeholder="e.g. Pastéis de Belém"
@@ -270,8 +301,8 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
           />
           <InputField
             id="slug"
-            label="Slug"
-            hint="Used in the URL. Generated automatically from the name."
+            label={pf.slug}
+            hint={pf.slugHint}
             value={form.slug}
             onChange={(v) => setField("slug", v)}
             placeholder="pasteis-de-belem"
@@ -279,19 +310,19 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
           />
           <InputField
             id="shortDescription"
-            label="Short description"
-            hint="One sentence shown in search results and cards."
+            label={pf.shortDescription}
+            hint={pf.shortDescHint}
             value={form.shortDescription}
             onChange={(v) => setField("shortDescription", v)}
-            placeholder="A brief summary of this place"
+            placeholder={pf.phShortDesc}
           />
           <InputField
             id="fullDescription"
-            label="Full description"
-            hint="Shown on the place detail page inside the app."
+            label={pf.fullDescription}
+            hint={pf.fullDescHint}
             value={form.fullDescription}
             onChange={(v) => setField("fullDescription", v)}
-            placeholder="Write a complete description of this place..."
+            placeholder={pf.phFullDesc}
             multiline
             rows={5}
           />
@@ -299,99 +330,126 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
 
         {/* ── B. Editorial Notes ── */}
         <FormSection
-          title="Editorial Notes"
-          description="Internal copy shown on the place detail screen in the app."
+          title={pf.editorialNotes}
+          description={pf.editorialNotesDesc}
         >
           <InputField
             id="goldenbookNote"
-            label="Goldenbook note"
-            hint="A short curator's note about why this place is special."
+            label={pf.goldenbookNote}
+            hint={pf.goldenbookNoteHint}
             value={form.goldenbookNote}
             onChange={(v) => setField("goldenbookNote", v)}
-            placeholder="What makes this place worth visiting?"
-            multiline
-            rows={3}
-          />
-          <InputField
-            id="whyWeLoveIt"
-            label="Why we love it"
-            hint="Shown as a highlight on the detail page."
-            value={form.whyWeLoveIt}
-            onChange={(v) => setField("whyWeLoveIt", v)}
-            placeholder="The reason Goldenbook recommends this place..."
+            placeholder={pf.phGoldenbookNote}
             multiline
             rows={3}
           />
           <InputField
             id="insiderTip"
-            label="Insider tip"
-            hint="A local tip or hidden detail that makes the visit better."
+            label={pf.insiderTip}
+            hint={pf.insiderTipHint}
             value={form.insiderTip}
             onChange={(v) => setField("insiderTip", v)}
-            placeholder="e.g. Go early on weekdays to skip the queue."
+            placeholder={pf.phInsiderTip}
           />
         </FormSection>
 
+        {/* ── B2. English Translations ── */}
+        {isEditing && place && (
+          <FormSection
+            title={pf.enTranslation}
+            description={pf.autoTranslated}
+          >
+            <PlaceTranslations placeId={place.id} />
+          </FormSection>
+        )}
+
         {/* ── C. Location ── */}
         <FormSection
-          title="Location"
-          description="Where is this place located?"
+          title={pf.location}
+          description={pf.locationDesc}
         >
-          <SelectField
-            id="citySlug"
-            label="City"
-            value={form.citySlug}
-            onChange={(v) => setField("citySlug", v)}
-            options={cityOptions}
-            placeholder="Select a city"
-            required
-            error={errors.citySlug}
-          />
+          <div>
+            <label className="block text-sm font-medium text-text mb-1.5">
+              {pf.city} <span className="text-red-400">*</span>
+            </label>
+            <p className="text-[11px] text-muted mb-2">Select all cities where this establishment is present.</p>
+            <div className="flex flex-wrap gap-2">
+              {cityOptions.map((opt) => {
+                const isSelected = form.citySlugs.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      const next = isSelected
+                        ? form.citySlugs.filter((s) => s !== opt.value)
+                        : [...form.citySlugs, opt.value];
+                      setField("citySlugs", next);
+                      // Keep citySlug in sync as primary (first selected)
+                      if (next.length > 0 && !next.includes(form.citySlug)) {
+                        setField("citySlug", next[0]);
+                      } else if (next.length === 0) {
+                        setField("citySlug", "");
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer border ${
+                      isSelected
+                        ? "bg-gold/10 text-gold border-gold/30"
+                        : "bg-white border-border text-muted hover:border-gold/30"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {errors.citySlug && <p className="text-xs text-red-500 mt-1">{errors.citySlug}</p>}
+          </div>
           <InputField
             id="address"
-            label="Address"
+            label={pf.address}
             value={form.address}
             onChange={(v) => setField("address", v)}
-            placeholder="Rua de Belém 84-92, 1300-085 Lisboa"
+            placeholder={pf.phAddress}
           />
         </FormSection>
 
         {/* ── D. Classification ── */}
         <FormSection
-          title="Classification"
-          description="How should this place be categorised in the app?"
+          title={pf.classification}
+          description={pf.classificationDesc}
         >
           <div className="grid grid-cols-2 gap-6">
             <SelectField
               id="categorySlug"
-              label="Category"
+              label={pf.category}
               value={form.categorySlug}
               onChange={handleCategoryChange}
               options={categoryOptions}
-              placeholder="Select a category"
+              placeholder={pf.selectCategory}
               required
               error={errors.categorySlug}
             />
             <SelectField
               id="subcategorySlug"
-              label="Subcategory"
-              hint="Optional — filtered to the selected category."
+              label={pf.subcategory}
+              hint={pf.subcategoryHint}
               value={form.subcategorySlug}
               onChange={(v) => setField("subcategorySlug", v)}
               options={subcategoryOptions}
               placeholder={
                 form.categorySlug
                   ? subcategoryOptions.length > 0
-                    ? "Select a subcategory"
-                    : "No subcategories for this category"
-                  : "Select a category first"
+                    ? pf.selectSubcategory
+                    : pf.noSubcategories
+                  : pf.selectCategoryFirst
               }
             />
           </div>
           <SelectField
             id="status"
-            label="Status"
-            hint="Controls whether this place is visible to app users."
+            label={pf.statusLabel}
+            hint={pf.statusHint}
             value={form.status}
             onChange={(v) => setField("status", v as PlaceFormValues["status"])}
             options={statusOptions}
@@ -402,13 +460,13 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
 
         {/* ── E. Contact & Links ── */}
         <FormSection
-          title="Contact & Links"
-          description="Optional contact details and online presence."
+          title={pf.contactLinks}
+          description={pf.contactLinksDesc}
         >
           <div className="grid grid-cols-2 gap-6">
             <InputField
               id="website"
-              label="Website"
+              label={pf.website}
               value={form.website}
               onChange={(v) => setField("website", v)}
               placeholder="https://example.com"
@@ -417,110 +475,73 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
             />
             <InputField
               id="phone"
-              label="Phone number"
+              label={pf.phoneNumber}
               value={form.phone}
               onChange={(v) => setField("phone", v)}
               placeholder="+351 213 000 000"
               type="tel"
             />
           </div>
-          <div className="grid grid-cols-2 gap-6">
-            <InputField
-              id="email"
-              label="Email address"
-              value={form.email}
-              onChange={(v) => setField("email", v)}
-              placeholder="contact@example.com"
-              type="email"
-              error={errors.email}
-            />
-            <InputField
-              id="bookingUrl"
-              label="Booking / Reservation"
-              hint="A booking URL or phone number for reservations."
-              value={form.bookingUrl}
-              onChange={(v) => setField("bookingUrl", v)}
-              placeholder="https://reservations.example.com or +351..."
-              error={errors.bookingUrl}
-            />
-          </div>
-        </FormSection>
-
-        {/* ── F. Images ── */}
-        <FormSection
-          title="Images"
-          description="The main photo shown in listings and on the place detail page."
-        >
-          {isEditing && place?.mainImage ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-semibold text-muted">Current main image</p>
-              <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-border">
-                <Image
-                  src={place.mainImage}
-                  alt={place.name}
-                  fill
-                  className="object-cover"
-                  sizes="384px"
-                />
-              </div>
-              <p className="text-sm text-muted">
-                To replace this image, update it directly in{" "}
-                <span className="font-semibold">Supabase Storage</span> and refresh the page.
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-muted">
-              <p className="text-base font-medium">No image yet</p>
-              <p className="text-sm mt-1">
-                Images are managed in Supabase Storage. Upload support will be added once the
-                backend exposes media endpoints.
-              </p>
-            </div>
-          )}
-        </FormSection>
-
-        {/* ── G. Highlights ── */}
-        <FormSection
-          title="Highlights"
-          description="Special flags that affect how this place appears in the app."
-        >
-          <Toggle
-            label="Featured place"
-            description="Shown prominently in the app's featured section."
-            checked={form.featured}
-            onChange={(v) => setField("featured", v)}
-          />
-          <div className="border-t border-border" />
-          <Toggle
-            label="Editor's Pick"
-            description="Marked as personally recommended by the Goldenbook team. (Backend support coming soon.)"
-            checked={form.editorsPick}
-            onChange={(v) => setField("editorsPick", v)}
+          <InputField
+            id="email"
+            label={pf.emailAddress}
+            value={form.email}
+            onChange={(v) => setField("email", v)}
+            placeholder="contact@example.com"
+            type="email"
+            error={errors.email}
           />
         </FormSection>
+
+        {/* ── F. Reservation ── */}
+        {isEditing && place && (
+          <FormSection
+            title={pf.reservation}
+            description={pf.reservationDesc}
+          >
+            <PlaceCandidates
+              placeId={place.id}
+              reservable={form.reservationRelevant}
+              onReservableChange={(v) => setField("reservationRelevant", v)}
+            />
+          </FormSection>
+        )}
+
+        {/* ── G. Visibility — super_admin only ── */}
+        {isEditing && place && userRole === "super_admin" && (
+          <FormSection
+            title={pf.visibility}
+            description={pf.visibilityDesc}
+          >
+            <PlaceVisibility placeId={place.id} />
+          </FormSection>
+        )}
+
+        {/* ── H. Images ── */}
+        {isEditing && place && (
+          <FormSection
+            title={pf.images}
+            description={pf.imagesDesc}
+          >
+            <PlaceMedia placeId={place.id} userRole={userRole} />
+          </FormSection>
+        )}
 
         {/* ── Danger Zone (edit only) ── */}
         {isEditing && (
           <div className="rounded-2xl border border-red-100 bg-red-50/50 px-6 py-6 flex flex-col gap-4">
             <div>
-              <h3 className="text-base font-semibold text-red-700">Danger zone</h3>
-              <p className="text-sm text-red-600 mt-1">
-                Deleting a place is permanent and cannot be undone.
-              </p>
+              <h3 className="text-base font-semibold text-red-700">{pf.dangerZone}</h3>
+              <p className="text-sm text-red-600 mt-1">{pf.dangerZoneDesc}</p>
             </div>
             <div>
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                disabled
-                title="Delete is not yet available — the backend endpoint is missing."
-                className="px-5 py-2.5 rounded-xl border border-red-200 text-sm font-semibold text-red-400 bg-white cursor-not-allowed opacity-60"
+                className="px-5 py-2.5 rounded-xl border border-red-200 text-sm font-semibold text-red-600 bg-white hover:bg-red-50 transition-colors cursor-pointer"
               >
-                Delete this place
+                {pf.deletePlace}
               </button>
-              <p className="text-xs text-red-400 mt-2">
-                Not available yet — backend DELETE endpoint is missing.
-              </p>
             </div>
           </div>
         )}
@@ -530,12 +551,12 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-border px-10 py-5 flex items-center gap-4 justify-between z-10">
         <p className="text-sm text-muted">
           {saveStatus === "saving"
-            ? "Saving…"
+            ? pf.saving
             : isDirty
-              ? "You have unsaved changes."
+              ? pf.unsavedChanges
               : isEditing
-                ? "No unsaved changes."
-                : "Fill in the details above and save when ready."}
+                ? pf.noUnsavedChanges
+                : pf.fillAndSave}
         </p>
         <div className="flex items-center gap-3">
           <button
@@ -543,7 +564,7 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
             onClick={handleCancelClick}
             className="px-6 py-3 rounded-xl border border-border text-base font-semibold text-muted hover:border-gold/50 hover:text-text transition-colors bg-white cursor-pointer"
           >
-            Cancel
+            {t.common.cancel}
           </button>
           <button
             type="button"
@@ -556,10 +577,10 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
                 <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                 </svg>
-                Saving…
+                {pf.saving}
               </>
             ) : (
-              isEditing ? "Save changes" : "Create place"
+              isEditing ? t.common.save : pf.createPlace
             )}
           </button>
         </div>
@@ -568,10 +589,10 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
       {/* ── Confirm: leave without saving ── */}
       <ConfirmDialog
         open={showCancelConfirm}
-        title="Leave without saving?"
-        description="You have unsaved changes on this page. If you leave now, your changes will be lost."
-        confirmLabel="Leave"
-        cancelLabel="Stay"
+        title={pf.leaveTitle}
+        description={pf.leaveDesc}
+        confirmLabel={pf.leave}
+        cancelLabel={pf.stay}
         variant="danger"
         onConfirm={confirmCancel}
         onCancel={() => setShowCancelConfirm(false)}
@@ -580,10 +601,10 @@ export default function PlaceForm({ place, cities = [], categories = [] }: Place
       {/* ── Confirm: delete place ── */}
       <ConfirmDialog
         open={showDeleteConfirm}
-        title="Delete this place?"
-        description={`"${form.name}" will be permanently deleted. This action cannot be undone.`}
-        confirmLabel="Delete permanently"
-        cancelLabel="Cancel"
+        title={pf.deleteTitle}
+        description={`"${form.name}" — ${pf.dangerZoneDesc}`}
+        confirmLabel={pf.deleteConfirm}
+        cancelLabel={t.common.cancel}
         variant="danger"
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}

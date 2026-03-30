@@ -60,8 +60,11 @@ export default function PlaceDetailScreen() {
 
         {/* 3. Actions: reserve / map / save / website */}
         <PlaceActions
+          placeId={data.id}
           actions={data.actions}
+          booking={data.booking}
           location={data.location}
+          city={data.city.slug}
           isSaved={isSaved}
           onSave={toggleSave}
         />
@@ -72,7 +75,6 @@ export default function PlaceDetailScreen() {
         {/* 4. Editorial sections */}
         <EditorialNoteSection
           goldenbookNote={data.goldenbookNote}
-          whyWeLoveIt={data.whyWeLoveIt}
           insiderTip={data.insiderTip}
         />
 

@@ -1,11 +1,13 @@
 "use client";
 
 import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
+import { useT } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const t = useT();
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleLogout() {
@@ -36,7 +38,7 @@ export default function LogoutButton() {
         <polyline points="16 17 21 12 16 7" />
         <line x1="21" y1="12" x2="9" y2="12" />
       </svg>
-      <span>{isLoading ? "Logging out..." : "Log out"}</span>
+      <span>{isLoading ? "..." : t.common.logout}</span>
     </button>
   );
 }
