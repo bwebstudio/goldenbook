@@ -169,7 +169,7 @@ export default function LoginScreen() {
           {/* ── Divider ──────────────────────────────────────────────── */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>NEW TO GOLDENBOOK?</Text>
+            <Text style={styles.dividerLabel}>NEW TO GOLDENBOOK GO?</Text>
             <View style={styles.dividerLine} />
           </View>
 

@@ -1,19 +1,82 @@
 'use client'
 
+import Image from 'next/image'
+import { motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { AnimatedSection } from '@/components/ui/AnimatedSection'
-import { GoldenPickItem } from '@/components/ui/GoldenPickItem'
-import type { WebPlaceDTO } from '@/lib/types'
 
-interface GoldenPicksProps {
-  picks: WebPlaceDTO[]
-}
+// ─── Luxury archetype cards ─────────────────────────────────────────────────
+// These are NOT database places — they are editorial lifestyle categories
+// that position Goldenbook as a premium aspirational product.
 
-export function GoldenPicks({ picks }: GoldenPicksProps) {
+const ARCHETYPES = [
+  { key: 'stay',     image: '/images/luxury-hotel-lisboa.png' },
+  { key: 'dine',     image: '/images/luxury-restaurante.png' },
+  { key: 'discover', image: '/images/luxury-boutique.png' },
+] as const
+
+type ArchetypeKey = (typeof ARCHETYPES)[number]['key']
+
+function EditorialCard({
+  archetype,
+  index,
+}: {
+  archetype: { key: ArchetypeKey; image: string }
+  index: number
+}) {
   const t = useTranslations('goldenPicks')
 
-  const layouts = ['imageRight', 'imageLeft', 'fullWidth'] as const
-  const limitedPicks = picks.slice(0, 3)
+  // DINE (index 1): image left, text right — breaks the rhythm
+  // STAY + DISCOVER: text left, image right
+  const isImageLeft = archetype.key === 'dine'
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 32 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-5%' }}
+      transition={{ duration: 0.8, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+      className="grid grid-cols-1 lg:grid-cols-2 gap-0"
+    >
+      {/* Image */}
+      <div
+        className={`relative overflow-hidden group ${isImageLeft ? 'lg:order-1' : 'lg:order-2'}`}
+        style={{ aspectRatio: '4/3' }}
+      >
+        <Image
+          src={archetype.image}
+          alt={t(`archetype.${archetype.key}.title`)}
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover editorial-image transition-transform duration-700 group-hover:scale-[1.03]"
+          quality={90}
+        />
+      </div>
+
+      {/* Text */}
+      <div
+        className={[
+          'flex flex-col justify-center',
+          'px-8 py-10 md:px-14 md:py-16 lg:py-20',
+          isImageLeft ? 'lg:order-2' : 'lg:order-1',
+          'bg-ivory-soft',
+        ].join(' ')}
+      >
+        <p className="eyebrow mb-4">{t(`archetype.${archetype.key}.eyebrow`)}</p>
+        <h3 className="headline-medium text-ink mb-6">
+          {t(`archetype.${archetype.key}.title`)}
+        </h3>
+        <div className="w-8 h-px bg-primary mb-6" />
+        <p className="font-sans text-ink-muted text-body leading-relaxed max-w-md">
+          {t(`archetype.${archetype.key}.subtitle`)}
+        </p>
+      </div>
+    </motion.article>
+  )
+}
+
+export function GoldenPicks() {
+  const t = useTranslations('goldenPicks')
 
   return (
     <section id="picks" className="bg-ivory" aria-label="Golden Picks">
@@ -45,23 +108,17 @@ export function GoldenPicks({ picks }: GoldenPicksProps) {
         </div>
       </AnimatedSection>
 
-      {/* ── Picks — editorial layout ────────────────────────────────────── */}
-      <div className="mt-4">
-        {limitedPicks.map((place, i) => (
-          <div key={place.id} className={i < limitedPicks.length - 1 ? 'mb-1' : ''}>
-            <GoldenPickItem
-              place={place}
-              index={i}
-              layout={layouts[i] ?? 'imageRight'}
-            />
-          </div>
+      {/* ── Editorial archetype cards ───────────────────────────────────── */}
+      <div>
+        {ARCHETYPES.map((archetype, i) => (
+          <EditorialCard key={archetype.key} archetype={archetype} index={i} />
         ))}
       </div>
 
       {/* ── View all CTA ────────────────────────────────────────────────── */}
       <AnimatedSection>
         <div className="section-padding py-16 md:py-20">
-          <a href="#" className="inline-flex items-center gap-3 font-sans text-body text-ink-muted group">
+          <a href="#download" className="inline-flex items-center gap-3 font-sans text-body text-ink-muted group">
             <span className="border-b border-ink/20 pb-0.5 group-hover:border-primary group-hover:text-ink transition-colors duration-200">
               {t('viewAll')}
             </span>

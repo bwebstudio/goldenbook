@@ -21,7 +21,7 @@ export const en = {
     language: 'Language',
     notifications: 'Notifications',
     changeDestination: 'Change Destination',
-    about: 'About Goldenbook',
+    about: 'About Goldenbook Go',
     contact: 'Contact',
     privacy: 'Privacy Policy',
     terms: 'Terms & Conditions',
@@ -49,7 +49,7 @@ export const en = {
   preferences: {
     title: 'My Preferences',
     subtitle: 'What do you love?',
-    body: 'Select your interests — Goldenbook uses these to surface the picks, routes, and places that matter most to you.',
+    body: 'Select your interests — Goldenbook Go uses these to surface the picks, routes, and places that matter most to you.',
     saved: 'Saved',
     selectHint: 'Select as many as you like',
     selectedSingular: 'interest selected',
@@ -61,6 +61,7 @@ export const en = {
     subtitle: 'Choose your preferred language.',
     english: 'English',
     portugues: 'Português (Portugal)',
+    spanish: 'Español',
     current: 'Current language',
   },
 
@@ -98,10 +99,10 @@ export const en = {
     goldenPicks: 'Golden Picks',
     exploreByCategory: 'Explore by Category',
     goldenRoutes: 'Golden Routes',
-    newOnGoldenbook: 'New on Goldenbook',
+    newOnGoldenbook: 'New on Goldenbook Go',
     seeAll: 'See All',
     exploreNow: 'Explore Now',
-    goldenbookRecommendation: 'Goldenbook Recommendation',
+    goldenbookRecommendation: 'Goldenbook Go Recommendation',
     nearYou: 'Near You',
     curatedItinerary: 'Curated Itinerary',
     beginRoute: 'Begin Route',
@@ -113,10 +114,10 @@ export const en = {
   now: {
     eyebrowMorning: 'RIGHT NOW IN',
     eyebrowMidday: 'FOR THIS MOMENT IN',
-    eyebrowAfternoon: 'YOUR GOLDENBOOK NOW',
-    eyebrowEvening: 'PERFECT RIGHT NOW IN',
+    eyebrowAfternoon: 'YOUR GOLDENBOOK GO NOW',
+    eyebrowEvening: 'RECOMMENDED RIGHT NOW IN',
     eyebrowNight: 'FOR THIS EVENING IN',
-    headlineMorning: 'A perfect late-morning stop',
+    headlineMorning: 'A wonderful late-morning stop',
     headlineMidday: 'Ideal for right now in',
     headlineAfternoon: 'Just right for a slow afternoon',
     headlineEvening: 'The kind of place to experience this evening',
@@ -126,6 +127,13 @@ export const en = {
     supportingAfternoon: 'Open now · Worth every moment',
     supportingEvening: 'Open now · Elegant · Tonight',
     supportingNight: 'Open now · For the night ahead',
+    seeAnother: 'See another option',
+    lookingForMore: 'Looking for something else?',
+    openConcierge: 'Ask the Concierge',
+    exploreNow: 'EXPLORE NOW',
+    adjustRelax: 'More relaxed',
+    adjustEnergy: 'More lively',
+    adjustTreat: 'Something special',
   },
 
   concierge: {
@@ -167,7 +175,7 @@ export const en = {
 
   place: {
     couldNotLoad: 'Could not load this place.\nCheck your connection and try again.',
-    goldenbookPerspective: 'The Goldenbook Perspective',
+    goldenbookPerspective: 'The Goldenbook Go Perspective',
     editorialStaff: 'Editorial Staff',
     whyWeLoveIt: 'Why We Love It',
     insiderTip: 'Insider Tip',
@@ -189,7 +197,7 @@ export const en = {
     editorsFavorite: "Editor's Favorite",
     threeMichelinStars: 'Three Michelin Stars',
     exceptional: 'Exceptional',
-    goldenbookNotePlaceholder: 'A truly essential address in this city. Every detail here has been chosen with intention — this is exactly the kind of place Goldenbook exists to surface.',
+    goldenbookNotePlaceholder: 'A truly essential address in this city. Every detail here has been chosen with intention — this is exactly the kind of place Goldenbook Go exists to surface.',
     insiderTipPlaceholder: 'Arrive early or book well ahead. The quieter hours reveal a completely different atmosphere, and the staff are far more attentive when it isn\'t crowded.',
     readMore: 'Read more',
     readLess: 'Read less',
@@ -197,7 +205,7 @@ export const en = {
 
   goldenPicks: {
     title: 'Golden Picks',
-    curatedBy: 'Curated by Goldenbook',
+    curatedBy: 'Curated by Goldenbook Go',
     featured: 'Featured',
     allPicks: 'All Golden Picks',
     couldNotLoad: 'Could not load Golden Picks.\nCheck your connection and try again.',
@@ -219,6 +227,29 @@ export const en = {
     couldNotLoad: 'Could not load this route.\nCheck your connection and try again.',
   },
 
+  location: {
+    // Pre-permission screen
+    discoverNearYouTitle: 'Discover places near you',
+    discoverNearYouBody: 'Location access helps us show nearby places and local recommendations.',
+    useLocation: 'Use location',
+    notNow: 'Not now',
+    // Denied / dismissed fallback
+    exploreCuratedTitle: 'Explore curated places',
+    exploreCuratedBody: 'Location access helps us show nearby recommendations, but you can still browse our editorial selections.',
+    browsePlaces: 'Browse places',
+    // Far from region
+    outsideRegionsTitle: 'No nearby places yet',
+    outsideRegionsBody: 'Goldenbook features curated places across Portugal. You can explore by destination or browse our editorial selection.',
+    explorePortugal: 'Explore Portugal',
+    changeDestination: 'Change destination',
+    // Empty nearby
+    noPlacesNearbyTitle: 'No places nearby right now',
+    noPlacesNearbyBody: 'Try exploring another region or browse curated places.',
+    // Geolocation error
+    locationErrorTitle: 'Could not determine your location',
+    locationErrorBody: 'We were unable to access your position. You can try again or browse our curated selections.',
+  },
+
   journey: {
     couldNotLoad: 'Could not load this route.',
     stop: 'Stop',
@@ -238,6 +269,6 @@ export const en = {
     total: 'Total',
     exploreMoreRoutes: 'Explore More Routes',
   },
-} as const;
+};
 
 export type Translations = typeof en;

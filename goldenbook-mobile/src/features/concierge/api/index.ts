@@ -27,6 +27,7 @@ export const conciergeApi = {
     locale?: string
     interests?: string[]
     style?: string
+    now_context?: { time_of_day?: string; weather?: string | null; inferred_moment?: string | null; adjustment?: 'relax' | 'energy' | 'treat' }
   }): Promise<ConciergeRecommendResponseDTO> =>
     apiClient
       .post<ConciergeRecommendResponseDTO>('/concierge/recommend', params)

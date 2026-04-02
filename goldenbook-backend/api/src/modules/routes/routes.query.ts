@@ -1,6 +1,6 @@
 import { db } from '../../db/postgres'
 
-// ─── Route list ───────────────────────────────────────────────────────────────
+// ─── Route list ────────────���──────────────────────────────────────────────────
 
 export interface RouteListRow {
   id: string
@@ -28,8 +28,8 @@ export async function getRoutes(
     SELECT
       r.id,
       r.slug,
-      COALESCE(rt.title,   rt_lang.title,   rt_fb.title,   r.title)         AS title,
-      COALESCE(rt.summary, rt_lang.summary, rt_fb.summary, r.summary)       AS summary,
+      COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)         AS title,
+      COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)       AS summary,
       r.route_type,
       r.estimated_duration_minutes,
       r.featured,
@@ -37,7 +37,7 @@ export async function getRoutes(
       ma.path                                                                 AS hero_path,
       COUNT(rp.place_id)::int                                                AS places_count,
       d.slug                                                                  AS city_slug,
-      COALESCE(dt.name, dt_lang.name, dt_fb.name, d.name)                   AS city_name
+      COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)                   AS city_name
     FROM routes r
     JOIN destinations d ON d.id = r.destination_id AND d.slug = $1
     LEFT JOIN destination_translations dt
@@ -96,16 +96,16 @@ export async function getRouteBySlug(
     SELECT
       r.id,
       r.slug,
-      COALESCE(rt.title,   rt_lang.title,   rt_fb.title,   r.title)         AS title,
-      COALESCE(rt.summary, rt_lang.summary, rt_fb.summary, r.summary)       AS summary,
-      COALESCE(rt.body,    rt_lang.body,    rt_fb.body)                     AS body,
+      COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)         AS title,
+      COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)       AS summary,
+      COALESCE(NULLIF(rt.body,''),    NULLIF(rt_lang.body,''),    NULLIF(rt_fb.body,''))                       AS body,
       r.route_type,
       r.estimated_duration_minutes,
       r.featured,
       ma.bucket                                                               AS hero_bucket,
       ma.path                                                                 AS hero_path,
       d.slug                                                                  AS city_slug,
-      COALESCE(dt.name, dt_lang.name, dt_fb.name, d.name)                   AS city_name
+      COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)                   AS city_name
     FROM routes r
     JOIN destinations d ON d.id = r.destination_id
     LEFT JOIN destination_translations dt
@@ -155,8 +155,8 @@ export async function getRoutePlaces(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)          AS name,
-      COALESCE(rpt.note, rpt_lang.note, rp.note)                    AS note,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)          AS name,
+      COALESCE(NULLIF(rpt.note,''), NULLIF(rpt_lang.note,''), rp.note)                    AS note,
       rp.stay_minutes,
       rp.sort_order,
       hero_img.bucket                                                AS hero_bucket,

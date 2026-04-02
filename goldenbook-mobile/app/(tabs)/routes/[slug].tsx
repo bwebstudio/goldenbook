@@ -11,7 +11,7 @@ export default function RouteDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const t = useTranslation();
-  const { data, isLoading, isError } = useRouteDetail(slug ?? '');
+  const { data, isLoading, isError, refetch } = useRouteDetail(slug ?? '');
   const { isSaved, toggle: toggleSave, isPending } = useSaveRoute(data?.id ?? '');
 
   if (isLoading) {
@@ -25,9 +25,21 @@ export default function RouteDetailScreen() {
   if (isError || !data) {
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm">
+        <Text className="text-navy/40 text-center text-sm mb-5">
           {t.route.couldNotLoad}
         </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          activeOpacity={0.85}
+          className="bg-primary rounded-lg px-6 py-3 mb-3"
+        >
+          <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+            {t.common.retry}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+          <Text className="text-navy/30 text-xs tracking-wide">{t.common.goBack}</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

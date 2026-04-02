@@ -91,6 +91,8 @@ export async function fetchCurrentUser(accessToken: string): Promise<DashboardUs
 }
 
 export function mapCurrentUser(data: DashboardMeResponse): DashboardUser | null {
+  const places = data.places ?? [];
+
   // Admin users get their dashboardRole directly
   if (data.dashboardRole) {
     return {
@@ -100,11 +102,12 @@ export function mapCurrentUser(data: DashboardMeResponse): DashboardUser | null 
       fullName: data.fullName,
       name: data.fullName ?? data.displayName ?? data.email,
       role: data.dashboardRole,
+      places,
     };
   }
 
-  // Business clients get access via businessClient field
-  if (data.businessClient) {
+  // Business clients get access via businessClient field or place_users
+  if (data.businessClient || places.length > 0) {
     return {
       id: data.id,
       email: data.email,
@@ -113,6 +116,7 @@ export function mapCurrentUser(data: DashboardMeResponse): DashboardUser | null 
       name: data.fullName ?? data.displayName ?? data.email,
       role: "business_client",
       businessClient: data.businessClient,
+      places,
     };
   }
 

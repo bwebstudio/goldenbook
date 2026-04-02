@@ -20,11 +20,6 @@ const iconSvg = {
       <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" />
     </svg>
   ),
-  placement: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 3l-4 4-4-4" />
-    </svg>
-  ),
   route: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -67,7 +62,6 @@ const iconSvg = {
   ),
 };
 
-// Nav item keys mapped to translation keys — labels resolved at render time
 const adminNavDefs = [
   { key: "dashboard", href: "/dashboard", icon: iconSvg.grid },
   { key: "places", href: "/places", icon: iconSvg.pin },
@@ -97,6 +91,9 @@ export default function Sidebar({ currentUser }: { currentUser: DashboardUser })
   const t = useT();
 
   const [reviewCount, setReviewCount] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useEffect(() => {
     if (isBusinessClient(currentUser.role)) return;
@@ -106,7 +103,6 @@ export default function Sidebar({ currentUser }: { currentUser: DashboardUser })
     return () => window.removeEventListener('review-count-changed', refresh);
   }, [currentUser.role]);
 
-  // Business clients don't see the employee sidebar — they use the portal shell
   if (isBusinessClient(currentUser.role)) return null;
 
   const empNav = t.employeeNav as Record<string, string>;
@@ -118,44 +114,64 @@ export default function Sidebar({ currentUser }: { currentUser: DashboardUser })
   }));
   const allowedItems = navItems.filter((item) => canAccessPath(currentUser.role, item.href));
 
-  return (
-    <aside className="w-64 min-h-screen bg-white border-r border-border flex flex-col shrink-0">
-      {/* Logo */}
-      <div className="px-8 py-8 border-b border-border">
-        <span className="text-2xl font-bold tracking-tight text-text">
-          Golden<span className="text-gold">book</span>
+  const navContent = (
+    <>
+      <div className="px-6 lg:px-8 py-5 lg:py-8 border-b border-border flex items-center justify-between">
+        <span className="text-xl lg:text-2xl font-bold tracking-tight text-text">
+          <span className="hidden lg:inline">Golden<span className="text-gold">book</span> Go</span>
+          <span className="lg:hidden">GB <span className="text-gold">Go</span></span>
         </span>
+        <button onClick={() => setMobileOpen(false)} className="lg:hidden p-1 text-muted hover:text-text cursor-pointer">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
       </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 flex flex-col gap-1">
+      <nav className="flex-1 px-3 lg:px-4 py-4 lg:py-6 flex flex-col gap-0.5 overflow-y-auto">
         {allowedItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-4 px-4 py-4 rounded-xl text-lg font-medium transition-colors ${isActive
-                  ? "bg-gold text-white"
-                  : "text-muted hover:bg-[#F5F1EB] hover:text-text"
-                }`}
-            >
+            <Link key={item.href} href={item.href}
+              className={`flex items-center gap-3 lg:gap-4 px-4 py-3 lg:py-4 rounded-xl text-base lg:text-lg font-medium transition-colors ${isActive ? "bg-gold text-white" : "text-muted hover:bg-[#F5F1EB] hover:text-text"}`}>
               <span className="shrink-0">{item.icon}</span>
               <span className="flex-1">{item.label}</span>
-              {item.badge && (
-                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{item.badge}</span>
-              )}
+              {item.badge && <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{item.badge}</span>}
             </Link>
           );
         })}
       </nav>
-
-      {/* Language + Logout */}
-      <div className="px-4 py-4 border-t border-border flex flex-col gap-1">
+      <div className="px-3 lg:px-4 py-4 border-t border-border flex flex-col gap-1">
         <LanguageSwitch />
         <LogoutButton />
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="lg:hidden fixed top-3.5 left-3 z-40 p-2 rounded-xl bg-white border border-border shadow-sm text-text hover:bg-[#F5F1EB] cursor-pointer"
+        aria-label="Menu"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-xl animate-in slide-in-from-left duration-200">
+            {navContent}
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 min-h-screen bg-white border-r border-border flex-col shrink-0">
+        {navContent}
+      </aside>
+    </>
   );
 }

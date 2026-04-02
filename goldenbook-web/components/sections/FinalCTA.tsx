@@ -9,7 +9,7 @@ export function FinalCTA() {
   const t = useTranslations('finalCta')
 
   return (
-    <section id="download" className="relative overflow-hidden bg-ivory" aria-label="Download Goldenbook">
+    <section id="download" className="relative overflow-hidden bg-ivory" aria-label="Download Goldenbook Go">
       {/* Thin gold border top */}
       <div className="h-px bg-primary/20" />
 

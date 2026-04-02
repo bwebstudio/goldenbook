@@ -22,8 +22,8 @@ export async function findPlaces(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                        AS name,
-      COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS summary,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS summary,
       hero_img.bucket                                                                               AS hero_bucket,
       hero_img.path                                                                                 AS hero_path
     FROM places p
@@ -45,8 +45,8 @@ export async function findPlaces(
     ) hero_img ON true
     WHERE p.status = 'published'
       AND (
-        COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name) ILIKE '%' || $3 || '%'
-        OR COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) ILIKE '%' || $3 || '%'
+        COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name) ILIKE '%' || $3 || '%'
+        OR COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) ILIKE '%' || $3 || '%'
       )
     ORDER BY p.featured DESC, p.published_at DESC NULLS LAST
     LIMIT $4
@@ -78,8 +78,8 @@ export async function findRoutes(
     SELECT
       r.id,
       r.slug,
-      COALESCE(rt.title,   rt_lang.title,   rt_fb.title,   r.title)     AS title,
-      COALESCE(rt.summary, rt_lang.summary, rt_fb.summary, r.summary)   AS summary,
+      COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)     AS title,
+      COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)   AS summary,
       ma.bucket                                                           AS hero_bucket,
       ma.path                                                             AS hero_path
     FROM routes r
@@ -93,8 +93,8 @@ export async function findRoutes(
     LEFT JOIN media_assets ma ON ma.id = r.cover_asset_id
     WHERE r.status = 'published'
       AND (
-        COALESCE(rt.title, rt_lang.title, rt_fb.title, r.title) ILIKE '%' || $3 || '%'
-        OR COALESCE(rt.summary, rt_lang.summary, rt_fb.summary, r.summary) ILIKE '%' || $3 || '%'
+        COALESCE(NULLIF(rt.title,''), NULLIF(rt_lang.title,''), NULLIF(rt_fb.title,''), r.title) ILIKE '%' || $3 || '%'
+        OR COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary) ILIKE '%' || $3 || '%'
       )
     ORDER BY r.featured DESC, r.published_at DESC NULLS LAST
     LIMIT $4
@@ -124,7 +124,7 @@ export async function findCategories(
     SELECT DISTINCT ON (c.sort_order, c.id)
       c.id,
       c.slug,
-      COALESCE(ct.name, ct_lang.name, ct_fb.name, c.slug) AS name,
+      COALESCE(NULLIF(ct.name,''), NULLIF(ct_lang.name,''), NULLIF(ct_fb.name,''), c.slug) AS name,
       c.icon_name
     FROM categories c
     JOIN place_categories pc ON pc.category_id = c.id
@@ -137,7 +137,7 @@ export async function findCategories(
     LEFT JOIN category_translations ct_fb
            ON ct_fb.category_id = c.id AND ct_fb.locale = 'en'
     WHERE c.is_active = true
-      AND COALESCE(ct.name, ct_lang.name, ct_fb.name, c.slug) ILIKE '%' || $3 || '%'
+      AND COALESCE(NULLIF(ct.name,''), NULLIF(ct_lang.name,''), NULLIF(ct_fb.name,''), c.slug) ILIKE '%' || $3 || '%'
     ORDER BY c.sort_order ASC, c.id ASC
     LIMIT $4
     `,

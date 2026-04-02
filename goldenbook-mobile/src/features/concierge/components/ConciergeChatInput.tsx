@@ -14,7 +14,6 @@ interface Props {
 
 export function ConciergeChatInput({ value, onChangeText, onSend, loading = false }: Props) {
   const t = useTranslation()
-  const active = value.trim().length > 0 && !loading
 
   return (
     <View style={styles.container}>
@@ -24,19 +23,19 @@ export function ConciergeChatInput({ value, onChangeText, onSend, loading = fals
         onChangeText={onChangeText}
         placeholder={t.concierge.askPlaceholder}
         placeholderTextColor="rgba(34,45,82,0.32)"
-        returnKeyType="send"
-        onSubmitEditing={active ? onSend : undefined}
+        returnKeyType="done"
+        onSubmitEditing={undefined}
         editable={!loading}
         maxLength={200}
         multiline={false}
       />
       <TouchableOpacity
-        style={[styles.btn, !active && styles.btnDisabled]}
+        style={[styles.btn, styles.btnDisabled]}
         onPress={onSend}
-        disabled={!active}
+        disabled
         activeOpacity={0.75}
       >
-        <Text style={styles.btnIcon}>{loading ? '…' : '→'}</Text>
+        <Text style={styles.btnIcon}>{loading ? '…' : '•'}</Text>
       </TouchableOpacity>
     </View>
   )

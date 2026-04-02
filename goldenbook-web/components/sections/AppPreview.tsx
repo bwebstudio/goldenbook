@@ -173,7 +173,7 @@ export function AppPreview() {
               <div className="hidden md:block" style={{ marginBottom: '20px' }}>
                 <PhoneMockup
                   screenshot={SCREENSHOTS.onboarding}
-                  alt="Goldenbook onboarding screen"
+                  alt="Goldenbook Go onboarding screen"
                   angle={-5}
                   zIndex={1}
                 />
@@ -182,7 +182,7 @@ export function AppPreview() {
               {/* Centre — hero phone */}
               <PhoneMockup
                 screenshot={SCREENSHOTS.discover}
-                alt="Goldenbook discover screen"
+                alt="Goldenbook Go discover screen"
                 angle={0}
                 zIndex={2}
                 priority
@@ -192,7 +192,7 @@ export function AppPreview() {
               <div className="hidden md:block" style={{ marginBottom: '20px' }}>
                 <PhoneMockup
                   screenshot={SCREENSHOTS.placeDetail}
-                  alt="Goldenbook place detail screen"
+                  alt="Goldenbook Go place detail screen"
                   angle={5}
                   zIndex={1}
                 />

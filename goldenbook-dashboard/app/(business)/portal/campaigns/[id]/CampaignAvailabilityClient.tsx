@@ -7,7 +7,7 @@ import { fetchCampaignAvailability, createCampaignCheckout, trackCampaignEvent }
 
 const SECTION_LABELS: Record<string, string> = {
   golden_picks: "Golden Picks",
-  now: "Now",
+  now: "Recommended at the right moment",
   hidden_gems: "Hidden Gems",
   new_on_goldenbook: "New on Goldenbook",
   search_priority: "Search Priority",
@@ -200,6 +200,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
   }
 
   const { campaign, place, alternatives } = data;
+  const isNowSection = campaign.section === "now";
 
   return (
     <div className="flex flex-col gap-5">
@@ -224,10 +225,10 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
               ? "You already have an active Discover placement."
               : place.reason === "DUPLICATE_SECTION"
                 ? `You already have an active ${SECTION_LABELS[campaign.section] ?? campaign.section} placement.`
-                : place.reason === "CITY_MISMATCH"
-                  ? "Your place is not in the same city as this campaign."
-                  : "No slots available right now."}
-          </p>
+                  : place.reason === "CITY_MISMATCH"
+                    ? "Your place is not in the same city as this campaign."
+                  : isNowSection ? "No recommendation windows available right now." : "No slots available right now."}
+              </p>
           {alternatives.filter((a) => a.available).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {alternatives.filter((a) => a.available).map((a) => (
@@ -280,9 +281,9 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
       {/* ── Step 2: Select Position ────────────────────────────────────────── */}
       {isEligible && selectedDate && (
         <div className="bg-white rounded-2xl border border-[#EDE9E3] p-5">
-          <p className="text-sm font-bold text-[#222D52] mb-3">Select a position</p>
+          <p className="text-sm font-bold text-[#222D52] mb-3">{isNowSection ? "Select recommendation option" : "Select a position"}</p>
           <div className="flex flex-wrap gap-2">
-            {availablePositions.map((pos) => {
+            {availablePositions.map((pos, idx) => {
               const isSelected = selectedPosition === pos;
               return (
                 <button
@@ -294,7 +295,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
                       : "bg-white text-[#222D52] border-[#EDE9E3] hover:border-[#D2B68A]"
                   }`}
                 >
-                  #{pos}
+                  {isNowSection ? `Option ${idx + 1}` : `#${pos}`}
                 </button>
               );
             })}
@@ -305,7 +306,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
       {/* ── Step 3: Select Time Bucket ─────────────────────────────────────── */}
       {isEligible && selectedDate && selectedPosition !== null && availableBuckets.length > 1 && (
         <div className="bg-white rounded-2xl border border-[#EDE9E3] p-5">
-          <p className="text-sm font-bold text-[#222D52] mb-3">Select a time slot</p>
+          <p className="text-sm font-bold text-[#222D52] mb-3">{isNowSection ? "Select recommendation window" : "Select a time slot"}</p>
           <div className="flex flex-wrap gap-2">
             {availableBuckets.map((b) => {
               const isSelected = selectedBucket === b;
@@ -333,14 +334,15 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
           <p className="text-sm font-bold text-[#222D52]">Summary</p>
           <div className="mt-2.5 space-y-1">
             <p className="text-sm text-[#222D52]">
-              <span className="font-semibold">{SECTION_LABELS[campaign.section] ?? campaign.section}</span> #{selectedPosition}
+              <span className="font-semibold">{SECTION_LABELS[campaign.section] ?? campaign.section}</span>
+              {!isNowSection ? ` #${selectedPosition}` : ""}
             </p>
             <p className="text-sm text-[#6B6B7B]">{fmtDay(selectedDate)}</p>
             <p className="text-sm text-[#6B6B7B]">{BUCKET_LABELS[selectedBucket] ?? selectedBucket}</p>
           </div>
 
           <p className="mt-3 text-xs text-[#6B6B7B]">
-            Slot confirmed after payment. Not reserved until then.
+            {isNowSection ? "Recommendation is confirmed after payment." : "Slot confirmed after payment. Not reserved until then."}
           </p>
 
           <button
@@ -349,7 +351,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
             className="mt-4 w-full bg-[#D2B68A] text-white font-semibold text-base py-3.5 rounded-xl hover:bg-[#C6A769] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {checkingOut && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-            {checkingOut ? "Checking availability..." : "Proceed to Checkout"}
+            {checkingOut ? "Checking availability..." : isNowSection ? "Activate recommendation" : "Proceed to Checkout"}
           </button>
         </div>
       )}

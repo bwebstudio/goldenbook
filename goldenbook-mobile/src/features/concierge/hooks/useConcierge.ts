@@ -1,7 +1,8 @@
-import { useCallback, useReducer } from 'react'
+import { useCallback, useReducer, useRef } from 'react'
 import { useAppStore } from '@/store/appStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useNowContextStore, type NowContextForConcierge } from '@/store/nowContextStore'
 import { conciergeApi } from '../api'
 import type {
   ConciergeBootstrapDTO,
@@ -105,12 +106,74 @@ export function useConcierge() {
   const interests        = useOnboardingStore((s) => s.interests)
   const explorationStyle = useOnboardingStore((s) => s.explorationStyle)
   const locale           = useSettingsStore((s) => s.locale)
+  const consumeNowContext = useNowContextStore((s) => s.consume)
+  const nowContextConsumed = useRef(false)
 
   // Stable references passed into every API call
   const profile = {
     interests:  interests.length > 0 ? interests : undefined,
     style:      explorationStyle ?? undefined,
   } as const
+
+  const fetchDefaultRecommendations = useCallback(async (bootstrapData: ConciergeBootstrapDTO) => {
+    const defaultIntent = bootstrapData.intents[0]
+    if (!defaultIntent) return
+
+    const data = await conciergeApi.recommend({
+      city: bootstrapData.city.slug ?? city,
+      intent: defaultIntent.id,
+      limit: 3,
+      locale,
+      interests: profile.interests,
+      style: profile.style,
+    })
+
+    dispatch({ type: 'RECOMMEND_SUCCESS', payload: data })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [city, locale, profile.interests, profile.style])
+
+  const triggerNowRecommendations = useCallback(async (
+    nowCtx: NowContextForConcierge,
+    bootstrapData: ConciergeBootstrapDTO,
+  ) => {
+    console.log('[Concierge] NOW context received', nowCtx)
+    console.log('[Concierge] adjustment', nowCtx.adjustment ?? null)
+    console.log('[Concierge] fetch triggered')
+
+    const label = nowCtx.moment_label ?? nowCtx.moment?.replace(/_/g, ' ') ?? 'NOW'
+
+    dispatch({
+      type: 'RECOMMEND_START',
+      userMessage: { id: uid(), type: 'user_text', text: label, timestamp: Date.now() },
+    })
+
+    try {
+      const recData = await conciergeApi.recommend({
+        city: nowCtx.city ?? bootstrapData.city.slug ?? city,
+        limit: 5,
+        locale,
+        interests: profile.interests,
+        style: profile.style,
+        now_context: {
+          time_of_day: nowCtx.time_of_day,
+          weather: nowCtx.weather,
+          inferred_moment: nowCtx.moment,
+          adjustment: nowCtx.adjustment,
+        },
+      })
+      dispatch({ type: 'RECOMMEND_SUCCESS', payload: recData })
+    } catch (recErr) {
+      try {
+        await fetchDefaultRecommendations(bootstrapData)
+      } catch {
+        dispatch({
+          type: 'RECOMMEND_ERROR',
+          payload: recErr instanceof Error ? recErr.message : 'Could not load recommendations.',
+        })
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [city, locale, profile.interests, profile.style, fetchDefaultRecommendations])
 
   // ── Bootstrap ────────────────────────────────────────────────────────────
 
@@ -119,6 +182,16 @@ export function useConcierge() {
     try {
       const data = await conciergeApi.bootstrap(city, profile.interests, profile.style, locale)
       dispatch({ type: 'BOOTSTRAP_SUCCESS', payload: data })
+
+      // ── NOW → Concierge handoff: auto-trigger context-aware recommendation ──
+      if (!nowContextConsumed.current) {
+        const nowCtx = consumeNowContext()
+        nowContextConsumed.current = true
+
+        if (nowCtx?.source === 'now') {
+          await triggerNowRecommendations(nowCtx, data)
+        }
+      }
     } catch (err) {
       dispatch({
         type: 'BOOTSTRAP_ERROR',
@@ -127,6 +200,11 @@ export function useConcierge() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, locale, profile.interests, profile.style])
+
+  const loadFromNowContext = useCallback(async () => {
+    nowContextConsumed.current = false
+    await loadBootstrap()
+  }, [loadBootstrap])
 
   // ── Intent tap ───────────────────────────────────────────────────────────
 
@@ -166,30 +244,9 @@ export function useConcierge() {
     const text = state.inputValue.trim()
     if (!text || state.loadingRecommendation) return
 
-    dispatch({
-      type: 'RECOMMEND_START',
-      userMessage: { id: uid(), type: 'user_text', text, timestamp: Date.now() },
-    })
+    // Safe mode: keep input visible, but do not process free-text queries.
     dispatch({ type: 'SET_INPUT', value: '' })
-
-    try {
-      const data = await conciergeApi.recommend({
-        city:      state.bootstrapData?.city.slug ?? city,
-        query:     text,
-        limit:     3,
-        locale,
-        interests: profile.interests,
-        style:     profile.style,
-      })
-      dispatch({ type: 'RECOMMEND_SUCCESS', payload: data })
-    } catch (err) {
-      dispatch({
-        type: 'RECOMMEND_ERROR',
-        payload: err instanceof Error ? err.message : 'Could not load recommendations.',
-      })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.inputValue, state.loadingRecommendation, state.bootstrapData, city, locale, profile.interests, profile.style])
+  }, [state.inputValue, state.loadingRecommendation])
 
   // ── Fallback intent tap ──────────────────────────────────────────────────
 
@@ -202,6 +259,7 @@ export function useConcierge() {
   return {
     state,
     loadBootstrap,
+    loadFromNowContext,
     handleIntentTap,
     handleSend,
     handleFallbackTap,

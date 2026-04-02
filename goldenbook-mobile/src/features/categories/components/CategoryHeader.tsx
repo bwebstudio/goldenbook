@@ -18,7 +18,7 @@ export function CategoryHeader({ title, cityName }: CategoryHeaderProps) {
       style={{ paddingTop: insets.top + 8 }}
     >
       <TouchableOpacity
-        onPress={() => router.back()}
+        onPress={() => router.navigate('/(tabs)')}
         activeOpacity={0.7}
         className="mr-3 p-1"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

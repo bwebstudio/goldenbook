@@ -30,7 +30,6 @@ const GROUP_LABELS: Record<string, Record<string, string>> = {
   pt: { discover: "Descobrir (Exclusivo)", intent: "Pesquisa & Categorias", dynamic: "Concierge", listing: "Melhorias do Espaço" },
 };
 
-const SLOT_PRODUCTS = new Set(["now"]);
 const SCOPE_PRODUCTS = new Set(["search_priority", "category_featured"]);
 
 function fmtValidUntil(iso: string | null): string {
@@ -76,7 +75,7 @@ export default function PortalPromote() {
 
   // State
   const [selected, setSelected] = useState<string | null>(null);
-  const [slot, setSlot] = useState("");
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const [scopeId, setScopeId] = useState("");
   const [city, setCity] = useState("");
   const [position, setPosition] = useState(1);
@@ -97,8 +96,7 @@ export default function PortalPromote() {
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() }; });
 
-  const products = t.promote.products as Record<string, { label: string; tagline: string; description: string; where: string; why: string }>;
-  const slots = t.promote.slots as Record<string, string>;
+  const products = t.promote.products as Record<string, { label: string; tagline: string; description: string; where: string; why: string; context?: string }>;
   const categories = t.promote.categories as Record<string, string>;
   const lang = (t.common.save === "Guardar alterações") ? "pt" : "en";
   const groupLabels = GROUP_LABELS[lang] ?? GROUP_LABELS.en;
@@ -141,17 +139,56 @@ export default function PortalPromote() {
 
   // ── Find plan + compute price ─────────────────────────────────────────────
 
-  const findPlan = useCallback((): PricingPlan | null => {
-    if (!selected) return null;
-    return plans.find((p) => {
-      if (p.placement_type !== selected) return false;
-      if (selected === "golden_picks" && p.position !== position) return false;
-      return true;
-    }) ?? null;
+  const durationOptions = useMemo(() => {
+    if (!selected) return [] as number[];
+    return Array.from(
+      new Set(
+        plans
+          .filter((p) => {
+            if (!p.is_active || p.placement_type !== selected) return false;
+            if (selected === "golden_picks" && p.position !== position) return false;
+            return true;
+          })
+          .map((p) => p.unit_days)
+      )
+    ).sort((a, b) => a - b);
   }, [selected, position, plans]);
 
+  const visibleDurationOptions = useMemo(() => {
+    if (selected !== "now") return durationOptions;
+    const allowed = durationOptions.filter((d) => d === 7 || d === 14 || d === 30);
+    return allowed.length > 0 ? allowed : durationOptions;
+  }, [selected, durationOptions]);
+
+  useEffect(() => {
+    if (!selected || visibleDurationOptions.length === 0) {
+      setSelectedDuration(null);
+      return;
+    }
+    if (selectedDuration !== null && visibleDurationOptions.includes(selectedDuration)) return;
+    const preferred = [7, 14, 30].find((d) => visibleDurationOptions.includes(d)) ?? visibleDurationOptions[0];
+    setSelectedDuration(preferred);
+  }, [selected, selectedDuration, visibleDurationOptions]);
+
+  const findPlan = useCallback((): PricingPlan | null => {
+    if (!selected) return null;
+    const matching = plans
+      .filter((p) => {
+        if (!p.is_active || p.placement_type !== selected) return false;
+        if (selected === "golden_picks" && p.position !== position) return false;
+        return true;
+      })
+      .sort((a, b) => a.unit_days - b.unit_days || parseFloat(a.base_price) - parseFloat(b.base_price));
+    if (matching.length === 0) return null;
+    if (selectedDuration !== null) {
+      const exact = matching.find((p) => p.unit_days === selectedDuration);
+      if (exact) return exact;
+    }
+    return matching[0];
+  }, [selected, selectedDuration, position, plans]);
+
   const selectedPlan = findPlan();
-  const duration = selectedPlan?.unit_days ?? 7;
+  const duration = selectedPlan?.unit_days ?? selectedDuration ?? 7;
   const endDate = startDate ? addDays(startDate, duration) : null;
 
   useEffect(() => {
@@ -175,20 +212,17 @@ export default function PortalPromote() {
     return s.endsWith(".00") ? n.toFixed(0) : s;
   };
 
-  const getBasePrice = (productKey: string): number | null => {
-    const matching = plans.filter((pl) => pl.placement_type === productKey && pl.is_active);
-    if (matching.length === 0) return null;
-    return Math.min(...matching.map((pl) => parseFloat(pl.base_price)));
-  };
-
-  const getUnitLabel = (productKey: string): string | null => {
-    return plans.find((pl) => pl.placement_type === productKey)?.unit_label ?? null;
+  const getCardPlan = (productKey: string): PricingPlan | null => {
+    const matching = plans
+      .filter((pl) => pl.placement_type === productKey && pl.is_active)
+      .sort((a, b) => a.unit_days - b.unit_days || parseFloat(a.base_price) - parseFloat(b.base_price));
+    return matching[0] ?? null;
   };
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   function selectProduct(pk: string) {
-    setSelected(pk); setSlot(""); setScopeId(""); setPosition(1); setComputed(null); setStartDate(null);
+    setSelected(pk); setSelectedDuration(null); setScopeId(""); setPosition(1); setComputed(null); setStartDate(null);
     setCalMonth({ year: new Date().getFullYear(), month: new Date().getMonth() });
   }
 
@@ -242,7 +276,6 @@ export default function PortalPromote() {
   }
 
   const canCheckout = selected && startDate && computed && !submitting
-    && (!SLOT_PRODUCTS.has(selected) || slot)
     && (!SCOPE_PRODUCTS.has(selected) || scopeId);
 
   const monthLabel = new Date(calMonth.year, calMonth.month).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -279,8 +312,9 @@ export default function PortalPromote() {
               const isAvailable = avail?.available !== false;
               const reason = avail?.reason;
               const isSelected = selected === pk;
-              const basePrice = getBasePrice(pk);
-              const unit = getUnitLabel(pk);
+              const cardPlan = getCardPlan(pk);
+              const basePrice = cardPlan ? parseFloat(cardPlan.base_price) : null;
+              const unit = cardPlan?.unit_label ?? null;
 
               return (
                 <button key={pk} onClick={() => isAvailable && selectProduct(pk)} disabled={!isAvailable}
@@ -314,8 +348,9 @@ export default function PortalPromote() {
                     </div>
                   )}
                   <div className="mt-2 space-y-0.5">
-                    <CheckLine text={p.where} />
-                    <CheckLine text={p.why} />
+                    {(pk === "now" ? [p.where, p.why, p.context].filter(Boolean) : [p.where, p.why]).map((line, idx) => (
+                      <CheckLine key={`${pk}-${idx}`} text={line as string} />
+                    ))}
                   </div>
                 </button>
               );
@@ -328,7 +363,7 @@ export default function PortalPromote() {
       {selected && products[selected] && (
         <div className="bg-white rounded-xl border border-gold/30 shadow-md p-5 md:p-6">
           <p className="text-sm font-bold text-text mb-0.5">{products[selected].label}</p>
-          <p className="text-[11px] text-muted mb-5">{products[selected].tagline} · {duration} days</p>
+          <p className="text-[11px] text-muted mb-5">{products[selected].tagline} · {duration} {t.common.days}</p>
 
           <div className="flex flex-col gap-5">
             {/* City */}
@@ -355,16 +390,33 @@ export default function PortalPromote() {
               </div>
             )}
 
-            {/* Slot / Category */}
-            {SLOT_PRODUCTS.has(selected) && (
+            {/* Duration */}
+            {selected === "now" && visibleDurationOptions.length > 0 && (
               <div>
-                <label className="text-xs font-medium text-muted mb-1.5 block">{t.promote.preferredSlot}</label>
-                <select value={slot} onChange={(e) => setSlot(e.target.value)} className="w-full md:w-72 rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
-                  <option value="">{t.promote.selectSlot}</option>
-                  {Object.entries(slots).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
+                <label className="text-xs font-medium text-muted mb-1.5 block">{t.promote.duration}</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {visibleDurationOptions.map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setSelectedDuration(days)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${duration === days ? "bg-gold/10 text-gold border border-gold/30" : "bg-white border border-border text-muted hover:border-gold/30"}`}
+                    >
+                      {days} {t.common.days}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* How it works */}
+            {selected === "now" && (
+              <div className="bg-surface rounded-lg border border-border px-4 py-3">
+                <p className="text-xs font-semibold text-text">{t.promote.howItWorksTitle}</p>
+                <p className="text-[11px] text-muted mt-1.5 leading-relaxed">{t.promote.howItWorksText}</p>
+              </div>
+            )}
+
             {SCOPE_PRODUCTS.has(selected) && (
               <div>
                 <label className="text-xs font-medium text-muted mb-1.5 block">{t.promote.selectCategory}</label>
@@ -463,7 +515,7 @@ export default function PortalPromote() {
                     {" → "}
                     {endDate && new Date(endDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                   </p>
-                  <span className="text-[10px] text-muted">{duration} days</span>
+                  <span className="text-[10px] text-muted">{duration} {t.common.days}</span>
                 </div>
                 {computing ? (
                   <div className="flex items-center gap-2">
@@ -494,9 +546,9 @@ export default function PortalPromote() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div>
                   <p className="text-xs font-semibold text-amber-800">
-                    Slot reserved for {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
+                    Reservation held for {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
                   </p>
-                  <p className="text-[10px] text-amber-700">Complete payment before the hold expires or the slot will be released.</p>
+                  <p className="text-[10px] text-amber-700">Complete payment before this reservation expires.</p>
                 </div>
               </div>
             )}
@@ -514,7 +566,7 @@ export default function PortalPromote() {
                 className="px-6 py-2.5 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {submitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                {submitting ? "Processing..." : "Purchase placement"}
+                {submitting ? "Processing..." : selected === "now" ? t.promote.activateRecommendation : t.promote.purchasePlacement}
               </button>
               <button onClick={() => { setSelected(null); setHoldExpires(null); }} className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted hover:text-text transition-colors cursor-pointer">
                 {t.common.cancel}

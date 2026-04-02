@@ -34,6 +34,11 @@ import { adminCampaignsRoutes } from './modules/admin/campaigns/admin-campaigns.
 import { pricingRoutes } from './modules/pricing/pricing.route'
 import { campaignsRoutes } from './modules/campaigns/campaigns.route'
 import { campaignsTrackingRoutes } from './modules/campaigns/campaigns-tracking.route'
+import { trackingRoutes } from './modules/analytics/tracking.route'
+import { behaviorAnalyticsRoutes } from './modules/analytics/behavior-analytics.route'
+import { recommendationsRoutes } from './modules/recommendations/recommendations.route'
+import { nowRoutes } from './modules/now/now.route'
+import { notificationsRoutes } from './modules/notifications/notifications.route'
 import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
 
 export function buildApp() {
@@ -86,6 +91,11 @@ export function buildApp() {
   app.register(pricingRoutes,          { prefix: env.API_PREFIX })
   app.register(campaignsRoutes,        { prefix: env.API_PREFIX })
   app.register(campaignsTrackingRoutes, { prefix: env.API_PREFIX })
+  app.register(trackingRoutes,         { prefix: env.API_PREFIX })
+  app.register(behaviorAnalyticsRoutes, { prefix: env.API_PREFIX })
+  app.register(recommendationsRoutes,  { prefix: env.API_PREFIX })
+  app.register(nowRoutes,              { prefix: env.API_PREFIX })
+  app.register(notificationsRoutes,   { prefix: env.API_PREFIX })
 
   // Stripe webhook — registered in its own encapsulated context so
   // the raw-body content-type parser doesn't affect other routes.

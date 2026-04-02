@@ -30,12 +30,27 @@ async function getAccessToken(): Promise<string | null> {
   return cookieStore.get(AUTH_COOKIE_NAMES.accessToken)?.value ?? null;
 }
 
+const PLACE_ID_COOKIE = "gb_active_place_id";
+
+function getActivePlaceId(): string | null {
+  if (typeof window === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${PLACE_ID_COOKIE}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function setActivePlaceId(placeId: string) {
+  if (typeof window === "undefined") return;
+  document.cookie = `${PLACE_ID_COOKIE}=${encodeURIComponent(placeId)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
 async function buildHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
   const accessToken = await getAccessToken();
+  const placeId = getActivePlaceId();
 
   return {
     ...(extraHeaders ?? {}),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    ...(placeId ? { "X-Place-Id": placeId } : {}),
   };
 }
 

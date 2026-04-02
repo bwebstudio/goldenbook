@@ -25,7 +25,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
   category_featured: 'Category Featured',
   hidden_gems: 'Hidden Gems Near You',
   concierge: 'Concierge Recommendation',
-  new_on_goldenbook: 'New on Goldenbook',
+  new_on_goldenbook: 'New on Goldenbook Go',
   route_featured_stop: 'Route Featured Stop',
   route_sponsor: 'Route Sponsor',
   extra_images: 'Extra Images (5-15)',
@@ -281,7 +281,7 @@ export async function pricingRoutes(app: FastifyInstance) {
     // Build descriptive line item name
     const parts: string[] = []
     if (plan.pricing_type === 'membership') {
-      parts.push('Goldenbook Membership')
+      parts.push('Goldenbook Go Membership')
     } else {
       parts.push(PLACEMENT_LABELS[plan.placement_type ?? ''] ?? plan.placement_type ?? 'Unknown')
       parts.push(`\u2014 ${cityLabel(body.city)}`)

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { env } from '@/lib/env'
+import { getBestImage } from '@/lib/images'
 
 interface HeroProps {
   imageUrl?: string | null
@@ -13,74 +14,39 @@ interface HeroProps {
 
 export function Hero({ imageUrl, cityName }: HeroProps) {
   const t = useTranslations('hero')
+  const src = getBestImage({ section: 'hero', index: 0, dbImageUrl: imageUrl })
 
   return (
     <section
       className="relative flex flex-col justify-end min-h-screen overflow-hidden"
       aria-label="Hero"
     >
-      {/* ── Background ──────────────────────────────────────────────────── */}
-      {/* Base navy layer — always present */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(160deg, #161E38 0%, #222D52 45%, #161E38 100%)',
-        }}
-      />
-
-      {/* Real city image from backend — fades over the base layer */}
-      {imageUrl && (
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2 }}
-        >
-          <Image
-            src={imageUrl}
-            alt={cityName ?? 'City'}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            quality={90}
-            priority
-            unoptimized
-          />
-          {/* Navy overlay to keep text readable */}
-          <div className="absolute inset-0 bg-gradient-to-t from-navy-dark via-navy-dark/60 to-navy-dark/20" />
-        </motion.div>
-      )}
-
-      {/* Decorative geometric overlay when no real image */}
-      {!imageUrl && (
-        <>
-          <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-10">
-            {[15, 28, 42, 55, 68, 78].map((pos) => (
-              <div
-                key={pos}
-                className="absolute bottom-0 w-px"
-                style={{
-                  left: `${pos}%`,
-                  height: `${30 + Math.sin(pos) * 20}%`,
-                  background: 'linear-gradient(to top, rgba(210,182,138,0.15), transparent)',
-                }}
-              />
-            ))}
-          </div>
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                'radial-gradient(ellipse 50% 30% at 75% 30%, rgba(210,182,138,0.07) 0%, transparent 70%)',
-            }}
-          />
-        </>
-      )}
+      {/* ── Background image ───────────────────────────────────────────── */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2 }}
+      >
+        <Image
+          src={src}
+          alt={cityName ?? 'City'}
+          fill
+          sizes="100vw"
+          className="object-cover editorial-image"
+          quality={90}
+          priority
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to top, rgba(10,10,10,0.55), rgba(10,10,10,0.15))',
+          }}
+        />
+      </motion.div>
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
       <div className="relative z-10 section-padding pb-24 md:pb-32">
-        {/* Eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -91,7 +57,6 @@ export function Hero({ imageUrl, cityName }: HeroProps) {
           <span className="eyebrow">{t('eyebrow')}</span>
         </motion.div>
 
-        {/* Main headline */}
         <motion.h1
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
@@ -103,7 +68,6 @@ export function Hero({ imageUrl, cityName }: HeroProps) {
           <span className="text-primary italic">curated.</span>
         </motion.h1>
 
-        {/* Subheadline */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,7 +77,6 @@ export function Hero({ imageUrl, cityName }: HeroProps) {
           {t('subheadline')}
         </motion.p>
 
-        {/* CTAs */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}

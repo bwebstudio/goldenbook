@@ -191,9 +191,9 @@ export default function PlacementRequestsClient() {
 
   return (
     <div className="max-w-5xl flex flex-col gap-6">
-      <div>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
         <h1 className="text-2xl font-bold text-text">{t.empRequests.title}</h1>
-        <p className="text-sm text-muted mt-1">
+        <p className="text-sm text-muted">
           {t.empRequests.subtitle}
           {pendingCount > 0 && (
             <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-700">
@@ -209,12 +209,12 @@ export default function PlacementRequestsClient() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0 sm:mx-0 sm:px-0">
         {["all", "pending", "active", "approved", "rejected", "expired"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            className={`shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
               filter === f
                 ? "bg-gold/10 text-gold-dark border border-gold/30"
                 : "bg-white border border-border text-muted hover:text-text"
@@ -235,7 +235,7 @@ export default function PlacementRequestsClient() {
         <div className="bg-white rounded-xl border border-border overflow-hidden">
           <div className="divide-y divide-border/50">
             {filtered.map((row) => (
-              <div key={`${row.source}-${row.id}`} className="px-5 py-4 flex items-center gap-4">
+              <div key={`${row.source}-${row.id}`} className="px-4 py-4 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {row.placeSlug ? (
@@ -253,37 +253,40 @@ export default function PlacementRequestsClient() {
                       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold bg-gold/10 text-gold">Stripe</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-muted flex-wrap">
+                  {row.price && (
+                    <p className="text-sm font-semibold text-text mt-1.5 sm:hidden">&euro;{fmtPrice(row.price)}</p>
+                  )}
+                  <div className="flex items-center gap-x-3 gap-y-1 mt-1 text-xs text-muted flex-wrap">
                     {row.clientName && <span>{t.empRequests.client}: {row.clientName}</span>}
-                    {row.clientEmail && <span>{row.clientEmail}</span>}
+                    {row.clientEmail && <span className="break-all">{row.clientEmail}</span>}
                     {row.cityName && <span>{t.empRequests.city}: {row.cityName}</span>}
                     {row.slot && <span>{t.empRequests.slot}: {row.slot}</span>}
                     {row.scopeId && <span>{t.empRequests.scope}: {row.scopeId}</span>}
-                    {row.price && <span>&euro;{fmtPrice(row.price)}</span>}
+                    {row.price && <span className="hidden sm:inline">&euro;{fmtPrice(row.price)}</span>}
                     <span>{row.durationDays} {t.empRequests.days}</span>
                     {row.activatedAt && <span>Started {new Date(row.activatedAt).toLocaleDateString()}</span>}
                     {row.expiresAt && <span>Until {new Date(row.expiresAt).toLocaleDateString()}</span>}
                     <span>{t.empRequests.requested} {new Date(row.createdAt).toLocaleDateString()}</span>
                   </div>
                   {row.adminNotes && (
-                    <p className="text-xs text-muted mt-1 italic">{t.empRequests.admin}: {row.adminNotes}</p>
+                    <p className="text-xs text-muted mt-1 italic wrap-break-word">{t.empRequests.admin}: {row.adminNotes}</p>
                   )}
                 </div>
 
                 {/* Actions for pending requests only */}
                 {row.source === "request" && row.status === "pending" && (
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                     <button
                       onClick={() => { setNotesModal({ id: row.id, action: "approve" }); setAdminNotes(""); }}
                       disabled={busy}
-                      className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50"
+                      className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {t.empRequests.approve}
                     </button>
                     <button
                       onClick={() => { setNotesModal({ id: row.id, action: "reject" }); setAdminNotes(""); }}
                       disabled={busy}
-                      className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted hover:text-red-600 hover:border-red-200 transition-colors cursor-pointer disabled:opacity-50"
+                      className="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted hover:text-red-600 hover:border-red-200 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {t.empRequests.reject}
                     </button>
@@ -297,12 +300,12 @@ export default function PlacementRequestsClient() {
 
       {/* Notes modal */}
       {notesModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl border border-border shadow-xl p-8 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/30 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white sm:rounded-2xl rounded-t-2xl border border-border shadow-xl p-6 sm:p-8 w-full sm:max-w-md h-full sm:h-auto flex flex-col">
             <p className="text-sm font-bold text-text mb-4">
               {notesModal.action === "approve" ? t.empRequests.approveRequest : t.empRequests.rejectRequest}
             </p>
-            <div className="mb-4">
+            <div className="mb-4 flex-1 sm:flex-initial">
               <label className="block text-xs font-medium text-muted mb-1.5">
                 {t.empRequests.adminNotes}
               </label>
@@ -314,11 +317,11 @@ export default function PlacementRequestsClient() {
                 placeholder={notesModal.action === "approve" ? t.empRequests.notesPlaceholderApprove : t.empRequests.notesPlaceholderReject}
               />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3">
               <button
                 onClick={() => handleAction(notesModal.id, notesModal.action, adminNotes)}
                 disabled={busy}
-                className={`px-5 py-2 rounded-lg text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
+                className={`px-5 py-2.5 sm:py-2 rounded-lg text-white text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
                   notesModal.action === "approve"
                     ? "bg-green-600 hover:bg-green-700"
                     : "bg-red-600 hover:bg-red-700"
@@ -328,7 +331,7 @@ export default function PlacementRequestsClient() {
               </button>
               <button
                 onClick={() => setNotesModal(null)}
-                className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-muted hover:text-text transition-colors cursor-pointer"
+                className="px-4 py-2.5 sm:py-2 rounded-lg border border-border text-sm font-semibold text-muted hover:text-text transition-colors cursor-pointer"
               >
                 {t.common.cancel}
               </button>

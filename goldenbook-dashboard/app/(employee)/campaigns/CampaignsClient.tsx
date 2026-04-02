@@ -118,7 +118,7 @@ export default function CampaignsClient({
   return (
     <div className="flex flex-col gap-6">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="!p-5">
           <p className="text-sm text-muted">Total</p>
           <p className="text-2xl font-bold text-text">{placements.length}</p>
@@ -138,10 +138,10 @@ export default function CampaignsClient({
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="flex overflow-x-auto gap-1 sm:gap-2 border-b border-border">
         <button
           onClick={() => setTab("placements")}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+          className={`shrink-0 px-5 py-3 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
             tab === "placements" ? "border-gold text-gold" : "border-transparent text-muted hover:text-text"
           }`}
         >
@@ -149,7 +149,7 @@ export default function CampaignsClient({
         </button>
         <button
           onClick={() => setTab("inventory")}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
+          className={`shrink-0 px-5 py-3 text-sm font-semibold border-b-2 transition-colors cursor-pointer ${
             tab === "inventory" ? "border-gold text-gold" : "border-transparent text-muted hover:text-text"
           }`}
         >
@@ -160,12 +160,12 @@ export default function CampaignsClient({
       {/* ═══ PLACEMENTS TAB ═══ */}
       {tab === "placements" && (
         <>
-          <div className="flex items-center gap-3 flex-wrap">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-text">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-wrap">
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full sm:w-auto rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-text">
               <option value="">All Statuses</option>
               {placementStatuses.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
             </select>
-            <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)} className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-text">
+            <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)} className="w-full sm:w-auto rounded-xl border border-border bg-white px-4 py-2.5 text-sm text-text">
               <option value="">All Sections</option>
               {placementSections.map((s) => <option key={s} value={s}>{SECTION_LABELS[s] ?? s}</option>)}
             </select>
@@ -174,7 +174,77 @@ export default function CampaignsClient({
             )}
           </div>
 
-          <Card className="overflow-hidden !p-0">
+          {/* Mobile card layout */}
+          <div className="flex flex-col gap-3 sm:hidden">
+            {filteredPlacements.length === 0 && (
+              <Card className="text-center !py-12">
+                <p className="text-muted">No placements found.</p>
+              </Card>
+            )}
+            {filteredPlacements.map((p) => {
+              const key = `${p.source}-${p.id}`;
+              const isEditing = editingId === key;
+              const canEdit = isSuperAdmin && p.source !== "editorial";
+              const statuses = getAvailableStatuses(p);
+
+              return (
+                <Card key={key} className="!p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-text">{p.place_name ?? "Unknown"}</p>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize shrink-0 ${STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-600"}`}>
+                      {p.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${SOURCE_COLORS[p.source] ?? "bg-gray-100 text-gray-600"}`}>
+                      {SOURCE_LABELS[p.source] ?? p.source}
+                    </span>
+                    <span className="text-xs text-muted">
+                      {SECTION_LABELS[p.section] ?? p.section}
+                      {p.position ? ` #${p.position}` : ""}
+                    </span>
+                    {p.city && <span className="text-xs text-muted capitalize">{p.city}</span>}
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted">{fmtDate(p.starts_at)} — {fmtDate(p.ends_at)}</span>
+                    <span className="font-semibold text-text">{p.price ? `€${parseFloat(p.price).toFixed(0)}` : "—"}</span>
+                  </div>
+                  {isSuperAdmin && canEdit && (
+                    <div className="flex flex-col gap-2">
+                      {isEditing ? (
+                        <>
+                          <select
+                            defaultValue={p.status}
+                            onChange={(e) => handleStatusChange(p, e.target.value)}
+                            disabled={saving}
+                            className="w-full rounded-lg border border-gold bg-white px-3 py-2 text-xs font-semibold text-text focus:outline-none"
+                          >
+                            {statuses.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                          </select>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="w-full text-sm text-muted font-medium hover:text-text cursor-pointer py-2 rounded-lg border border-border"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setEditingId(key)}
+                          className="w-full text-sm text-gold font-medium hover:text-gold-dark cursor-pointer py-2 rounded-lg border border-gold/30"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Desktop table layout */}
+          <Card className="overflow-hidden !p-0 hidden sm:block">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
@@ -264,9 +334,9 @@ export default function CampaignsClient({
       {tab === "inventory" && (
         <>
           {isSuperAdmin && (
-            <div className="flex items-center justify-end">
-              <Link href="/campaigns/new">
-                <Button className="!px-5 !py-2.5 !text-sm">Create Campaign</Button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <Link href="/campaigns/new" className="w-full sm:w-auto">
+                <Button className="!px-5 !py-2.5 !text-sm w-full sm:w-auto">Create Campaign</Button>
               </Link>
             </div>
           )}
@@ -279,13 +349,45 @@ export default function CampaignsClient({
               <p className="text-base font-semibold text-text">No inventory campaigns yet</p>
               <p className="text-sm text-muted mt-1">Create a campaign to manage date-based inventory for premium placements.</p>
               {isSuperAdmin && (
-                <Link href="/campaigns/new" className="inline-block mt-4">
-                  <Button className="!px-6 !py-2.5 !text-sm">Create your first campaign</Button>
+                <Link href="/campaigns/new" className="inline-block mt-4 w-full sm:w-auto">
+                  <Button className="!px-6 !py-2.5 !text-sm w-full sm:w-auto">Create your first campaign</Button>
                 </Link>
               )}
             </Card>
           ) : (
-            <Card className="overflow-hidden !p-0">
+            <>
+            {/* Mobile card layout */}
+            <div className="flex flex-col gap-3 sm:hidden">
+              {campaigns.map((c) => (
+                <Card key={c.id} className="!p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/campaigns/${c.id}`} className="font-semibold text-text hover:text-gold transition-colors text-sm">{c.name}</Link>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize shrink-0 ${STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-600"}`}>{c.status}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                    <span>{SECTION_LABELS[c.section] ?? c.section}</span>
+                    <span>{c.city_name ?? "All"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted">{fmtDate(c.start_date)} — {fmtDate(c.end_date)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-text">{c.available_inventory}/{c.total_inventory}</span>
+                      <div className="w-10 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: c.total_inventory > 0 ? `${(c.sold_inventory / c.total_inventory) * 100}%` : "0%", backgroundColor: c.available_inventory === 0 ? "#EF4444" : "#10B981" }} />
+                      </div>
+                    </div>
+                  </div>
+                  {isSuperAdmin && (
+                    <Link href={`/campaigns/${c.id}`} className="w-full text-center text-sm text-gold font-medium hover:text-gold-dark cursor-pointer py-2 rounded-lg border border-gold/30">
+                      Manage
+                    </Link>
+                  )}
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop table layout */}
+            <Card className="overflow-hidden !p-0 hidden sm:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
@@ -328,6 +430,7 @@ export default function CampaignsClient({
                 </table>
               </div>
             </Card>
+            </>
           )}
         </>
       )}

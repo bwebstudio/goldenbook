@@ -11,12 +11,14 @@ import {
   type BusinessOverview,
   type BusinessAnalytics,
 } from "@/lib/api/business-portal";
+import { fetchMyRecommendations, type Recommendation } from "@/lib/api/recommendations";
 
 export default function PortalOverview() {
   const t = useT();
   const [me, setMe] = useState<BusinessMeResponse | null>(null);
   const [overview, setOverview] = useState<BusinessOverview | null>(null);
   const [analytics, setAnalytics] = useState<BusinessAnalytics | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,8 +26,9 @@ export default function PortalOverview() {
       fetchBusinessMe(),
       fetchBusinessOverview(),
       fetchBusinessAnalytics("30d").catch(() => null),
+      fetchMyRecommendations().catch(() => [] as Recommendation[]),
     ])
-      .then(([m, o, a]) => { setMe(m); setOverview(o); setAnalytics(a); })
+      .then(([m, o, a, r]) => { setMe(m); setOverview(o); setAnalytics(a); setRecommendations(r); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -69,6 +72,66 @@ export default function PortalOverview() {
           <PerfCard icon={<CalIcon />} value={analytics?.reservations} label={t.metrics.reservations} />
         </div>
       </div>
+
+      {/* ── Recommendations ── */}
+      {recommendations.length > 0 && (() => {
+        const rc = t.recs as Record<string, string>;
+        const sectionLabels: Record<string, string> = {
+          golden_picks: products.golden_picks?.label ?? "Golden Picks", now: products.now?.label ?? "Now", hidden_gems: products.hidden_gems?.label ?? "Hidden Gems",
+          search_priority: products.search_priority?.label ?? "Search Priority", category_featured: products.category_featured?.label ?? "Category Featured",
+          concierge: products.concierge?.label ?? "Concierge", new_on_goldenbook: products.new_on_goldenbook?.label ?? "New on Goldenbook",
+          extended_description: "Extended Description", extra_images: "Extra Images",
+          listing_premium_pack: "Premium Pack",
+        };
+        const bucketLabels: Record<string, string> = {
+          morning: rc.title === "Recomendações" ? "manhã" : "morning",
+          lunch: rc.title === "Recomendações" ? "almoço" : "lunch",
+          afternoon: rc.title === "Recomendações" ? "tarde" : "afternoon",
+          evening: rc.title === "Recomendações" ? "noite" : "evening",
+          night: rc.title === "Recomendações" ? "noite" : "night",
+          all_day: rc.title === "Recomendações" ? "dia inteiro" : "all day",
+        };
+        function fill(tpl: string, r: typeof recommendations[0]): string {
+          return tpl
+            .replace("{section}", sectionLabels[r.section ?? ""] ?? r.section ?? "")
+            .replace("{value}", String(r.value ?? ""))
+            .replace("{extra}", r.rule === "time_bucket" ? (bucketLabels[r.extra ?? ""] ?? r.extra ?? "") : (r.extra ?? ""));
+        }
+        return (
+          <div>
+            <p className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2">{rc.title}</p>
+            <div className="space-y-2">
+              {recommendations.map((r, i) => (
+                <div key={i} className="bg-white rounded-xl border border-border px-4 py-3 flex items-start gap-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                    r.type === "demand" ? "bg-red-50 text-red-500" :
+                    r.type === "timing" ? "bg-amber-50 text-amber-500" :
+                    r.type === "opportunity" ? "bg-emerald-50 text-emerald-500" :
+                    "bg-gold/10 text-gold"
+                  }`}>
+                    {r.type === "demand" ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    ) : r.type === "timing" ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-text">{fill(rc[`${r.rule}_title`] ?? r.rule, r)}</p>
+                    <p className="text-[11px] text-muted mt-0.5 leading-relaxed">{fill(rc[`${r.rule}_desc`] ?? "", r)}</p>
+                  </div>
+                  {r.action === "promote" && (
+                    <Link href="/portal/promote" className="text-[10px] font-semibold text-gold hover:text-gold-dark shrink-0 mt-1">
+                      {rc.view} →
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── 3. Visibility status — dynamic from active campaigns ── */}
       <div className="bg-white rounded-xl border border-border p-4 md:p-5">

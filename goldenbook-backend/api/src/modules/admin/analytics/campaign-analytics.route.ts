@@ -130,20 +130,25 @@ export async function campaignAnalyticsRoutes(app: FastifyInstance) {
       active_count: string
       views: string
       clicks: string
+      selections: string
+      checkouts: string
     }>(`
       SELECT
         p.id AS place_id,
         p.name AS place_name,
         COUNT(DISTINCT pu.id)::text AS total_purchases,
-        COALESCE(SUM(pu.final_price::numeric), 0)::text AS total_revenue,
+        COALESCE(SUM(DISTINCT pu.final_price::numeric), 0)::text AS total_revenue,
         COUNT(DISTINCT pu.id) FILTER (WHERE pu.status = 'activated')::text AS active_count,
         (SELECT COUNT(*) FROM place_view_events pve WHERE pve.place_id = p.id)::text AS views,
-        (SELECT COUNT(*) FROM place_website_click_events pwce WHERE pwce.place_id = p.id)::text AS clicks
+        (SELECT COUNT(*) FROM place_website_click_events pwce WHERE pwce.place_id = p.id)::text AS clicks,
+        (SELECT COUNT(*) FROM place_analytics_events pae WHERE pae.place_id = p.id AND pae.event_type = 'campaign_slot_selected')::text AS selections,
+        (SELECT COUNT(*) FROM place_analytics_events pae WHERE pae.place_id = p.id AND pae.event_type = 'campaign_checkout_completed')::text AS checkouts
       FROM places p
-      LEFT JOIN purchases pu ON pu.place_id = p.id AND pu.final_price IS NOT NULL
+      LEFT JOIN purchases pu ON pu.place_id = p.id
+        AND pu.status IN ('paid', 'activated', 'expired')
       GROUP BY p.id, p.name
       HAVING COUNT(pu.id) > 0
-      ORDER BY SUM(pu.final_price::numeric) DESC NULLS LAST
+      ORDER BY COALESCE(SUM(pu.final_price::numeric), 0) DESC
       LIMIT 20
     `).catch(() => ({ rows: [] as never[] }))
 
@@ -154,8 +159,8 @@ export async function campaignAnalyticsRoutes(app: FastifyInstance) {
         totalPurchases: parseInt(r.total_purchases),
         totalRevenue: parseFloat(r.total_revenue),
         activeCount: parseInt(r.active_count),
-        views: parseInt(r.views),
-        clicks: parseInt(r.clicks),
+        views: parseInt(r.views) || parseInt(r.selections),
+        clicks: parseInt(r.clicks) || parseInt(r.checkouts),
       })),
     })
   })

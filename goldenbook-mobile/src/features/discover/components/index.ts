@@ -6,3 +6,4 @@ export { SectionHeader } from './SectionHeader';
 export { PlaceCard } from './PlaceCard';
 export { CategoryPills } from './CategoryPills';
 export { RouteCard } from './RouteCard';
+export { HiddenGemsGate } from './HiddenGemsGate';

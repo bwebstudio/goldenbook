@@ -1,10 +1,15 @@
 import type { DashboardAdminUser, DashboardRole } from '../../shared/auth/dashboardAuth'
-import type { BusinessClient } from '../../shared/auth/businessAuth'
+import type { BusinessClient, PlaceUserLink } from '../../shared/auth/businessAuth'
 
 export interface MeBusinessClient {
   id: string
   placeId: string
   contactName: string | null
+}
+
+export interface MePlaceLink {
+  placeId: string
+  role: 'owner' | 'manager'
 }
 
 export interface MeDTO {
@@ -14,6 +19,7 @@ export interface MeDTO {
   fullName: string | null
   dashboardRole: DashboardRole | null
   businessClient: MeBusinessClient | null
+  places: MePlaceLink[]
   locale: string | null
   homeDestinationId: string | null
   onboardingCompleted: boolean
@@ -43,6 +49,7 @@ export function toMeDTO(
     businessClient: businessClient
       ? { id: businessClient.id, placeId: businessClient.placeId, contactName: businessClient.contactName }
       : null,
+    places: businessClient?.places ?? [],
     locale: row.locale,
     homeDestinationId: row.home_destination_id,
     onboardingCompleted: row.onboarding_completed,

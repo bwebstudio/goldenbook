@@ -17,7 +17,7 @@ export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const t = useTranslation();
-  const { data, isLoading, isError } = useCategory(slug ?? '');
+  const { data, isLoading, isError, refetch } = useCategory(slug ?? '');
 
   if (isLoading) {
     return (
@@ -33,9 +33,21 @@ export default function CategoryScreen() {
     return (
       <SafeAreaView className="flex-1 bg-ivory">
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-navy/40 text-center text-sm leading-relaxed">
+          <Text className="text-navy/40 text-center text-sm leading-relaxed mb-5">
             {t.category.couldNotLoad}
           </Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            activeOpacity={0.85}
+            className="bg-primary rounded-lg px-6 py-3 mb-3"
+          >
+            <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+              {t.common.retry}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+            <Text className="text-navy/30 text-xs tracking-wide">{t.common.goBack}</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );

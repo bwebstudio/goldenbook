@@ -9,8 +9,9 @@ import { colors, typography, spacing, radius } from '@/design/tokens';
 // ─── Language options ─────────────────────────────────────────────────────────
 
 const LANGUAGES: { locale: Locale; label: string; nativeLabel: string; code: string }[] = [
-  { locale: 'en',    label: 'English',              nativeLabel: 'English',              code: 'EN' },
-  { locale: 'pt-PT', label: 'Português (Portugal)',  nativeLabel: 'Português (Portugal)', code: 'PT' },
+  { locale: 'en', label: 'English', nativeLabel: 'English', code: 'EN' },
+  { locale: 'pt', label: 'Português (Portugal)', nativeLabel: 'Português (Portugal)', code: 'PT' },
+  { locale: 'es', label: 'Español', nativeLabel: 'Español', code: 'ES' },
 ];
 
 // ─── Screen ───────────────────────────────────────────────────────────────────

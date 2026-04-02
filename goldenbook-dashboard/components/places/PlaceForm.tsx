@@ -20,6 +20,7 @@ import SelectField from "@/components/ui/SelectField";
 import Toggle from "@/components/ui/Toggle";
 import PlaceCandidates from "@/components/places/PlaceCandidates";
 import PlaceVisibility from "@/components/places/PlaceVisibility";
+import PlaceNowVisibility, { type NowFormValues, EMPTY_NOW_FORM } from "@/components/places/PlaceNowVisibility";
 import PlaceMedia from "@/components/places/PlaceMedia";
 import PlaceTranslations from "@/components/places/PlaceTranslations";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -103,6 +104,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
     };
   });
 
+  const [nowForm, setNowForm] = useState<NowFormValues>({ ...EMPTY_NOW_FORM });
   const [errors,            setErrors]           = useState<PlaceFormErrors>({});
   const [isDirty,           setIsDirty]          = useState(false);
   const [saveError,         setSaveError]        = useState<string | null>(null);
@@ -193,7 +195,15 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       };
 
       if (isEditing) {
-        await updatePlace(place.id, payload);
+        // Include editorial relevance fields (tags + time windows only).
+        // Campaign fields (nowEnabled, nowPriority, nowFeatured, nowStartAt,
+        // nowEndAt) are managed by the commercial/campaign system, not editors.
+        const fullPayload = {
+          ...payload,
+          nowTagSlugs:   nowForm.nowTagSlugs,
+          nowTimeWindows: nowForm.nowTimeWindows,
+        };
+        await updatePlace(place.id, fullPayload);
         setIsDirty(false);
         setSaveStatus("success");
         router.refresh();
@@ -517,7 +527,21 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           </FormSection>
         )}
 
-        {/* ── H. Images ── */}
+        {/* ── H. Contextual Relevance (tags + time windows for NOW / Concierge) ── */}
+        {isEditing && place && (
+          <FormSection
+            title="Contextual relevance"
+            description="Define the moments and contexts in which this place is most relevant. This helps improve recommendation quality across NOW and Concierge."
+          >
+            <PlaceNowVisibility
+              placeId={place.id}
+              value={nowForm}
+              onChange={(next) => { setNowForm(next); setIsDirty(true); }}
+            />
+          </FormSection>
+        )}
+
+        {/* ── I. Images ── */}
         {isEditing && place && (
           <FormSection
             title={pf.images}

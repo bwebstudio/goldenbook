@@ -126,6 +126,11 @@
     display: none;
   }
 
+  /* Editorial image tone — consistent premium warmth across all photos */
+  .editorial-image {
+    filter: contrast(1.05) brightness(0.95) saturate(1.05);
+  }
+
   /* Subtle grain overlay */
   .grain {
     position: relative;

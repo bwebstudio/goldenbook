@@ -18,12 +18,22 @@
 import { useSettingsStore } from '@/store/settingsStore';
 import { en } from './locales/en';
 import { pt } from './locales/pt';
+import { es } from './locales/es';
 import type { Translations } from './locales/en';
 
 const locales: Record<string, Translations> = {
   en,
-  'pt-PT': pt,
+  pt,
+  es,
 };
+
+function resolveLocale(locale: string): keyof typeof locales {
+  const normalized = locale.trim().toLowerCase().replace('_', '-');
+  const family = normalized.split('-')[0];
+  if (family === 'pt') return 'pt';
+  if (family === 'es') return 'es';
+  return 'en';
+}
 
 /**
  * Returns the full typed translation object for the current locale.
@@ -31,5 +41,5 @@ const locales: Record<string, Translations> = {
  */
 export function useTranslation(): Translations {
   const locale = useSettingsStore((s) => s.locale);
-  return locales[locale] ?? locales.en;
+  return locales[resolveLocale(locale)] ?? locales.en;
 }

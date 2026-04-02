@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useDiscover } from '@/features/discover/hooks/useDiscover';
 import {
   DiscoverHeader,
   DiscoverSearchBar,
-  EditorialHeroCard,
   NowRecommendationSection,
   SectionHeader,
   PlaceCard,
   CategoryPills,
   RouteCard,
+  HiddenGemsGate,
 } from '@/features/discover/components';
 import { LocalitySwitcher } from '@/components/locality/LocalitySwitcher';
 import { GoldenMenu } from '@/components/GoldenMenu';
@@ -19,7 +19,7 @@ import { useTranslation } from '@/i18n';
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { data, isLoading, isError } = useDiscover();
+  const { data, isLoading, isError, refetch } = useDiscover();
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslation();
@@ -35,9 +35,18 @@ export default function DiscoverScreen() {
   if (isError || !data) {
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm">
+        <Text className="text-navy/40 text-center text-sm mb-5">
           {t.discover.couldNotLoad}
         </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          activeOpacity={0.85}
+          className="bg-primary rounded-lg px-6 py-3"
+        >
+          <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+            {t.common.retry}
+          </Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -64,16 +73,13 @@ export default function DiscoverScreen() {
             {/* 2. Search */}
             <DiscoverSearchBar placeholder={data.search.placeholder} />
 
-            {/* 3. What Should I Experience Now — contextual, time-aware concierge card */}
-            {data.nowRecommendation && (
-              <View>
-                <SectionHeader title={t.discover.whatShouldIExperience} />
-                <NowRecommendationSection
-                  now={data.nowRecommendation}
-                  cityName={data.cityHeader.name}
-                />
-              </View>
-            )}
+            {/* 3. What Should I Experience Now — contextual, powered by /concierge/now */}
+            <View>
+              <SectionHeader title={t.discover.whatShouldIExperience} />
+              <NowRecommendationSection
+                cityName={data.cityHeader.name}
+              />
+            </View>
 
             {/* 4. Golden Picks — horizontal portrait cards */}
             {data.editorsPicks.length > 0 && (
@@ -92,17 +98,17 @@ export default function DiscoverScreen() {
               </View>
             )}
 
-            {/* 5. Hidden Spots Near You — 3 visible in home, See All for full list */}
-            {data.hiddenSpotsNearYou.length > 0 && (
-              <View>
-                <SectionHeader title={t.discover.hiddenSpotsNearYou} onSeeAll={() => router.push('/hidden-spots')} />
+            {/* 5. Hidden Spots Near You — location-gated with Apple-safe UX */}
+            <View>
+              <SectionHeader title={t.discover.hiddenSpotsNearYou} />
+              <HiddenGemsGate nearbyCount={data.hiddenSpotsNearYou.length}>
                 <View className="px-6 gap-5">
                   {data.hiddenSpotsNearYou.slice(0, 3).map((place) => (
                     <PlaceCard key={place.id} place={place} variant="horizontal" />
                   ))}
                 </View>
-              </View>
-            )}
+              </HiddenGemsGate>
+            </View>
 
             {/* 6. Explore by Category */}
             {data.categories.length > 0 && (

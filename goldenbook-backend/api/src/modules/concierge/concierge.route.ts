@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { getIntentById, getIntentLabels } from './concierge.intents'
+import { getIntentById, getIntentLabels, type ConciergeIntent } from './concierge.intents'
 import {
   toIntentDTO,
   toRecommendationDTO,
@@ -11,11 +11,14 @@ import {
   getConciergeCity,
   getConciergeRecommendations,
   getDefaultConciergeCity,
+  getFallbackPlaces,
+  getViableIntents,
 } from './concierge.query'
 import {
   buildGreeting,
   buildResponseText,
   getFallbackIntents,
+  getDynamicFallbackIntents,
   getBootstrapIntents,
   getDefaultIntent,
   getTimeOfDay,
@@ -27,6 +30,20 @@ import {
   parseInterests,
 } from '../../shared/onboarding/onboarding.scoring'
 import { getActiveVisibilityPlaceIds } from '../visibility/visibility.query'
+import type { ScoredPlace } from './concierge.service'
+import { normalizeLocale } from '../../shared/i18n/locale'
+
+// ─── Session history for anti-repetition ──────────────────────────────────────
+const sessionHistory = new Map<string, { placeIds: Set<string>; intentIds: Set<string> }>()
+
+// Cleanup stale sessions every 10 minutes
+setInterval(() => {
+  // Keep max 500 sessions — evict oldest
+  if (sessionHistory.size > 500) {
+    const keys = [...sessionHistory.keys()]
+    for (let i = 0; i < keys.length - 500; i++) sessionHistory.delete(keys[i])
+  }
+}, 600_000)
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -47,7 +64,155 @@ const recommendBodySchema = z.object({
   // Onboarding personalization — optional
   interests: z.array(z.string()).optional(),
   style:     z.string().optional(),
+  // NOW → Concierge handoff context (optional)
+  now_context: z.object({
+    time_of_day: z.string().optional(),
+    weather:     z.string().optional(),
+    inferred_moment: z.string().optional(),
+    adjustment:  z.enum(['relax', 'energy', 'treat']).optional(),
+  }).optional(),
 })
+
+type AdjustmentEmotion = 'relax' | 'energy' | 'treat'
+
+const EMOTION_INTENT_GROUPS: Record<AdjustmentEmotion, string[]> = {
+  relax: ['quiet_wine_bar', 'gallery_afternoon', 'coffee_and_work', 'hidden_gems'],
+  energy: ['cocktail_bars', 'sunset_drinks', 'late_night_jazz', 'after_dinner_drinks', 'hidden_gems'],
+  treat: ['romantic_dinner', 'design_shopping', 'sunset_drinks', 'long_lunch', 'late_night_jazz'],
+}
+
+const ADJUSTMENT_SIGNAL_TAGS: Record<AdjustmentEmotion, string[]> = {
+  relax: [
+    'quiet',
+    'calm',
+    'slow',
+    'slower',
+    'tranquil',
+    'intimate',
+    'wine',
+    'gallery',
+    'art',
+    'culture',
+    'spa',
+    'relax',
+  ],
+  energy: [
+    'cocktail',
+    'cocktails',
+    'rooftop',
+    'terrace',
+    'view',
+    'sunset',
+    'nightlife',
+    'music',
+    'jazz',
+    'live-music',
+    'discover',
+    'hidden',
+  ],
+  treat: [
+    'romantic',
+    'fine-dining',
+    'luxury',
+    'design',
+    'boutique',
+    'special',
+    'elegant',
+    'atmospheric',
+    'refined',
+    'golden-hour',
+  ],
+}
+
+function getEmotionScoreForPlace(
+  place: ScoredPlace,
+  intent: ConciergeIntent,
+  emotion: AdjustmentEmotion,
+): number {
+  const text = [place.short_description, place.editorial_summary]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  const signalTags = ADJUSTMENT_SIGNAL_TAGS[emotion]
+  let score = 0
+
+  for (const tag of signalTags) {
+    if (text.includes(tag)) score += 3
+  }
+
+  for (const tag of intent.tags) {
+    if (signalTags.includes(tag)) score += 2
+  }
+
+  if (emotion === 'relax' && ['cafe', 'museum'].includes(place.place_type)) score += 2
+  if (emotion === 'energy' && ['bar', 'venue'].includes(place.place_type)) score += 2
+  if (emotion === 'treat' && ['restaurant', 'shop'].includes(place.place_type)) score += 2
+
+  return score
+}
+
+function dedupePlaces(places: ScoredPlace[]): ScoredPlace[] {
+  const seen = new Set<string>()
+  const deduped: ScoredPlace[] = []
+
+  for (const place of places) {
+    if (seen.has(place.id)) continue
+    seen.add(place.id)
+    deduped.push(place)
+  }
+
+  return deduped
+}
+
+function mergeUniquePlaces(base: ScoredPlace[], extra: ScoredPlace[], limit: number): ScoredPlace[] {
+  return dedupePlaces([...base, ...extra]).slice(0, limit)
+}
+
+function getEmotionIntentGroup(adjustment: AdjustmentEmotion, resolvedIntent: ConciergeIntent): ConciergeIntent[] {
+  const ids = [resolvedIntent.id, ...EMOTION_INTENT_GROUPS[adjustment]]
+  const seen = new Set<string>()
+  const intents: ConciergeIntent[] = []
+
+  for (const id of ids) {
+    const intent = getIntentById(id)
+    if (!intent || seen.has(intent.id)) continue
+    seen.add(intent.id)
+    intents.push(intent)
+  }
+
+  return intents
+}
+
+function sortPlacesByEmotionPriority(places: ScoredPlace[], emotion: AdjustmentEmotion): ScoredPlace[] {
+  const signalTags = ADJUSTMENT_SIGNAL_TAGS[emotion]
+
+  return [...places].sort((a, b) => {
+    const scoreText = (place: ScoredPlace) =>
+      [place.short_description, place.editorial_summary]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+    const scoreFor = (place: ScoredPlace) => {
+      const text = scoreText(place)
+      let score = 0
+      for (const tag of signalTags) {
+        if (text.includes(tag)) score += 3
+      }
+      if (emotion === 'relax' && ['cafe', 'museum'].includes(place.place_type)) score += 2
+      if (emotion === 'energy' && ['bar', 'venue'].includes(place.place_type)) score += 2
+      if (emotion === 'treat' && ['restaurant', 'shop'].includes(place.place_type)) score += 2
+      return score
+    }
+
+    const delta = scoreFor(b) - scoreFor(a)
+
+    if (delta !== 0) return delta
+    if ((b.featured ? 1 : 0) !== (a.featured ? 1 : 0)) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
+    return (b.popularity_score ?? 0) - (a.popularity_score ?? 0)
+  })
+}
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -61,8 +226,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
   //   - 3 curated intent cards for this city + time of day
 
   app.get('/concierge/bootstrap', async (request, reply) => {
-    const { city: cityParam, locale, interests: rawInterests, style } =
+    const { city: cityParam, locale: rawLocale, interests: rawInterests, style } =
       bootstrapQuerySchema.parse(request.query)
+    const locale = normalizeLocale(rawLocale)
 
     const timeOfDay = getTimeOfDay()
 
@@ -80,7 +246,39 @@ export async function conciergeRoutes(app: FastifyInstance) {
     }
 
     const greeting = buildGreeting(timeOfDay, city.name, locale)
-    const intents  = getBootstrapIntents(timeOfDay, profile)
+    const allIntents = getBootstrapIntents(timeOfDay, profile)
+
+    // Filter bootstrap intents to only those with viable places in this city
+    const viable = await getViableIntents(city.slug, 2)
+    const isViable = (i: typeof allIntents[0]) =>
+      (i.editorialIntents ?? []).some((ei) => viable.has(ei))
+      || (i.fallbackIntents ?? []).some((fi) => viable.has(fi))
+
+    let intents = allIntents.filter(isViable).slice(0, 3)
+
+    // If not enough, fill from ALL registry intents that are viable AND time-appropriate
+    if (intents.length < 3) {
+      const { INTENT_REGISTRY } = await import('./concierge.intents')
+      // First pass: only intents that match the current time of day
+      const timeFiltered = INTENT_REGISTRY
+        .filter((i) =>
+          !intents.find((x) => x.id === i.id)
+          && isViable(i)
+          && i.preferredTimeOfDay.includes(timeOfDay),
+        )
+        .sort((a, b) => b.priority - a.priority)
+        .slice(0, 3 - intents.length)
+      intents = [...intents, ...timeFiltered]
+
+      // Second pass: if STILL not enough, allow any viable intent (last resort)
+      if (intents.length < 3) {
+        const remaining = INTENT_REGISTRY
+          .filter((i) => !intents.find((x) => x.id === i.id) && isViable(i))
+          .sort((a, b) => b.priority - a.priority)
+          .slice(0, 3 - intents.length)
+        intents = [...intents, ...remaining]
+      }
+    }
 
     const response: ConciergeBootstrapDTO = {
       city,
@@ -92,7 +290,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
     return reply.send(response)
   })
 
-  // ── POST /concierge/recommend ────────────────────────────────────────────────
+  // ── POST /concierge/recommend ────────────────────────────────────────��───────
   //
   // Resolves a recommendation request from either:
   //   - explicit intent id (from intent card tap)
@@ -101,13 +299,14 @@ export async function conciergeRoutes(app: FastifyInstance) {
   // Backend owns all recommendation logic. Frontend receives ready-to-render data.
 
   app.post('/concierge/recommend', async (request, reply) => {
-    const { city: cityParam, intent: intentParam, query, limit, locale, interests, style } =
+    const { city: cityParam, intent: intentParam, query, limit, locale: rawLocale, interests, style, now_context } =
       recommendBodySchema.parse(request.body)
+    const locale = normalizeLocale(rawLocale)
 
-    if (!intentParam && !query) {
+    if (!intentParam && !query && !now_context) {
       return reply.status(400).send({
         error: 'VALIDATION_ERROR',
-        message: 'At least one of "intent" or "query" must be provided.',
+        message: 'At least one of "intent", "query", or "now_context" must be provided.',
       })
     }
 
@@ -121,10 +320,74 @@ export async function conciergeRoutes(app: FastifyInstance) {
       city = await getDefaultConciergeCity(locale)
     }
 
-    // Resolve intent: explicit id → keyword resolution → time-based default
-    let resolvedIntent = intentParam
-      ? getIntentById(intentParam) ?? resolveIntentFromQuery(query ?? '', timeOfDay)
-      : resolveIntentFromQuery(query!, timeOfDay)
+    // Resolve intent: explicit id → keyword resolution → NOW moment hint → time-based default
+    let resolvedIntent: ReturnType<typeof getIntentById> | undefined
+    if (intentParam) {
+      resolvedIntent = getIntentById(intentParam) ?? resolveIntentFromQuery(query ?? '', timeOfDay)
+    } else if (query) {
+      resolvedIntent = resolveIntentFromQuery(query, timeOfDay)
+    } else if (now_context?.inferred_moment) {
+      // NOW → Concierge handoff: map moment to best-matching intent directly.
+      // If an adjustment is provided, bias the intent toward that emotion.
+      const momentToIntent: Record<string, string> = {
+        coffee_break: 'coffee_and_work',
+        quick_lunch: 'long_lunch',
+        long_lunch: 'long_lunch',
+        sunset_drink: 'sunset_drinks',
+        dinner: 'romantic_dinner',
+        late_drinks: 'after_dinner_drinks',
+        evening_walk: 'hidden_gems',
+        shopping_stroll: 'design_shopping',
+        indoor_culture: 'gallery_afternoon',
+        treat_yourself: 'design_shopping',
+        rain_plan: 'gallery_afternoon',
+        relax_spa: 'hidden_gems',
+      }
+
+      // Adjustment overrides: shift the intent based on emotion preference
+      const adjustmentOverrides: Record<string, Record<string, string>> = {
+        relax: {
+          coffee_break: 'quiet_wine_bar',
+          quick_lunch: 'coffee_and_work',
+          long_lunch: 'quiet_wine_bar',
+          dinner: 'quiet_wine_bar',
+          late_drinks: 'quiet_wine_bar',
+          shopping_stroll: 'gallery_afternoon',
+          indoor_culture: 'gallery_afternoon',
+        },
+        energy: {
+          coffee_break: 'hidden_gems',
+          long_lunch: 'hidden_gems',
+          dinner: 'cocktail_bars',
+          late_drinks: 'cocktail_bars',
+          sunset_drink: 'cocktail_bars',
+          indoor_culture: 'hidden_gems',
+          shopping_stroll: 'hidden_gems',
+        },
+        treat: {
+          coffee_break: 'design_shopping',
+          long_lunch: 'romantic_dinner',
+          dinner: 'romantic_dinner',
+          quick_lunch: 'long_lunch',
+          shopping_stroll: 'design_shopping',
+          sunset_drink: 'sunset_drinks',
+          indoor_culture: 'gallery_afternoon',
+          late_drinks: 'late_night_jazz',
+        },
+      }
+
+      const adj = now_context.adjustment
+      const overrideMap = adj ? adjustmentOverrides[adj] : null
+      const overrideId = overrideMap?.[now_context.inferred_moment]
+      const baseId = momentToIntent[now_context.inferred_moment]
+      const mappedIntentId = overrideId ?? baseId
+
+      resolvedIntent = mappedIntentId
+        ? getIntentById(mappedIntentId) ?? getDefaultIntent(timeOfDay)
+        : getDefaultIntent(timeOfDay)
+    } else {
+      resolvedIntent = getDefaultIntent(timeOfDay)
+    }
 
     // Safety: always have a valid intent
     if (!resolvedIntent) {
@@ -136,8 +399,13 @@ export async function conciergeRoutes(app: FastifyInstance) {
       style:     style ?? undefined,
     }
 
+    // ── Anti-repetition: track shown places per session ──────────────────
+    const sessionId = (request.headers['x-session-id'] as string) ?? ''
+    const sessionKey = `concierge:${sessionId}`
+    const previouslyShown = sessionHistory.get(sessionKey) ?? { placeIds: new Set<string>(), intentIds: new Set<string>() }
+
     // Fetch candidate places from DB — fetch more than needed for scoring
-    const fetchLimit = Math.max(limit * 3, 9)
+    const fetchLimit = Math.max(limit * 3, 12)
     const candidates = await getConciergeRecommendations(
       city.slug,
       resolvedIntent,
@@ -152,36 +420,153 @@ export async function conciergeRoutes(app: FastifyInstance) {
       boostIds = new Set(ids)
     } catch {}
 
-    // Score candidates — boosted places get +25 priority bonus
-    const scored = candidates
+    // Score candidates — boosted places get +25, previously shown get -15
+    const rankedCandidates = candidates
       .map((place) => ({
         place,
-        score: scoreConciergePlace(place, resolvedIntent, profile) + (boostIds.has(place.id) ? 25 : 0),
+        score: scoreConciergePlace(place, resolvedIntent, profile, timeOfDay)
+          + (boostIds.has(place.id) ? 25 : 0)
+          - (previouslyShown.placeIds.has(place.id) ? 15 : 0),
       }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
+
+    const adjustmentEmotion = now_context?.adjustment
+    let scored = rankedCandidates
       .slice(0, limit)
       .map(({ place }) => place)
+    let levelUsed = adjustmentEmotion ? 1 : 0
 
-    const responseText    = buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
-    const recommendations = scored.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
-    const fallbackIntents = getFallbackIntents(resolvedIntent.id, timeOfDay, locale)
+    if (adjustmentEmotion) {
+      const strictMatches = rankedCandidates
+        .slice(0, fetchLimit)
+        .map(({ place }) => place)
 
-    // Localized empty-results fallback
+      let combinedResults = strictMatches.slice(0, limit)
+
+      if (combinedResults.length < limit) {
+        const emotionIntents = getEmotionIntentGroup(adjustmentEmotion, resolvedIntent)
+        const level2Buckets = await Promise.all(
+          emotionIntents
+            .filter((intent) => intent.id !== resolvedIntent.id)
+            .map(async (intent) => {
+              const candidatesForIntent = await getConciergeRecommendations(
+                city.slug,
+                intent,
+                locale,
+                fetchLimit,
+              )
+
+              return candidatesForIntent
+                .map((place) => ({
+                  place,
+                  score: scoreConciergePlace(place, intent, profile, timeOfDay)
+                    + (boostIds.has(place.id) ? 25 : 0)
+                    - (previouslyShown.placeIds.has(place.id) ? 15 : 0),
+                }))
+                .filter(({ score }) => score > 0)
+                .sort((a, b) => b.score - a.score)
+                .map(({ place }) => place)
+            }),
+        )
+
+        const level2Matches = dedupePlaces(level2Buckets.flat())
+        combinedResults = mergeUniquePlaces(combinedResults, level2Matches, limit)
+
+        if (combinedResults.length >= limit) {
+          levelUsed = 2
+        } else {
+          const fallbackPlaceTypes = [...new Set(emotionIntents.flatMap((intent) => intent.placeTypes))]
+          const level3Matches = sortPlacesByEmotionPriority(
+            await getFallbackPlaces(
+              city.slug,
+              locale,
+              [...previouslyShown.placeIds, ...combinedResults.map((place) => place.id)],
+              Math.max(limit * 2, 6),
+              fallbackPlaceTypes,
+            ),
+            adjustmentEmotion,
+          )
+
+          combinedResults = mergeUniquePlaces(combinedResults, level3Matches, limit)
+          levelUsed = 3
+        }
+      }
+
+      scored = combinedResults
+    }
+
+    // ── Smart fallback: if no results, search related categories ─────
+    if (scored.length === 0) {
+      const fallbackPlaces = await getFallbackPlaces(
+        city.slug,
+        locale,
+        [...previouslyShown.placeIds],
+        limit,
+        adjustmentEmotion
+          ? [...new Set(getEmotionIntentGroup(adjustmentEmotion, resolvedIntent).flatMap((intent) => intent.placeTypes))]
+          : resolvedIntent.placeTypes,
+      )
+      scored = adjustmentEmotion ? sortPlacesByEmotionPriority(fallbackPlaces, adjustmentEmotion).slice(0, limit) : fallbackPlaces
+    }
+
+    request.log.info({
+      level_used: levelUsed,
+      results_count: scored.length,
+      emotion_applied: adjustmentEmotion ?? null,
+      resolved_intent: resolvedIntent.id,
+    }, '[Concierge] adjustment fallback ladder')
+
+    // Update session history
+    for (const p of scored) previouslyShown.placeIds.add(p.id)
+    previouslyShown.intentIds.add(resolvedIntent.id)
+    sessionHistory.set(sessionKey, previouslyShown)
+
     const localeFamily = locale.split('-')[0]
-    const emptyText = localeFamily === 'pt'
-      ? `Não encontrei uma correspondência exacta, mas tenho algumas alternativas refinadas para a sua ${timeOfDay === 'morning' ? 'manhã' : timeOfDay === 'afternoon' ? 'tarde' : 'noite'} em ${city.name}.`
-      : `I couldn't find an exact match just now, but I have a few refined alternatives for your ${timeOfDay} in ${city.name}.`
+    const recommendations = scored.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
 
-    // Localize resolved intent title for the response field
+    // ── Response text: always contextual, never generic ────────────────
+    let responseText: string
+    if (recommendations.length > 0) {
+      responseText = buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
+    } else {
+      // Even with fallback empty — give time-based suggestion
+      const todLabel = localeFamily === 'pt'
+        ? (timeOfDay === 'morning' ? 'manhã' : timeOfDay === 'afternoon' ? 'tarde' : 'noite')
+        : localeFamily === 'es'
+          ? (timeOfDay === 'morning' ? 'mañana' : timeOfDay === 'afternoon' ? 'tarde' : 'noche')
+          : timeOfDay
+      responseText = localeFamily === 'pt'
+        ? `Para esta ${todLabel} em ${city.name}, experimente explorar outras categorias.`
+        : localeFamily === 'es'
+          ? `Para esta ${todLabel} en ${city.name}, prueba explorar otras categorías.`
+          : `For this ${todLabel} in ${city.name}, try exploring other categories.`
+    }
+
+    // ── Dynamic fallback intents: only suggest if viable in this city ──
+    const viableIntents = await getViableIntents(city.slug, 2)
+    const allFallbackIntents = getDynamicFallbackIntents(
+      resolvedIntent.id,
+      previouslyShown.intentIds,
+      timeOfDay,
+      locale,
+    )
+    // Filter: only suggest intents that have places with matching editorial intents in this city
+    const fallbackIntents = allFallbackIntents.filter((fi) => {
+      const intent = getIntentById(fi.id)
+      if (!intent) return false
+      // Check if any of the intent's editorial tags exist as viable in this city
+      return (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
+        || (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
+    }).slice(0, 2)
+
     const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
 
-    // If empty, still return a graceful response with fallback intents
     const response: ConciergeRecommendResponseDTO = {
       city,
       timeOfDay,
       resolvedIntent: { id: resolvedIntent.id, title: resolvedIntentTitle },
-      responseText: recommendations.length === 0 ? emptyText : responseText,
+      responseText,
       recommendations,
       fallbackIntents,
     }

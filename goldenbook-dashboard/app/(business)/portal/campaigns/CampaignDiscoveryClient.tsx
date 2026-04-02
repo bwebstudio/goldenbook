@@ -5,7 +5,7 @@ import type { CampaignDTO } from "@/types/api/campaign";
 
 const SECTION_LABELS: Record<string, string> = {
   golden_picks: "Golden Picks",
-  now: "Now",
+  now: "Recommended at the right moment",
   hidden_gems: "Hidden Gems",
   new_on_goldenbook: "New on Goldenbook",
   search_priority: "Search Priority",
@@ -61,7 +61,7 @@ export default function CampaignDiscoveryClient({ campaigns }: { campaigns: Camp
 
             <div className="mt-4 flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#6B6B7B]">Available slots</p>
+                <p className="text-xs text-[#6B6B7B]">{c.section === "now" ? "Availability now" : "Available slots"}</p>
                 <p className="text-lg font-bold text-[#222D52]">{c.available_inventory}</p>
               </div>
               <div className="text-right">

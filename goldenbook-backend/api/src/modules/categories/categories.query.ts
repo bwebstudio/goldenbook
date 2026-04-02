@@ -19,8 +19,8 @@ export async function getCategoryBySlug(
     SELECT
       c.id,
       c.slug,
-      COALESCE(ct.name,        ct_lang.name,        ct_fb.name,        c.slug) AS name,
-      COALESCE(ct.description, ct_lang.description, ct_fb.description)         AS description,
+      COALESCE(NULLIF(ct.name,''),        NULLIF(ct_lang.name,''),        NULLIF(ct_fb.name,''),        c.slug) AS name,
+      COALESCE(NULLIF(ct.description,''), NULLIF(ct_lang.description,''), NULLIF(ct_fb.description,'')) AS description,
       c.icon_name
     FROM categories c
     LEFT JOIN category_translations ct
@@ -49,7 +49,7 @@ export async function getSubcategoryBySlug(
     SELECT
       s.id,
       s.slug,
-      COALESCE(st.name, st_lang.name, st_fb.name, s.slug) AS name,
+      COALESCE(NULLIF(st.name,''), NULLIF(st_lang.name,''), NULLIF(st_fb.name,''), s.slug) AS name,
       NULL::text                                            AS description,
       NULL::text                                            AS icon_name
     FROM subcategories s
@@ -81,11 +81,11 @@ export async function getSubcategoryPlaces(
       SELECT DISTINCT ON (p.id)
         p.id,
         p.slug,
-        COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                        AS name,
-        COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS summary,
+        COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
+        COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS summary,
         hero_img.bucket                                                                              AS hero_bucket,
         hero_img.path                                                                                AS hero_path,
-        COALESCE(dt.name, dt_lang.name, dt_fb.name, d.name)                                        AS city_name,
+        COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)                                        AS city_name,
         pc.is_primary,
         pc.sort_order,
         p.featured
@@ -128,7 +128,7 @@ export async function getSubcategoryPlaces(
   return rows
 }
 
-// ─── Subcategories ────────────────────────────────────────────────────────────
+// ─── Subcategories ────────────────────────────────────────────────────��───────
 
 export interface SubcategoryRow {
   id: string
@@ -145,7 +145,7 @@ export async function getCategorySubcategories(
     SELECT
       s.id,
       s.slug,
-      COALESCE(st.name, st_lang.name, st_fb.name, s.slug) AS name
+      COALESCE(NULLIF(st.name,''), NULLIF(st_lang.name,''), NULLIF(st_fb.name,''), s.slug) AS name
     FROM subcategories s
     LEFT JOIN subcategory_translations st
            ON st.subcategory_id = s.id AND st.locale = $2
@@ -179,6 +179,7 @@ export async function getCategoryPlaces(
   citySlug: string,
   locale: string,
   limit = 50,
+  categorySlug?: string,
 ): Promise<CategoryPlaceRow[]> {
   // Get manually pinned category_feature places first
   let pinnedIds: string[] = []
@@ -203,11 +204,11 @@ export async function getCategoryPlaces(
       SELECT DISTINCT ON (p.id)
         p.id,
         p.slug,
-        COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                        AS name,
-        COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS summary,
+        COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
+        COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS summary,
         hero_img.bucket                                                                              AS hero_bucket,
         hero_img.path                                                                                AS hero_path,
-        COALESCE(dt.name, dt_lang.name, dt_fb.name, d.name)                                        AS city_name,
+        COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)                                        AS city_name,
         pc.is_primary,
         pc.sort_order,
         p.featured,
@@ -219,6 +220,7 @@ export async function getCategoryPlaces(
         ORDER BY pc2.place_id, pc2.is_primary DESC, pc2.sort_order ASC
       ) pc
       JOIN places p       ON p.id = pc.place_id AND p.status = 'published'
+                          AND ($6::text IS NULL OR $6 != 'hotels' OR p.place_type = 'hotel')
       JOIN destinations d ON d.id = p.destination_id AND d.slug = $2
       LEFT JOIN destination_translations dt
              ON dt.destination_id = d.id AND dt.locale = $3
@@ -246,7 +248,7 @@ export async function getCategoryPlaces(
     ORDER BY is_pinned DESC, is_primary DESC, sort_order ASC, featured DESC
     LIMIT $4
     `,
-    [categoryId, citySlug, locale, limit, pinnedIds],
+    [categoryId, citySlug, locale, limit, pinnedIds, categorySlug ?? null],
   )
   return rows
 }

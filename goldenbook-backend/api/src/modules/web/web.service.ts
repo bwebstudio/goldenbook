@@ -68,7 +68,6 @@ async function getWebGoldenPicks(
       JOIN   media_assets ma ON ma.id = pi.asset_id
       WHERE  pi.place_id = p.id
         AND  pi.image_role IN ('editorial', 'hero', 'cover')
-        AND  (ma.width IS NULL OR ma.width >= 400)
       ORDER  BY
         CASE pi.image_role WHEN 'editorial' THEN 0 WHEN 'hero' THEN 1 ELSE 2 END ASC,
         CASE WHEN ma.width IS NOT NULL AND ma.height IS NOT NULL
@@ -127,7 +126,6 @@ async function getWebGoldenPicks(
       JOIN   media_assets ma ON ma.id = pi.asset_id
       WHERE  pi.place_id = p.id
         AND  pi.image_role IN ('editorial', 'hero', 'cover')
-        AND  (ma.width IS NULL OR ma.width >= 400)
       ORDER  BY
         CASE pi.image_role WHEN 'editorial' THEN 0 WHEN 'hero' THEN 1 ELSE 2 END ASC,
         CASE WHEN ma.width IS NOT NULL AND ma.height IS NOT NULL
@@ -212,9 +210,9 @@ async function getWebNowCandidates(
       JOIN   media_assets ma ON ma.id = pi.asset_id
       WHERE  pi.place_id = p.id
         AND  pi.image_role IN ('editorial', 'hero', 'cover')
-        AND  (ma.width IS NULL OR ma.width >= 400)
       ORDER  BY
         CASE pi.image_role WHEN 'editorial' THEN 0 WHEN 'hero' THEN 1 ELSE 2 END ASC,
+        -- Landscape first
         CASE WHEN ma.width IS NOT NULL AND ma.height IS NOT NULL
                   AND ma.width >= ma.height THEN 0 ELSE 1 END ASC,
         COALESCE(ma.width, 0) DESC,
@@ -238,12 +236,6 @@ async function getWebNowCandidates(
     LEFT JOIN categories c        ON c.id = pc.category_id AND c.is_active = true
     WHERE p.status = 'published'
       AND hero_img.bucket IS NOT NULL
-      -- Exclude places whose best image is too small or portrait (width < height)
-      -- Places with NULL width are kept but scored lower in application code
-      AND NOT (hero_img.img_width IS NOT NULL
-               AND hero_img.img_height IS NOT NULL
-               AND hero_img.img_width < hero_img.img_height
-               AND hero_img.img_width < 800)
       -- Exclude specific places with imagery not suitable for the homepage
       AND LOWER(COALESCE(pt.name, pt_fb.name, p.name)) NOT IN (
         'porto santa maria',
@@ -368,6 +360,7 @@ async function getWebNowCuratedSlots(
         AND  pi.image_role IN ('editorial', 'hero', 'cover')
       ORDER  BY
         CASE pi.image_role WHEN 'editorial' THEN 0 WHEN 'hero' THEN 1 ELSE 2 END ASC,
+        -- Landscape first
         CASE WHEN ma.width IS NOT NULL AND ma.height IS NOT NULL
                   AND ma.width >= ma.height THEN 0 ELSE 1 END ASC,
         COALESCE(ma.width, 0) DESC,
@@ -439,11 +432,14 @@ function scoreWebNowCandidate(row: WebNowCandidateRow, segment: string): number 
   if (row.featured) score += 15
   if (row.image_bucket) score += 10
 
-  if (row.img_width != null) {
-    if (row.img_width >= 1920)      score += 25
-    else if (row.img_width >= 1200) score += 15
-    else if (row.img_width >= 800)  score += 8
-    if (row.img_height != null && row.img_width >= row.img_height) score += 10
+  // Prefer high-res images; landscape gets a bonus
+  if (row.img_width != null && row.img_height != null) {
+    const maxDim = Math.max(row.img_width, row.img_height)
+    if (maxDim >= 1920)      score += 25
+    else if (maxDim >= 1200) score += 15
+    else if (maxDim >= 800)  score += 8
+    // Landscape bonus
+    if (row.img_width >= row.img_height) score += 10
   } else {
     score -= 15
   }

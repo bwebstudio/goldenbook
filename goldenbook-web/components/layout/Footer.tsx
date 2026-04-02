@@ -20,7 +20,7 @@ export function Footer() {
                 className="font-sans text-[18px] font-bold uppercase text-ivory"
                 style={{ letterSpacing: '0.18em' }}
               >
-                Goldenbook
+                Goldenbook Go
               </span>
             </div>
             <p className="font-sans text-ivory/40 text-small">{t('tagline')}</p>

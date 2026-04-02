@@ -21,12 +21,15 @@ export function InfoSection({ shortDescription, fullDescription, contact, locati
 
   const [expanded, setExpanded] = useState(false);
   const [needsTruncation, setNeedsTruncation] = useState(false);
+  const [measured, setMeasured] = useState(false);
 
+  // Measure full text height on first render (before truncation)
   const onTextLayout = useCallback((e: NativeSyntheticEvent<TextLayoutEventData>) => {
-    if (e.nativeEvent.lines.length > MAX_LINES) {
-      setNeedsTruncation(true);
+    if (!measured) {
+      setNeedsTruncation(e.nativeEvent.lines.length > MAX_LINES);
+      setMeasured(true);
     }
-  }, []);
+  }, [measured]);
 
   if (!hasDescription && !hasContact && !hasAddress) return null;
 
@@ -45,14 +48,26 @@ export function InfoSection({ shortDescription, fullDescription, contact, locati
           )}
           {fullDescription && fullDescription !== shortDescription && (
             <View>
+              {/* Hidden full text for measurement (only before first measure) */}
+              {!measured && (
+                <Text
+                  className="text-sm text-navy/70 leading-relaxed"
+                  style={{ fontFamily: 'Inter_300Light', position: 'absolute', opacity: 0 }}
+                  onTextLayout={onTextLayout}
+                >
+                  {fullDescription}
+                </Text>
+              )}
+
+              {/* Visible text (truncated or full) */}
               <Text
                 className="text-sm text-navy/70 leading-relaxed"
                 style={{ fontFamily: 'Inter_300Light' }}
                 numberOfLines={expanded ? undefined : MAX_LINES}
-                onTextLayout={onTextLayout}
               >
                 {fullDescription}
               </Text>
+
               {needsTruncation && (
                 <TouchableOpacity onPress={() => setExpanded(!expanded)} activeOpacity={0.7} className="mt-2">
                   <Text className="text-xs font-semibold text-primary">

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import type { WebRouteDTO } from '@/lib/types'
+import { getBestImage } from '@/lib/images'
 
 interface RouteCardProps {
   route: WebRouteDTO
@@ -12,6 +13,7 @@ interface RouteCardProps {
 
 export function RouteCard({ route, index }: RouteCardProps) {
   const t = useTranslations('goldenRoutes')
+  const src = getBestImage({ section: 'routes', index, dbImageUrl: route.imageUrl })
 
   return (
     <motion.a
@@ -23,35 +25,29 @@ export function RouteCard({ route, index }: RouteCardProps) {
       className="relative flex-shrink-0 overflow-hidden group cursor-pointer no-underline"
       style={{ width: 'clamp(300px, 38vw, 480px)', aspectRatio: '3/4' }}
     >
-      {/* Background image */}
-      {route.imageUrl ? (
-        <Image
-          src={route.imageUrl}
-          alt={route.name}
-          fill
-          sizes="(max-width: 768px) 80vw, 38vw"
-          className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-        />
-      ) : (
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(135deg, #222D52 0%, #161E38 100%)' }}
-        />
-      )}
+      <Image
+        src={src}
+        alt={route.name}
+        fill
+        sizes="(max-width: 768px) 80vw, 38vw"
+        className="object-cover editorial-image transition-transform duration-700 group-hover:scale-[1.04]"
+        quality={90}
+      />
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-navy-dark via-navy-dark/40 to-transparent" />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to top, rgba(10,10,10,0.55), rgba(10,10,10,0.15))',
+        }}
+      />
 
-      {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-between p-8">
-        {/* Top */}
         <div className="flex items-start justify-between">
           <span className="font-sans text-ivory/50 text-caption tracking-widest">
             {String(index + 1).padStart(2, '0')}
           </span>
         </div>
 
-        {/* Bottom */}
         <div>
           <p className="eyebrow mb-3">{route.city}</p>
           <h3 className="headline-small text-ivory mb-3">{route.name}</h3>
@@ -61,7 +57,6 @@ export function RouteCard({ route, index }: RouteCardProps) {
             </p>
           )}
 
-          {/* Meta */}
           <div className="flex items-center gap-4">
             {route.stops > 0 && (
               <div className="flex items-center gap-1.5">

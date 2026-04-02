@@ -2,7 +2,7 @@
  * GoldenAtlasSplash
  *
  * Premium animated splash screen telling a discovery story:
- *   ATLAS → ROUTE → DISCOVERY POINT → GOLDENBOOK STAR
+ *   ATLAS → ROUTE → DISCOVERY POINT → GOLDENBOOK GO STAR
  *
  * Colors sourced directly from src/design/tokens.ts and JourneyCompletionView.tsx
  * so the star symbol is pixel-identical to the one used in the route completion screen.
@@ -13,7 +13,7 @@
  *   900–1300ms  Step 3 — Discovery dot: scales in with overshoot + glow pulse
  *   1300–2100ms Step 4 — Dot → Star: dot fades, ✦ springs in inside gold ring,
  *                         subtle pulse 1 → 1.08 → 1, glow fades
- *   2500–2820ms Step 5 — Title: GOLDENBOOK fades up
+ *   2500–2820ms Step 5 — Title: GOLDENBOOK GO fades up
  *   2720–3000ms Step 6 — Subtitle fades in, holds for reading
  *   4000–4300ms Step 7 — Exit: screen fades, onComplete fires
  *
@@ -301,7 +301,7 @@ const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => 
         </View>
       </Animated.View>
 
-      {/* ── Layer 6: GOLDENBOOK title + editorial subtitle ── */}
+      {/* ── Layer 6: GOLDENBOOK GO title + editorial subtitle ── */}
       {/*
         Positioned below the star ring with enough clearance so they never overlap
         even during the scale pulse. translateY animation brings text up from +8px.
@@ -317,7 +317,7 @@ const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => 
           },
         ]}
       >
-        <Text style={styles.brandTitle}>GOLDENBOOK</Text>
+        <Text style={styles.brandTitle}>GOLDENBOOK GO</Text>
         <Animated.Text style={[styles.brandSubtitle, { opacity: subtitleOpacity }]}>
           Curated places. Exceptional experiences.
         </Animated.Text>

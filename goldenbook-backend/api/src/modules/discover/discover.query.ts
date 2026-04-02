@@ -22,7 +22,7 @@ export async function getCityHeader(
     `
     SELECT
       d.slug,
-      COALESCE(dt.name, dt_lang.name, dt_fb.name, d.name)  AS name,
+      COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)  AS name,
       COALESCE(co.name, d.slug)                             AS country,
       ma.bucket                                             AS hero_bucket,
       ma.path                                               AS hero_path
@@ -96,7 +96,7 @@ export async function getEditorialHero(
   const { rows: fb } = await db.query<EditorialHeroRow>(
     `
     SELECT
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name) AS title,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name) AS title,
       hero_img.bucket AS image_bucket,
       hero_img.path   AS image_path,
       p.slug          AS target_slug
@@ -152,10 +152,10 @@ async function getCollectionPlaces(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                        AS name,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
       hero_img.bucket                                                                              AS hero_bucket,
       hero_img.path                                                                                AS hero_path,
-      COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS short_description
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
     FROM editorial_collections ec
     JOIN destinations d
            ON d.id = ec.destination_id AND d.slug = $1
@@ -200,10 +200,10 @@ async function getPlacesFallback(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                        AS name,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
       hero_img.bucket                                                                              AS hero_bucket,
       hero_img.path                                                                                AS hero_path,
-      COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS short_description
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
@@ -248,9 +248,9 @@ async function getVisibilityPlaces(
     const { rows } = await db.query<PlaceCardRow>(`
       SELECT
         p.id, p.slug,
-        COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name) AS name,
+        COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name) AS name,
         hero_img.bucket AS hero_bucket, hero_img.path AS hero_path,
-        COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS short_description
+        COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
       FROM places p
       JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
       LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $2
@@ -327,10 +327,10 @@ export async function getNewPlaces(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                        AS name,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
       hero_img.bucket                                                                              AS hero_bucket,
       hero_img.path                                                                                AS hero_path,
-      COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS short_description
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
@@ -375,7 +375,7 @@ export async function getDiscoverCategories(
     SELECT DISTINCT ON (c.sort_order, c.id)
       c.id,
       c.slug,
-      COALESCE(ct.name, ct_lang.name, ct_fb.name, c.slug) AS name,
+      COALESCE(NULLIF(ct.name,''), NULLIF(ct_lang.name,''), NULLIF(ct_fb.name,''), c.slug) AS name,
       c.icon_name
     FROM categories c
     JOIN place_categories pc ON pc.category_id = c.id
@@ -419,7 +419,7 @@ export async function getNowCandidates(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name)                                AS name,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                AS name,
       hero_img.bucket                                                                      AS image_bucket,
       hero_img.path                                                                        AS image_path,
       p.featured,
@@ -478,8 +478,8 @@ export async function getGoldenRoutes(
     SELECT
       r.id,
       r.slug,
-      COALESCE(rt.title,   rt_lang.title,   rt_fb.title,   r.title)         AS title,
-      COALESCE(rt.summary, rt_lang.summary, rt_fb.summary, r.summary)       AS summary,
+      COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)         AS title,
+      COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)       AS summary,
       ma.bucket                                                               AS hero_bucket,
       ma.path                                                                 AS hero_path,
       COUNT(rp.place_id)::int                                                AS places_count

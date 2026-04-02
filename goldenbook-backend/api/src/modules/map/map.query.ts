@@ -15,6 +15,7 @@ export interface MapPlaceRow {
 
 export async function getMapPlaces(
   citySlug: string,
+  locale: string,
   categorySlug?: string,
   limit = 200,
 ): Promise<MapPlaceRow[]> {
@@ -23,20 +24,20 @@ export async function getMapPlaces(
     ? `AND EXISTS (
         SELECT 1 FROM place_categories pc2
         JOIN categories c2 ON c2.id = pc2.category_id
-        WHERE pc2.place_id = p.id AND c2.slug = $3
+        WHERE pc2.place_id = p.id AND c2.slug = $4
       )`
     : ''
 
   const params: unknown[] = categorySlug
-    ? [citySlug, limit, categorySlug]
-    : [citySlug, limit]
+    ? [citySlug, locale, limit, categorySlug]
+    : [citySlug, locale, limit]
 
   const { rows } = await db.query<MapPlaceRow>(
     `
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name, p.name)                                            AS name,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                  AS name,
       p.latitude::text                                                      AS latitude,
       p.longitude::text                                                     AS longitude,
       p.place_type,
@@ -44,13 +45,23 @@ export async function getMapPlaces(
         ARRAY_AGG(DISTINCT c.slug) FILTER (WHERE c.slug IS NOT NULL),
         ARRAY[]::text[]
       )                                                                     AS category_slugs,
-      d.name                                                                AS city_name,
+      COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)                  AS city_name,
       hero_img.bucket                                                       AS hero_bucket,
       hero_img.path                                                         AS hero_path
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
-           ON pt.place_id = p.id AND pt.locale = 'en'
+           ON pt.place_id = p.id AND pt.locale = $2
+    LEFT JOIN place_translations pt_lang
+           ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
+    LEFT JOIN place_translations pt_fb
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+    LEFT JOIN destination_translations dt
+           ON dt.destination_id = d.id AND dt.locale = $2
+    LEFT JOIN destination_translations dt_lang
+           ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
+    LEFT JOIN destination_translations dt_fb
+           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
     LEFT JOIN place_categories pc ON pc.place_id = p.id
     LEFT JOIN categories c        ON c.id = pc.category_id AND c.is_active = true
     LEFT JOIN LATERAL (
@@ -66,10 +77,12 @@ export async function getMapPlaces(
       AND p.latitude  IS NOT NULL
       AND p.longitude IS NOT NULL
       ${categoryClause}
-    GROUP BY p.id, p.slug, p.name, p.latitude, p.longitude, p.place_type, pt.name,
-             d.name, hero_img.bucket, hero_img.path
+    GROUP BY p.id, p.slug, p.name, p.latitude, p.longitude, p.place_type,
+             pt.name, pt_lang.name, pt_fb.name,
+             dt.name, dt_lang.name, dt_fb.name, d.name,
+             hero_img.bucket, hero_img.path
     ORDER BY p.featured DESC, p.published_at DESC NULLS LAST
-    LIMIT $2
+    LIMIT $3
     `,
     params,
   )

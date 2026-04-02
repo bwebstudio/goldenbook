@@ -37,9 +37,7 @@ export default async function HomePage({
         cityName={data?.hero.cityName ?? null}
       />
 
-      {data?.goldenPicks && data.goldenPicks.length > 0 && (
-        <GoldenPicks picks={data.goldenPicks} />
-      )}
+      <GoldenPicks />
 
       {data?.experienceNow && (
         <WhatToExperience slots={data.experienceNow} />

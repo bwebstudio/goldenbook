@@ -21,12 +21,13 @@ function GoldenbookLogo({ dark = false }: { dark?: boolean }) {
       <div className="w-2 h-2 rounded-full bg-primary group-hover:scale-125 transition-transform duration-200" />
       <span
         className={[
-          'font-sans text-18px] font-bold uppercase',
+          'font-sans font-bold uppercase',
           dark ? 'text-navy-dark' : 'text-ivory',
         ].join(' ')}
-        style={{ letterSpacing: '0.18em' }}
+        style={{ letterSpacing: '0.18em', fontSize: '16px' }}
       >
-        Goldenbook
+        <span className="hidden sm:inline">Goldenbook Go</span>
+        <span className="sm:hidden">GB Go</span>
       </span>
     </Link>
   )

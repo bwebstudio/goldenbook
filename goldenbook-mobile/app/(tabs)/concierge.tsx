@@ -11,6 +11,8 @@
 import React, { useEffect, useRef } from 'react'
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,16 +21,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import {
-  ConciergeChatInput,
-  ConciergeIntentCard,
   ConciergeMessageBubble,
   ConciergeRecommendationCard,
 } from '@/features/concierge/components'
 import { useConcierge } from '@/features/concierge/hooks/useConcierge'
 import { useTranslation } from '@/i18n'
+import { useNowContextStore } from '@/store/nowContextStore'
+import { useSettingsStore } from '@/store/settingsStore'
 import type {
   ConciergeIntentDTO,
   ConciergeMessage,
@@ -38,17 +41,58 @@ const GOLD  = '#D2B68A'
 const NAVY  = '#222D52'
 const IVORY = '#FDFDFB'
 
+function getQuickOptions(locale: string): ConciergeIntentDTO[] {
+  const localeFamily = locale.split('-')[0]
+
+  if (localeFamily === 'pt') {
+    return [
+      { id: 'romantic_dinner', title: 'Jantar romântico', subtitle: '', icon: 'restaurant', label: null },
+      { id: 'sunset_drinks', title: 'Cocktails com vista', subtitle: '', icon: 'wb_sunny', label: null },
+      { id: 'hidden_gems', title: 'Passeio tranquilo', subtitle: '', icon: 'diamond', label: null },
+      { id: 'gallery_afternoon', title: 'Algo cultural', subtitle: '', icon: 'museum', label: null },
+    ]
+  }
+
+  if (localeFamily === 'es') {
+    return [
+      { id: 'romantic_dinner', title: 'Cena romántica', subtitle: '', icon: 'restaurant', label: null },
+      { id: 'sunset_drinks', title: 'Cócteles con vistas', subtitle: '', icon: 'wb_sunny', label: null },
+      { id: 'hidden_gems', title: 'Paseo tranquilo', subtitle: '', icon: 'diamond', label: null },
+      { id: 'gallery_afternoon', title: 'Algo cultural', subtitle: '', icon: 'museum', label: null },
+    ]
+  }
+
+  return [
+    { id: 'romantic_dinner', title: 'Romantic dinner', subtitle: '', icon: 'restaurant', label: null },
+    { id: 'sunset_drinks', title: 'Cocktails with a view', subtitle: '', icon: 'wb_sunny', label: null },
+    { id: 'hidden_gems', title: 'Relaxed stroll', subtitle: '', icon: 'diamond', label: null },
+    { id: 'gallery_afternoon', title: 'Something cultural', subtitle: '', icon: 'museum', label: null },
+  ]
+}
+
 export default function ConciergeScreen() {
-  const { state, loadBootstrap, handleIntentTap, handleSend, handleFallbackTap, setInput } =
-    useConcierge()
+  const { state, loadBootstrap, loadFromNowContext, handleIntentTap } = useConcierge()
   const t = useTranslation()
+  const locale = useSettingsStore((s) => s.locale)
+  const pendingNowContext = useNowContextStore((s) => s.pending)
+  const router = useRouter()
+  const { entry } = useLocalSearchParams<{ entry?: string }>()
 
   const scrollRef = useRef<ScrollView>(null)
+  const entryOpacity = useRef(new Animated.Value(entry === 'now' ? 0 : 1)).current
+  const entryTranslateY = useRef(new Animated.Value(entry === 'now' ? 14 : 0)).current
+  const quickOptions = getQuickOptions(locale)
 
   // Load bootstrap on mount and whenever locale changes
   useEffect(() => {
+    if (entry === 'now' || state.bootstrapData) return
     loadBootstrap()
-  }, [loadBootstrap])
+  }, [entry, loadBootstrap, state.bootstrapData])
+
+  useEffect(() => {
+    if (entry !== 'now' || pendingNowContext?.source !== 'now') return
+    loadFromNowContext()
+  }, [entry, pendingNowContext, loadFromNowContext])
 
   // Auto-scroll to bottom on new messages or loading state change
   useEffect(() => {
@@ -58,104 +102,159 @@ export default function ConciergeScreen() {
     }
   }, [state.messages.length, state.loadingRecommendation])
 
+  useEffect(() => {
+    if (entry !== 'now') return
+
+    entryOpacity.setValue(0)
+    entryTranslateY.setValue(14)
+
+    Animated.parallel([
+      Animated.timing(entryOpacity, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(entryTranslateY, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      router.setParams({ entry: undefined })
+    })
+  }, [entry, entryOpacity, entryTranslateY, router])
+
   // ── Loading bootstrap ──────────────────────────────────────────────────────
   if (state.loadingBootstrap) {
     return (
-      <SafeAreaView style={styles.centered} edges={['top', 'bottom']}>
-        <ActivityIndicator size="large" color={GOLD} />
-        <Text style={styles.loadingText}>{t.concierge.preparingGuide}</Text>
-      </SafeAreaView>
+      <Animated.View
+        style={[
+          styles.flex,
+          {
+            opacity: entryOpacity,
+            transform: [{ translateY: entryTranslateY }],
+          },
+        ]}
+      >
+        <SafeAreaView style={styles.centered} edges={['top', 'bottom']}>
+          <ActivityIndicator size="large" color={GOLD} />
+          <Text style={styles.loadingText}>{t.concierge.preparingGuide}</Text>
+        </SafeAreaView>
+      </Animated.View>
     )
   }
 
   // ── Bootstrap error ────────────────────────────────────────────────────────
   if (state.error && state.messages.length === 0) {
     return (
-      <SafeAreaView style={styles.errorScreen} edges={['top', 'bottom']}>
-        <View style={styles.errorBody}>
-          <Text style={styles.errorMark}>✦</Text>
-          <Text style={styles.errorTitle}>{t.concierge.unableToConnect}</Text>
-          <Text style={styles.errorSub}>
-            {t.concierge.unavailableSub}
-          </Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={loadBootstrap} activeOpacity={0.8}>
-            <Text style={styles.retryText}>{t.concierge.tryAgain}</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <Animated.View
+        style={[
+          styles.flex,
+          {
+            opacity: entryOpacity,
+            transform: [{ translateY: entryTranslateY }],
+          },
+        ]}
+      >
+        <SafeAreaView style={styles.errorScreen} edges={['top', 'bottom']}>
+          <View style={styles.errorBody}>
+            <Text style={styles.errorMark}>✦</Text>
+            <Text style={styles.errorTitle}>{t.concierge.unableToConnect}</Text>
+            <Text style={styles.errorSub}>
+              {t.concierge.unavailableSub}
+            </Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={loadBootstrap} activeOpacity={0.8}>
+              <Text style={styles.retryText}>{t.concierge.tryAgain}</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Animated.View>
     )
   }
 
   // ── Main screen ────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.root} edges={['top']}>
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft} />
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{t.concierge.title.toUpperCase()}</Text>
-          <Text style={styles.headerSub}>{t.concierge.personalGuide.toUpperCase()}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarMark}>✦</Text>
+    <Animated.View
+      style={[
+        styles.flex,
+        {
+          opacity: entryOpacity,
+          transform: [{ translateY: entryTranslateY }],
+        },
+      ]}
+    >
+      <SafeAreaView style={styles.root} edges={['top']}>
+        {/* ── Header ────────────────────────────────────────────────────────── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft} />
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{t.concierge.title.toUpperCase()}</Text>
+            <Text style={styles.headerSub}>{t.concierge.personalGuide.toUpperCase()}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarMark}>✦</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* ── Chat + Input ───────────────────────────────────────────────────── */}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        {/* ── Chat + Input ───────────────────────────────────────────────────── */}
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
         >
-          {state.messages.map((msg, idx) => (
-            <MessageBlock
-              key={msg.id}
-              message={msg}
-              bootstrapIntents={
-                idx === 0 && state.bootstrapData ? state.bootstrapData.intents : []
-              }
-              onIntentTap={handleIntentTap}
-              onFallbackTap={handleFallbackTap}
-              intentsDisabled={state.loadingRecommendation}
-            />
-          ))}
+          <ScrollView
+            ref={scrollRef}
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {state.messages.map((msg) => (
+              <MessageBlock
+                key={msg.id}
+                message={msg}
+              />
+            ))}
 
-          {/* Thinking indicator while waiting for recommendations */}
-          {state.loadingRecommendation && (
-            <View style={styles.thinkingRow}>
-              <View style={styles.thinkingAvatar}>
-                <Text style={styles.thinkingMark}>✦</Text>
+            {/* Thinking indicator while waiting for recommendations */}
+            {state.loadingRecommendation && (
+              <View style={styles.thinkingRow}>
+                <View style={styles.thinkingAvatar}>
+                  <Text style={styles.thinkingMark}>✦</Text>
+                </View>
+                <View style={styles.thinkingBubble}>
+                  <Text style={styles.thinkingDots}>· · ·</Text>
+                </View>
               </View>
-              <View style={styles.thinkingBubble}>
-                <Text style={styles.thinkingDots}>· · ·</Text>
-              </View>
+            )}
+
+            <View style={{ height: 8 }} />
+          </ScrollView>
+
+          {/* Intent pills */}
+          <View style={styles.inputWrap}>
+            <View style={styles.quickOptionsWrap}>
+              {quickOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={styles.quickOptionChip}
+                  onPress={() => handleIntentTap(option)}
+                  disabled={state.loadingRecommendation}
+                  activeOpacity={0.74}
+                >
+                  <Text style={styles.quickOptionText}>{option.title}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
-
-          <View style={{ height: 8 }} />
-        </ScrollView>
-
-        {/* Input bar */}
-        <View style={styles.inputWrap}>
-          <ConciergeChatInput
-            value={state.inputValue}
-            onChangeText={setInput}
-            onSend={handleSend}
-            loading={state.loadingRecommendation}
-          />
-        </View>
-        <SafeAreaView edges={['bottom']} style={styles.bottomSafe} />
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </View>
+          <SafeAreaView edges={['bottom']} style={styles.bottomSafe} />
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Animated.View>
   )
 }
 
@@ -165,18 +264,10 @@ export default function ConciergeScreen() {
 
 interface MessageBlockProps {
   message: ConciergeMessage
-  bootstrapIntents: ConciergeIntentDTO[]
-  onIntentTap: (intent: ConciergeIntentDTO) => void
-  onFallbackTap: (intent: { id: string; title: string }) => void
-  intentsDisabled: boolean
 }
 
 function MessageBlock({
   message,
-  bootstrapIntents,
-  onIntentTap,
-  onFallbackTap,
-  intentsDisabled,
 }: MessageBlockProps) {
   const t = useTranslation()
   return (
@@ -184,20 +275,6 @@ function MessageBlock({
       {/* Text bubble */}
       {(message.type !== 'recommendation_response' || message.text) && (
         <ConciergeMessageBubble message={message} />
-      )}
-
-      {/* Bootstrap intent cards — only below the first concierge greeting */}
-      {bootstrapIntents.length > 0 && (
-        <View style={styles.intentSection}>
-          {bootstrapIntents.map((intent) => (
-            <ConciergeIntentCard
-              key={intent.id}
-              intent={intent}
-              onPress={onIntentTap}
-              disabled={intentsDisabled}
-            />
-          ))}
-        </View>
       )}
 
       {/* Recommendation cards */}
@@ -224,27 +301,6 @@ function MessageBlock({
           </View>
         )}
 
-      {/* Fallback intent chips */}
-      {message.type === 'recommendation_response' &&
-        message.fallbackIntents &&
-        message.fallbackIntents.length > 0 && (
-          <View style={styles.fallbackSection}>
-            <Text style={styles.fallbackLabel}>{t.concierge.youMightAlsoEnjoy}</Text>
-            <View style={styles.fallbackChips}>
-              {message.fallbackIntents.map((fi) => (
-                <TouchableOpacity
-                  key={fi.id}
-                  style={styles.chip}
-                  onPress={() => onFallbackTap(fi)}
-                  disabled={intentsDisabled}
-                  activeOpacity={0.72}
-                >
-                  <Text style={styles.chipText}>{fi.title}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
     </View>
   )
 }
@@ -294,9 +350,6 @@ const styles = StyleSheet.create({
   // ── Scroll ──────────────────────────────────────────────────────────────────
   scroll: { flex: 1 },
   scrollContent: { paddingTop: 20, paddingBottom: 8 },
-
-  // ── Intent section ───────────────────────────────────────────────────────────
-  intentSection: { marginTop: 4, marginBottom: 14 },
 
   // ── Recommendation section ────────────────────────────────────────────────
   recoSection: { marginBottom: 8 },
@@ -348,38 +401,33 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // ── Fallback chips ────────────────────────────────────────────────────────
-  fallbackSection: { marginHorizontal: 20, marginBottom: 16 },
-  fallbackLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
-    color: 'rgba(34,45,82,0.4)',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  fallbackChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    backgroundColor: 'rgba(210,182,138,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(210,182,138,0.35)',
-    borderRadius: 9999,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  chipText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 12,
-    color: GOLD,
-    letterSpacing: 0.3,
-  },
-
   // ── Input area ────────────────────────────────────────────────────────────
   inputWrap: {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(210,182,138,0.25)',
-    paddingTop: 10,
+    paddingTop: 14,
     backgroundColor: IVORY,
+  },
+  quickOptionsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginHorizontal: 24,
+    marginTop: -2,
+    marginBottom: 12,
+  },
+  quickOptionChip: {
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(34,45,82,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  quickOptionText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    color: 'rgba(34,45,82,0.72)',
   },
 
   // ── Loading / Error screens ───────────────────────────────────────────────

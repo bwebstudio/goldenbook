@@ -121,17 +121,17 @@ export default function PortalCampaigns() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold text-text">{t.campaigns.title}</h1>
           <p className="text-xs text-muted mt-0.5">{t.campaigns.subtitle}</p>
         </div>
-        <Link href="/portal/promote" className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors">
+        <Link href="/portal/promote" className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors">
           {t.campaigns.newPlacement}
         </Link>
       </div>
 
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
         {filters.map(([key, label]) => (
           <button key={key} onClick={() => setFilter(key)} className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${filter === key ? "bg-gold/10 text-gold border border-gold/30" : "bg-white border border-border text-muted hover:text-text"}`}>
             {label}
@@ -147,7 +147,7 @@ export default function PortalCampaigns() {
           <p className="text-sm font-bold text-text mb-1">{items.length === 0 ? t.campaigns.noCampaigns : t.campaigns.noMatch}</p>
           <p className="text-xs text-muted max-w-xs mx-auto">{items.length === 0 ? t.campaigns.noCampaignsDesc : t.campaigns.noMatchDesc}</p>
           {items.length === 0 && (
-            <Link href="/portal/promote" className="inline-flex mt-4 px-5 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors">
+            <Link href="/portal/promote" className="inline-flex mt-4 w-full sm:w-auto justify-center px-5 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors">
               {t.common.getStarted}
             </Link>
           )}
@@ -169,7 +169,6 @@ export default function PortalCampaigns() {
                     </div>
                     <div className="flex items-center gap-2 mt-1 flex-wrap text-[10px] text-muted">
                       {cityLabel && <span>{cityLabel}</span>}
-                      {item.slot && <span>{item.slot}</span>}
                       <span>{item.duration} {t.common.days}</span>
                       {item.price && <span>&euro;{fmtPrice(parseFloat(item.price))}</span>}
                       {item.activatedAt && <span>Started {new Date(item.activatedAt).toLocaleDateString()}</span>}

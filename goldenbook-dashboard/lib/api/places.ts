@@ -56,3 +56,32 @@ export async function fetchAdminPlacesList(): Promise<AdminPlaceListItem[]> {
 export async function deletePlaceById(id: string): Promise<void> {
   await apiDelete(`/api/v1/admin/places/${encodeURIComponent(id)}`);
 }
+
+// ── NOW Visibility ──────────────────────────────────────────────────────────
+
+export interface NowContextTag {
+  slug: string;
+  name: string;
+  description: string | null;
+}
+
+export interface NowPlaceConfig {
+  nowEnabled: boolean;
+  nowPriority: number;
+  nowFeatured: boolean;
+  nowStartAt: string | null;
+  nowEndAt: string | null;
+  nowTagSlugs: string[];
+  nowTimeWindows: string[];
+}
+
+// GET /api/v1/admin/now/tags — all available context tags
+export async function fetchNowContextTags(): Promise<NowContextTag[]> {
+  const data = await apiGet<{ items: NowContextTag[] }>("/api/v1/admin/now/tags");
+  return data.items;
+}
+
+// GET /api/v1/admin/places/:id/now — current NOW config for a place
+export async function fetchPlaceNowConfig(placeId: string): Promise<NowPlaceConfig> {
+  return apiGet<NowPlaceConfig>(`/api/v1/admin/places/${encodeURIComponent(placeId)}/now`);
+}

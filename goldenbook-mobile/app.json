@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Goldenbook",
+    "name": "Goldenbook Go",
     "slug": "goldenbook",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,10 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.goldenbook.app"
+      "bundleIdentifier": "com.goldenbook.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +33,14 @@
       "expo-font",
       "expo-secure-store",
       "expo-asset",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Your location is used to show nearby places and local recommendations.",
+          "locationWhenInUsePermission": "Your location is used to show nearby places and local recommendations."
+        }
+      ]
     ],
     "scheme": "goldenbook",
     "experiments": {

@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <Sidebar currentUser={currentUser} />
       <div className="flex flex-col flex-1 min-w-0">
         <Header currentUser={currentUser} />
-        <main className="flex-1 p-10 bg-surface">{children}</main>
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:p-10 bg-surface">{children}</main>
       </div>
     </div>
   );

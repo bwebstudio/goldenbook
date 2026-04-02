@@ -140,7 +140,7 @@ export function LocalitySwitcher({ visible, onClose }: LocalitySwitcherProps) {
 
           {/* Header */}
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetLabel}>GOLDENBOOK</Text>
+            <Text style={styles.sheetLabel}>GOLDENBOOK GO</Text>
             <Text style={styles.sheetTitle}>Choose your destination</Text>
             <View style={styles.divider} />
           </View>

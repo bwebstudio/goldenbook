@@ -1,5 +1,7 @@
 export type DashboardRole = "super_admin" | "editor" | "business_client";
 
+export type PlaceRole = "owner" | "manager";
+
 export interface DashboardSession {
   accessToken: string;
   refreshToken: string;
@@ -12,6 +14,11 @@ export interface MeBusinessClient {
   contactName: string | null;
 }
 
+export interface MePlaceLink {
+  placeId: string;
+  role: PlaceRole;
+}
+
 export interface DashboardMeResponse {
   id: string;
   email: string;
@@ -19,6 +26,7 @@ export interface DashboardMeResponse {
   fullName: string | null;
   dashboardRole: DashboardRole | null;
   businessClient: MeBusinessClient | null;
+  places: MePlaceLink[];
   locale: string | null;
   homeDestinationId: string | null;
   onboardingCompleted: boolean;
@@ -32,4 +40,5 @@ export interface DashboardUser {
   name: string;
   role: DashboardRole;
   businessClient?: MeBusinessClient | null;
+  places: MePlaceLink[];
 }

@@ -85,7 +85,6 @@ export default function TabsLayout() {
       {/* Detail screens — inside tabs shell so the tab bar stays visible, hidden from tab bar */}
       <Tabs.Screen name="places" options={{ href: null }} />
       <Tabs.Screen name="categories" options={{ href: null }} />
-      <Tabs.Screen name="routes/[slug]" options={{ href: null }} />
       <Tabs.Screen name="golden-picks" options={{ href: null }} />
     </Tabs>
   );

@@ -78,7 +78,7 @@ export default function InterestsScreen() {
             <Text style={styles.ornamentStar}>✦</Text>
             <View style={styles.ornamentLine} />
           </View>
-          <Text style={styles.wordmark}>GOLDENBOOK</Text>
+          <Text style={styles.wordmark}>GOLDENBOOK GO</Text>
           <View style={styles.accentRule} />
           <Text style={styles.heading}>What would you{'\n'}love to discover?</Text>
           <Text style={styles.subheading}>

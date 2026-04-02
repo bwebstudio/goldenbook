@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import type { WebPlaceDTO } from '@/lib/types'
+import { getBestImage } from '@/lib/images'
 
 interface GoldenPickItemProps {
   place: WebPlaceDTO
@@ -11,20 +12,9 @@ interface GoldenPickItemProps {
   layout?: 'imageRight' | 'imageLeft' | 'fullWidth'
 }
 
-/** Ivory gradient shown when a place has no image yet. */
-function ImagePlaceholder() {
-  return (
-    <div
-      className="w-full h-full"
-      style={{
-        background: 'linear-gradient(135deg, #222D52 0%, #161E38 100%)',
-      }}
-    />
-  )
-}
-
 export function GoldenPickItem({ place, index, layout = 'imageRight' }: GoldenPickItemProps) {
   const t = useTranslations('goldenPicks')
+  const src = getBestImage({ section: 'goldenPicks', index, dbImageUrl: place.imageUrl })
 
   if (layout === 'fullWidth') {
     return (
@@ -33,24 +23,24 @@ export function GoldenPickItem({ place, index, layout = 'imageRight' }: GoldenPi
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-5%' }}
         transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-        className="relative w-full overflow-hidden"
+        className="relative w-full overflow-hidden group"
         style={{ aspectRatio: '21/9' }}
       >
-        {place.imageUrl ? (
-          <Image
-            src={place.imageUrl}
-            alt={place.name}
-            fill
-            sizes="100vw"
-            className="object-cover"
-            quality={90}
-            priority={index === 0}
-            unoptimized
-          />
-        ) : (
-          <ImagePlaceholder />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-r from-navy-dark/90 via-navy-dark/50 to-transparent" />
+        <Image
+          src={src}
+          alt={place.name}
+          fill
+          sizes="100vw"
+          className="object-cover editorial-image transition-transform duration-700 group-hover:scale-[1.03]"
+          quality={90}
+          priority={index === 0}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(to right, rgba(10,10,10,0.55), rgba(10,10,10,0.2), transparent)',
+          }}
+        />
         <div className="absolute inset-0 flex items-end p-12 md:p-20">
           <div className="max-w-xl">
             {place.category && <p className="eyebrow mb-3">{place.category}</p>}
@@ -79,22 +69,17 @@ export function GoldenPickItem({ place, index, layout = 'imageRight' }: GoldenPi
     >
       {/* Image */}
       <div
-        className={`relative overflow-hidden ${isImageLeft ? 'lg:order-1' : 'lg:order-2'}`}
+        className={`relative overflow-hidden group ${isImageLeft ? 'lg:order-1' : 'lg:order-2'}`}
         style={{ aspectRatio: '4/3' }}
       >
-        {place.imageUrl ? (
-          <Image
-            src={place.imageUrl}
-            alt={place.name}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover transition-transform duration-700 hover:scale-[1.03]"
-            quality={90}
-            unoptimized
-          />
-        ) : (
-          <ImagePlaceholder />
-        )}
+        <Image
+          src={src}
+          alt={place.name}
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
+          className="object-cover editorial-image transition-transform duration-700 group-hover:scale-[1.03]"
+          quality={90}
+        />
         <div className="absolute top-6 left-6">
           <span className="font-sans text-ivory/50 text-caption tracking-widest">
             {String(index + 1).padStart(2, '0')}

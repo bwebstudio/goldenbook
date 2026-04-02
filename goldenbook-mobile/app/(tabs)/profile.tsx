@@ -104,6 +104,17 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
+      {/* ── Close button ── */}
+      <View style={styles.closeRow}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="close" size={24} color={colors.navy.DEFAULT} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -235,7 +246,14 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.sm,
+  },
+  closeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.screenPadding,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
   },
 
   // ── Hero ──

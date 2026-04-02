@@ -38,23 +38,30 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Goldenbook — The curated city guide',
+  title: 'Goldenbook Go — The curated city guide',
   description:
     'Golden picks, hidden routes, and the places that actually matter. Discover Lisbon, Porto, and beyond.',
   openGraph: {
-    title: 'Goldenbook — The curated city guide',
+    title: 'Goldenbook Go — The curated city guide',
     description: 'Golden picks, hidden routes, and the places that actually matter.',
     type: 'website',
     locale: 'en_US',
-    siteName: 'Goldenbook',
+    siteName: 'Goldenbook Go',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Goldenbook — The curated city guide',
+    title: 'Goldenbook Go — The curated city guide',
     description: 'Golden picks, hidden routes, and the places that actually matter.',
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon-transparent.svg', type: 'image/svg+xml' },
+      { url: '/favicon-transparent-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-transparent-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon-transparent-48x48.png', type: 'image/png', sizes: '48x48' },
+    ],
+    shortcut: '/favicon-transparent.ico',
+    apple: '/apple-touch-icon.png',
   },
 }
 

@@ -9,6 +9,7 @@ import {
   getSubcategoryPlaces,
 } from './categories.query'
 import { toCategoryDetailDTO } from './categories.dto'
+import { normalizeLocale } from '../../shared/i18n/locale'
 
 const paramsSchema = z.object({ slug: z.string().min(1) })
 const querySchema  = z.object({
@@ -19,14 +20,15 @@ const querySchema  = z.object({
 export async function categoriesRoutes(app: FastifyInstance) {
   app.get('/categories/:slug', async (request, reply) => {
     const { slug }         = paramsSchema.parse(request.params)
-    const { city, locale } = querySchema.parse(request.query)
+    const { city, locale: rawLocale } = querySchema.parse(request.query)
+    const locale = normalizeLocale(rawLocale)
 
     // Try category first
     const category = await getCategoryBySlug(slug, locale)
     if (category) {
       const [subcategories, places] = await Promise.all([
         getCategorySubcategories(category.id, locale),
-        getCategoryPlaces(category.id, city, locale),
+        getCategoryPlaces(category.id, city, locale, 50, slug),
       ])
       return reply.send(toCategoryDetailDTO(category, subcategories, places))
     }

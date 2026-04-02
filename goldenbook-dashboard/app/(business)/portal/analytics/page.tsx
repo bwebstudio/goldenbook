@@ -45,16 +45,17 @@ export default function PortalAnalytics() {
   const periods: [Period, string][] = [["7d", t.analytics.period7d], ["30d", t.analytics.period30d], ["90d", t.analytics.period90d]];
 
   const hasData = data && (data.views > 0 || data.websiteClicks > 0 || data.directions > 0 || data.reservations > 0);
+  const hasNowPurchase = purchases.some((p) => p.placement_type === "now" && (p.status === "activated" || p.status === "paid" || p.status === "active"));
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header + period */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-text">{t.analytics.title}</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-text">{t.analytics.title}</h1>
           <p className="text-xs text-muted mt-0.5">{t.analytics.subtitle}</p>
         </div>
-        <div className="flex items-center gap-0.5 bg-white rounded-lg border border-border p-0.5">
+        <div className="flex flex-wrap items-center gap-0.5 bg-white rounded-lg border border-border p-0.5">
           {periods.map(([key, label]) => (
             <button key={key} onClick={() => handlePeriod(key)} className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${period === key ? "bg-gold/10 text-gold" : "text-muted hover:text-text"}`}>
               {label}
@@ -70,7 +71,7 @@ export default function PortalAnalytics() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <MCard icon="eye" label={t.metrics.views} value={data?.views} />
             <MCard icon="link" label={t.metrics.websiteClicks} value={data?.websiteClicks} />
             <MCard icon="map" label={t.metrics.directions} value={data?.directions} />
@@ -104,7 +105,7 @@ export default function PortalAnalytics() {
       {purchases.length > 0 && (
         <div className="bg-white rounded-xl border border-border p-5">
           <h2 className="text-sm font-bold text-text mb-3">Your Placements</h2>
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
               <p className="text-[10px] text-muted">Total Spent</p>
               <p className="text-lg font-bold text-text">
@@ -144,6 +145,18 @@ export default function PortalAnalytics() {
             }
             return null;
           })()}
+        </div>
+      )}
+
+      {/* NOW performance (post-purchase) */}
+      {hasNowPurchase && (
+        <div className="bg-white rounded-xl border border-border p-5 md:p-6">
+          <h2 className="text-sm font-bold text-text mb-4">{t.analytics.nowPerformanceTitle}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <MCard icon="eye" label={t.analytics.nowImpressions} value={data?.views} />
+            <MCard icon="map" label={t.analytics.nowNearbyViews} value={data?.directions} />
+            <MCard icon="link" label={t.analytics.nowClicks} value={data?.websiteClicks} />
+          </div>
         </div>
       )}
 

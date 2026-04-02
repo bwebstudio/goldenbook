@@ -51,9 +51,9 @@ export const api = {
   categoryBySlug: (slug: string, city: string, locale = 'en') =>
     apiClient.get<CategoryDetailDTO>(`/categories/${slug}`, { params: { city, locale } }).then((r) => r.data),
 
-  mapPlaces: (city: string, category?: string) =>
+  mapPlaces: (city: string, locale = 'en', category?: string) =>
     apiClient
-      .get<MapResponseDTO>('/map/places', { params: { city, category } })
+      .get<MapResponseDTO>('/map/places', { params: { city, locale, category } })
       .then((r) => r.data.items),
 
   me: () =>
@@ -109,8 +109,47 @@ export const api = {
     query?: string
     limit?: number
     locale?: string
+    now_context?: { time_of_day?: string; weather?: string | null; inferred_moment?: string | null }
   }) =>
     apiClient
       .post<ConciergeRecommendResponseDTO>('/concierge/recommend', params)
+      .then((r) => r.data),
+
+  // ── NOW contextual recommendation ──────────────────────────────────────────
+  nowRecommendation: (params: {
+    city?: string
+    locale?: string
+    lat?: number
+    lon?: number
+    interests?: string
+    style?: string
+  }) =>
+    apiClient
+      .get('/concierge/now', { params })
+      .then((r) => r.data),
+
+  nowRefresh: (params: {
+    city?: string
+    locale?: string
+    lat?: number
+    lon?: number
+    interests?: string[]
+    style?: string
+  }) =>
+    apiClient
+      .post('/concierge/now/refresh', params)
+      .then((r) => r.data),
+
+  nowDismiss: (params: {
+    city?: string
+    locale?: string
+    lat?: number
+    lon?: number
+    interests?: string[]
+    style?: string
+    limit?: number
+  }) =>
+    apiClient
+      .post('/concierge/now/dismiss', params)
       .then((r) => r.data),
 };

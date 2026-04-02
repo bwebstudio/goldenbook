@@ -12,6 +12,7 @@ import {
 } from './places.query'
 import { toPlaceDetailDTO } from './places.dto'
 import { getActiveCandidateForPlace, getBestValidCandidateForPlace } from '../booking-candidates/candidates.query'
+import { normalizeLocale } from '../../shared/i18n/locale'
 
 const paramsSchema = z.object({ slug: z.string().min(1) })
 const querySchema  = z.object({ locale: z.string().min(2).max(5).default('en') })
@@ -19,7 +20,8 @@ const querySchema  = z.object({ locale: z.string().min(2).max(5).default('en') }
 export async function placesRoutes(app: FastifyInstance) {
   app.get('/places/:slug', async (request, reply) => {
     const { slug }   = paramsSchema.parse(request.params)
-    const { locale } = querySchema.parse(request.query)
+    const { locale: rawLocale } = querySchema.parse(request.query)
+    const locale = normalizeLocale(rawLocale)
 
     let place
     try {

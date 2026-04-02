@@ -80,7 +80,7 @@ export default function ExplorationStyleScreen() {
             <Text style={styles.ornamentStar}>✦</Text>
             <View style={styles.ornamentLine} />
           </View>
-          <Text style={styles.wordmark}>GOLDENBOOK</Text>
+          <Text style={styles.wordmark}>GOLDENBOOK GO</Text>
           <View style={styles.accentRule} />
           <Text style={styles.heading}>How do you{'\n'}usually explore?</Text>
           <Text style={styles.subheading}>
@@ -124,7 +124,7 @@ export default function ExplorationStyleScreen() {
           disabled={!selected}
           activeOpacity={0.82}
         >
-          <Text style={styles.btnText}>Enter Goldenbook</Text>
+          <Text style={styles.btnText}>Enter Goldenbook Go</Text>
         </TouchableOpacity>
 
         {/* ── Step indicator ──────────────────────────────────────────── */}

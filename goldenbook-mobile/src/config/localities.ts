@@ -9,7 +9,8 @@
 /** Bilingual string keyed by app locale. Always has English; other locales optional. */
 export type LocalizedString = {
   en: string;
-  'pt-PT'?: string;
+  pt?: string;
+  es?: string;
 };
 
 export interface Locality {
@@ -35,7 +36,8 @@ export const LOCALITIES: Locality[] = [
     country: 'Portugal',
     tagline: {
       en: 'The golden city on the Tagus',
-      'pt-PT': 'A cidade dourada do Tejo',
+      pt: 'A cidade dourada do Tejo',
+      es: 'La ciudad dorada del Tajo',
     },
     coordinates: { latitude: 38.7169, longitude: -9.1399 },
     mapDelta: { latitudeDelta: 0.08, longitudeDelta: 0.08 },
@@ -48,7 +50,8 @@ export const LOCALITIES: Locality[] = [
     country: 'Portugal',
     tagline: {
       en: 'Riverside charm and Douro gold',
-      'pt-PT': 'Charme ribeirinho e ouro do Douro',
+      pt: 'Charme ribeirinho e ouro do Douro',
+      es: 'Encanto ribereño y oro del Duero',
     },
     coordinates: { latitude: 41.1496, longitude: -8.6109 },
     mapDelta: { latitudeDelta: 0.06, longitudeDelta: 0.06 },
@@ -61,7 +64,8 @@ export const LOCALITIES: Locality[] = [
     country: 'Portugal',
     tagline: {
       en: 'Where the Atlantic meets golden cliffs',
-      'pt-PT': 'Onde o Atlântico encontra as falésias douradas',
+      pt: 'Onde o Atlântico encontra as falésias douradas',
+      es: 'Donde el Atlántico se encuentra con acantilados dorados',
     },
     coordinates: { latitude: 37.0179, longitude: -7.9307 },
     mapDelta: { latitudeDelta: 0.5, longitudeDelta: 0.5 },
@@ -74,7 +78,8 @@ export const LOCALITIES: Locality[] = [
     country: 'Portugal',
     tagline: {
       en: 'Eternal spring in the Atlantic',
-      'pt-PT': 'Primavera eterna no Atlântico',
+      pt: 'Primavera eterna no Atlântico',
+      es: 'Primavera eterna en el Atlántico',
     },
     coordinates: { latitude: 32.7607, longitude: -16.9595 },
     mapDelta: { latitudeDelta: 0.5, longitudeDelta: 0.5 },

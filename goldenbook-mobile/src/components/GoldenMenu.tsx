@@ -175,7 +175,7 @@ export function GoldenMenu({ visible, onClose }: GoldenMenuProps) {
 
           {/* ── Brand + city ──────────────────────────────────────────────── */}
           <View style={styles.header}>
-            <Text style={styles.brandLabel}>✦ GOLDENBOOK</Text>
+            <Text style={styles.brandLabel}>✦ GOLDENBOOK GO</Text>
             {locality ? (
               <View style={styles.cityRow}>
                 <Ionicons name="location-outline" size={12} color={GOLD} />

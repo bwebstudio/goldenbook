@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { authenticate } from '../../shared/auth/authPlugin'
+import { normalizeLocale } from '../../shared/i18n/locale'
 import {
   getSavedPlaces,
   getSavedRoutes,
@@ -32,7 +33,8 @@ const routeParams = z.object({
 export async function meRoutes(app: FastifyInstance) {
   // ── GET /me/saved ────────────────────────────────────────────────────────────
   app.get('/me/saved', { preHandler: [authenticate] }, async (request, reply) => {
-    const { locale } = localeQuery.parse(request.query)
+    const { locale: rawLocale } = localeQuery.parse(request.query)
+    const locale = normalizeLocale(rawLocale)
     const userId = request.user.sub
 
     const [savedPlaces, savedRoutes, recentlyViewed] = await Promise.all([

@@ -72,6 +72,8 @@ export const createPlaceSchema = z.object({
   reservationSource:       reservationSourceEnum.optional(),
 })
 
+const nowTimeWindowEnum = z.enum(['morning', 'midday', 'afternoon', 'evening', 'night'])
+
 export const updatePlaceSchema = z.object({
   name:             z.string().min(2).optional(),
   slug:             z.string().regex(SLUG_RE).optional(),
@@ -98,6 +100,14 @@ export const updatePlaceSchema = z.object({
   bookingNotes:            z.string().optional(),
   reservationRelevant:     z.boolean().optional(),
   reservationSource:       reservationSourceEnum.optional(),
+  // NOW visibility fields
+  nowEnabled:              z.boolean().optional(),
+  nowPriority:             z.number().int().min(0).max(10).optional(),
+  nowFeatured:             z.boolean().optional(),
+  nowStartAt:              z.string().datetime({ offset: true }).nullable().optional(),
+  nowEndAt:                z.string().datetime({ offset: true }).nullable().optional(),
+  nowTagSlugs:             z.array(z.string().min(1)).optional(),
+  nowTimeWindows:          z.array(nowTimeWindowEnum).optional(),
 })
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>

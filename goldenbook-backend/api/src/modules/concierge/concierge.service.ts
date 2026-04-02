@@ -41,6 +41,11 @@ const GREETINGS_I18N: Record<string, Record<TimeOfDay, GreetingFn>> = {
     afternoon: (city) => `Boa tarde. Preparei algumas escolhas refinadas para a sua tarde em ${city}.`,
     evening:   (city) => `Boa noite. Selecionei algumas propostas para a sua noite em ${city}. O que prefere?`,
   },
+  es: {
+    morning:   (city) => `Buenos días. He seleccionado algunos comienzos elegantes para tu día en ${city}.`,
+    afternoon: (city) => `Buenas tardes. He preparado algunas opciones refinadas para tu tarde en ${city}.`,
+    evening:   (city) => `Buenas noches. He seleccionado algunas propuestas para tu noche en ${city}. ¿Qué prefieres?`,
+  },
 }
 
 export function buildGreeting(timeOfDay: TimeOfDay, cityName: string, locale = 'en'): string {
@@ -187,18 +192,37 @@ export interface ScoredPlace {
   hero_bucket: string | null
   hero_path: string | null
   created_at: Date
+  /** Editor-defined context tags (from place_now_tags). Used as soft boost. */
+  context_tag_slugs?: string[]
+  /** Editor-defined time windows (from place_now_time_windows). Used as soft boost. */
+  time_window_slugs?: string[]
 }
 
+/**
+ * Score a place for a Concierge intent.
+ *
+ * Hard filtering (place_type) happens at the DB query level — a spa can
+ * never enter the candidate pool for a "cocktail bar" intent.
+ *
+ * This function applies soft scoring among already-compatible candidates:
+ *   1. place_type match bonus
+ *   2. text content tag matching
+ *   3. context tag matching (editor-defined relevance metadata from place_now_tags)
+ *   4. time window boost (editor-defined from place_now_time_windows)
+ *   5. shared ranking model (business, quality, onboarding)
+ */
 export function scoreConciergePlace(
   place: ScoredPlace,
   intent: ConciergeIntent,
   profile?: OnboardingProfile,
+  timeOfDay?: TimeOfDay,
 ): number {
-  // Base: intent-specific relevance only
   let baseScore = 0
 
+  // 1. Place type match (hard-filtered at query level, but still a scoring signal)
   if (intent.placeTypes.includes(place.place_type)) baseScore += 12
 
+  // 2. Text content tag matching (existing behavior)
   const textContent = [place.short_description, place.editorial_summary]
     .filter(Boolean)
     .join(' ')
@@ -208,7 +232,38 @@ export function scoreConciergePlace(
     if (textContent.includes(tag.toLowerCase())) baseScore += 6
   }
 
-  // Delegate business / quality / onboarding to the shared ranking model
+  // 3. Context tag matching (editor-defined relevance metadata)
+  // Maps intent tags/categorySlugs to context tag slugs for soft boost.
+  // e.g. intent tags ['cocktails', 'speakeasy'] match context tag 'cocktails'
+  if (place.context_tag_slugs?.length) {
+    const contextSet = new Set(place.context_tag_slugs)
+    for (const tag of intent.tags) {
+      const normalized = tag.toLowerCase().replace(/[^a-z0-9]/g, '-')
+      if (contextSet.has(normalized)) baseScore += 4
+    }
+    for (const catSlug of intent.categorySlugs) {
+      if (contextSet.has(catSlug)) baseScore += 3
+    }
+  }
+
+  // 4. Time window boost (editor-defined from place_now_time_windows)
+  // If the place has time windows configured and the current time matches, boost.
+  // Empty time_window_slugs = relevant all day (no penalty, no boost).
+  if (timeOfDay && place.time_window_slugs?.length) {
+    // Map Concierge's 3 time-of-day values to the 5 NOW time windows
+    const windowsForTime: Record<TimeOfDay, string[]> = {
+      morning:   ['morning', 'midday'],
+      afternoon: ['midday', 'afternoon'],
+      evening:   ['evening', 'night'],
+    }
+    const relevantWindows = windowsForTime[timeOfDay]
+    const hasMatch = place.time_window_slugs.some((tw) => relevantWindows.includes(tw))
+    if (hasMatch) {
+      baseScore += 5 // boost for matching the current moment
+    }
+  }
+
+  // 5. Delegate business / quality / onboarding to the shared ranking model
   return scoreFinalPlace(baseScore, place, 'concierge', profile)
 }
 
@@ -244,6 +299,19 @@ const RESPONSE_TEXTS_I18N: Record<string, ResponseMap> = {
     design_shopping:    (city)       => `Algumas boutiques e concept stores selecionadas em ${city}.`,
     after_dinner_drinks:(city)       => `Para terminar a noite em ${city}, eis as minhas sugestões.`,
   },
+  es: {
+    romantic_dinner:    (city)       => `Para una noche elegante en ${city}, he seleccionado algunas direcciones especiales.`,
+    quiet_wine_bar:     (city)       => `Algunos bares de vino refinados para un ritmo más tranquilo en ${city}.`,
+    late_night_jazz:    (city)       => `Para música sofisticada por la noche en ${city}, estas son mis sugerencias.`,
+    cocktail_bars:      (city, tod)  => `Aquí tienes algunos de los mejores bares de cócteles de ${city} para esta ${tod === 'afternoon' ? 'tarde' : 'noche'}.`,
+    hidden_gems:        (city)       => `Algunos de los secretos mejor guardados de ${city}, lejos de las rutas habituales.`,
+    coffee_and_work:    (city)       => `Mis recomendaciones para una mañana refinada en ${city}.`,
+    sunset_drinks:      (city)       => `Las mejores terrazas y rooftops para la hora dorada en ${city}.`,
+    long_lunch:         (city)       => `Para un almuerzo sin prisas en ${city}, aquí tienes mis recomendaciones.`,
+    gallery_afternoon:  (city)       => `Una tarde curada de arte y cultura en ${city}.`,
+    design_shopping:    (city)       => `Algunas boutiques y concept stores seleccionadas en ${city}.`,
+    after_dinner_drinks:(city)       => `Para cerrar la noche en ${city}, aquí tienes mis recomendaciones.`,
+  },
 }
 
 export function buildResponseText(
@@ -260,6 +328,8 @@ export function buildResponseText(
   const labels = getIntentLabels(intent.id, locale)
   return localeFamily === 'pt'
     ? `Eis as minhas sugestões para ${labels.title.toLowerCase()} em ${cityName}.`
+    : localeFamily === 'es'
+      ? `Aquí tienes mis sugerencias para ${labels.title.toLowerCase()} en ${cityName}.`
     : `Here are my selections for ${labels.title.toLowerCase()} in ${cityName}.`
 }
 
@@ -281,14 +351,68 @@ export function getFallbackIntents(
 
   if (result.length >= 2) return result.slice(0, 2)
 
-  // Fill from the full registry if not enough bootstrap intents remain
+  // Fill from time-appropriate registry intents first
   const extras = INTENT_REGISTRY.filter(
     (i) =>
-      i.id !== excludeIntentId && !result.find((r) => r.id === i.id),
+      i.id !== excludeIntentId
+      && !result.find((r) => r.id === i.id)
+      && i.preferredTimeOfDay.includes(timeOfDay),
   )
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 2 - result.length)
     .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
 
   return [...result, ...extras]
+}
+
+/**
+ * Dynamic fallback intents that never repeat previously suggested ones in the session.
+ */
+export function getDynamicFallbackIntents(
+  excludeIntentId: string,
+  previouslyUsed: Set<string>,
+  timeOfDay: TimeOfDay,
+  locale = 'en',
+): Array<{ id: string; title: string }> {
+  // Start with bootstrap intents for this time of day
+  const bootstrapIds = BOOTSTRAP_INTENTS[timeOfDay].filter(
+    (id) => id !== excludeIntentId && !previouslyUsed.has(id),
+  )
+
+  const result = bootstrapIds
+    .map((id) => getIntentById(id))
+    .filter((i): i is ConciergeIntent => i != null)
+    .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
+
+  if (result.length >= 2) return result.slice(0, 2)
+
+  // Fill from time-appropriate registry intents, excluding previously used
+  const extras = INTENT_REGISTRY.filter(
+    (i) =>
+      i.id !== excludeIntentId
+      && !previouslyUsed.has(i.id)
+      && !result.find((r) => r.id === i.id)
+      && i.preferredTimeOfDay.includes(timeOfDay),
+  )
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 2 - result.length)
+    .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
+
+  const combined = [...result, ...extras]
+
+  // If still < 2 (time-appropriate intents exhausted), allow any remaining
+  if (combined.length < 2) {
+    const fillers = INTENT_REGISTRY.filter(
+      (i) =>
+        i.id !== excludeIntentId
+        && !combined.find((c) => c.id === i.id)
+        && i.preferredTimeOfDay.includes(timeOfDay),
+    )
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 2 - combined.length)
+      .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
+    return [...combined, ...fillers]
+  }
+
+  return combined
 }

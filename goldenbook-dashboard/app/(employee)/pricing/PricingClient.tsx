@@ -177,12 +177,12 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border overflow-x-auto">
+      <div className="flex overflow-x-auto gap-1 border-b border-border -mx-4 px-4 sm:mx-0 sm:px-0">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
+            className={`shrink-0 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
               tab === t.key ? "text-gold border-b-2 border-gold" : "text-muted hover:text-text"
             }`}
           >
@@ -202,22 +202,24 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
                   {key === "membership" ? "Annual Membership" : TYPE_LABELS[key] ?? key}
                 </h3>
               </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-muted border-b border-border">
-                    {key === "golden_picks" && <th className="px-5 py-2.5">Position</th>}
-                    <th className="px-5 py-2.5">Unit</th>
-                    <th className="px-5 py-2.5">Base Price (Lisboa)</th>
-                    <th className="px-5 py-2.5">Active</th>
-                    <th className="px-5 py-2.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((plan) => (
-                    <PlanRow key={plan.id} plan={plan} showPosition={key === "golden_picks"} saving={saving === plan.id} onSave={savePlan} onToggle={togglePlan} readOnly={readOnly} />
-                  ))}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted border-b border-border">
+                      {key === "golden_picks" && <th className="px-5 py-2.5">Position</th>}
+                      <th className="px-5 py-2.5">Unit</th>
+                      <th className="px-5 py-2.5">Base Price (Lisboa)</th>
+                      <th className="px-5 py-2.5">Active</th>
+                      <th className="px-5 py-2.5" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((plan) => (
+                      <PlanRow key={plan.id} plan={plan} showPosition={key === "golden_picks"} saving={saving === plan.id} onSave={savePlan} onToggle={togglePlan} readOnly={readOnly} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>
@@ -225,25 +227,27 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
 
       {/* ═══ CITIES TAB ═══ */}
       {tab === "cities" && (
-        <div className="bg-white rounded-xl border border-border max-w-lg">
+        <div className="bg-white rounded-xl border border-border w-full sm:max-w-lg">
           <div className="px-5 py-3 border-b border-border">
             <h3 className="text-sm font-bold text-text">City Index Multipliers</h3>
             <p className="text-xs text-muted mt-0.5">City price = Lisboa base &times; multiplier</p>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-muted border-b border-border">
-                <th className="px-5 py-2.5">City</th>
-                <th className="px-5 py-2.5">Multiplier</th>
-                <th className="px-5 py-2.5">Effect</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cities.map((c) => (
-                <CityRow key={c.id} city={c} saving={saving === c.id} onSave={saveCity} readOnly={readOnly} />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-muted border-b border-border">
+                  <th className="px-5 py-2.5">City</th>
+                  <th className="px-5 py-2.5">Multiplier</th>
+                  <th className="px-5 py-2.5">Effect</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cities.map((c) => (
+                  <CityRow key={c.id} city={c} saving={saving === c.id} onSave={saveCity} readOnly={readOnly} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -258,22 +262,24 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
                 <div className="px-5 py-3 border-b border-border">
                   <h3 className="text-sm font-bold text-text">{city.charAt(0).toUpperCase() + city.slice(1)}</h3>
                 </div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs text-muted border-b border-border">
-                      <th className="px-5 py-2.5">Season</th>
-                      <th className="px-5 py-2.5">Months</th>
-                      <th className="px-5 py-2.5">Multiplier</th>
-                      <th className="px-5 py-2.5">Effect</th>
-                      <th className="px-5 py-2.5">Active</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rules.map((r) => (
-                      <SeasonRow key={r.id} rule={r} saving={saving === r.id} onSave={saveSeason} onToggle={toggleSeason} readOnly={readOnly} />
-                    ))}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-muted border-b border-border">
+                        <th className="px-5 py-2.5">Season</th>
+                        <th className="px-5 py-2.5">Months</th>
+                        <th className="px-5 py-2.5">Multiplier</th>
+                        <th className="px-5 py-2.5">Effect</th>
+                        <th className="px-5 py-2.5">Active</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rules.map((r) => (
+                        <SeasonRow key={r.id} rule={r} saving={saving === r.id} onSave={saveSeason} onToggle={toggleSeason} readOnly={readOnly} />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             );
           })}
@@ -282,7 +288,7 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
 
       {/* ═══ PROMOTIONS TAB ═══ */}
       {tab === "promotions" && (
-        <div className="flex flex-col gap-4 max-w-2xl">
+        <div className="flex flex-col gap-4 w-full sm:max-w-2xl">
           {promotions.length === 0 && <p className="text-sm text-muted">No promotions configured.</p>}
           {promotions.map((p) => (
             <PromoCard key={p.id} promo={p} saving={saving === p.id} onSave={savePromo} readOnly={readOnly} />
@@ -292,37 +298,39 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
 
       {/* ═══ PREVIEW TAB ═══ */}
       {tab === "preview" && (
-        <div className="bg-white rounded-xl border border-border p-5 max-w-lg">
+        <div className="bg-white rounded-xl border border-border p-5 w-full sm:max-w-lg">
           <h3 className="text-sm font-bold text-text mb-4">Compute Final Price</h3>
           <div className="flex flex-col gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted mb-1 block">Plan</label>
-              <select value={previewPlanId} onChange={(e) => { setPreviewPlanId(e.target.value); setPreviewResult(null); }} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
-                <option value="">Select a plan...</option>
-                {plans.filter((p) => p.is_active).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.pricing_type === "membership" ? "Membership" : `${TYPE_LABELS[p.placement_type ?? ""] ?? p.placement_type}${p.position ? ` #${p.position}` : ""}`}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2">
+                <label className="text-xs font-medium text-muted mb-1 block">Plan</label>
+                <select value={previewPlanId} onChange={(e) => { setPreviewPlanId(e.target.value); setPreviewResult(null); }} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
+                  <option value="">Select a plan...</option>
+                  {plans.filter((p) => p.is_active).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.pricing_type === "membership" ? "Membership" : `${TYPE_LABELS[p.placement_type ?? ""] ?? p.placement_type}${p.position ? ` #${p.position}` : ""}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted mb-1 block">City</label>
+                <select value={previewCity} onChange={(e) => { setPreviewCity(e.target.value); setPreviewResult(null); }} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
+                  {CITIES.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted mb-1 block">Month</label>
+                <select value={previewMonth} onChange={(e) => { setPreviewMonth(parseInt(e.target.value)); setPreviewResult(null); }} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
+                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted mb-1 block">City</label>
-              <select value={previewCity} onChange={(e) => { setPreviewCity(e.target.value); setPreviewResult(null); }} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
-                {CITIES.map((c) => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted mb-1 block">Month</label>
-              <select value={previewMonth} onChange={(e) => { setPreviewMonth(parseInt(e.target.value)); setPreviewResult(null); }} className="w-full rounded-lg border border-border px-3 py-2.5 text-sm focus:outline-none focus:border-gold">
-                {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-              </select>
-            </div>
-            <button onClick={handlePreview} disabled={!previewPlanId} className="px-5 py-2.5 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50 w-fit">Compute</button>
+            <button onClick={handlePreview} disabled={!previewPlanId} className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50">Compute</button>
 
             {previewResult && (
               <div className="mt-2 bg-gold/5 border border-gold/20 rounded-lg p-4">
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex flex-col gap-2 text-sm sm:grid sm:grid-cols-2">
                   <span className="text-muted">Lisboa base:</span>
                   <span className="font-medium text-text">&euro;{previewResult.basePrice.toFixed(2)}</span>
                   <span className="text-muted">City &times;:</span>
@@ -461,13 +469,13 @@ function PromoCard({ promo, saving, onSave, readOnly = false }: {
 
   return (
     <div className={`bg-white rounded-xl border p-5 ${promo.is_active ? "border-emerald-200" : "border-border opacity-60"}`}>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <h3 className="text-sm font-bold text-text">{promo.name}</h3>
         {readOnly
           ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${promo.is_active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"}`}>{promo.is_active ? "Active" : "Inactive"}</span>
           : <Toggle active={promo.is_active} onToggle={() => onSave(promo, "isActive", !promo.is_active)} disabled={saving} />}
       </div>
-      <div className="grid grid-cols-[120px_1fr] gap-y-2.5 gap-x-3 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-y-2.5 gap-x-3 text-sm">
         <span className="text-muted">Discount:</span>
         <div>
           {!readOnly && editDiscount ? (
@@ -487,7 +495,7 @@ function PromoCard({ promo, saving, onSave, readOnly = false }: {
         <div>
           {!readOnly && editLabel ? (
             <div className="flex items-center gap-1.5">
-              <input type="text" value={lv} onChange={(e) => setLv(e.target.value)} className="w-64 rounded border border-gold px-2 py-1 text-sm focus:outline-none" autoFocus
+              <input type="text" value={lv} onChange={(e) => setLv(e.target.value)} className="w-full sm:w-64 rounded border border-gold px-2 py-1 text-sm focus:outline-none" autoFocus
                 onKeyDown={(e) => { if (e.key === "Enter") { onSave(promo, "label", lv); setEditLabel(false); } }} />
               <button onClick={() => { onSave(promo, "label", lv); setEditLabel(false); }} className="text-gold text-xs font-bold cursor-pointer">Save</button>
             </div>

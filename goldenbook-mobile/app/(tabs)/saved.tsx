@@ -81,7 +81,7 @@ export default function SavedScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Text style={styles.label}>Goldenbook</Text>
+        <Text style={styles.label}>Goldenbook Go</Text>
         <Text style={styles.title}>{t.saved.title}</Text>
       </View>
 

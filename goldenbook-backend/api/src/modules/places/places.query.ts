@@ -1,6 +1,6 @@
 import { db } from '../../db/postgres'
 
-// ─── Main place row ───────────────────────────────────────────────────────────
+// ─── Main place row ��───────────��───────────��──────────────────────────────────
 
 export interface PlaceRow {
   id: string
@@ -51,17 +51,17 @@ export interface PlaceRow {
 const CORE_SELECT = `
   p.id,
   p.slug,
-  COALESCE(pt.name,      pt_lang.name,      pt_fb.name,      p.name)                              AS name,
+  COALESCE(NULLIF(pt.name,''),      NULLIF(pt_lang.name,''),      NULLIF(pt_fb.name,''),      p.name)                              AS name,
   d.slug                                                                                            AS city_slug,
-  COALESCE(dt.name,      dt_lang.name,      dt_fb.name,      d.name)                              AS city_name,
+  COALESCE(NULLIF(dt.name,''),      NULLIF(dt_lang.name,''),      NULLIF(dt_fb.name,''),      d.name)                              AS city_name,
   hero_img.bucket                                                                                   AS hero_bucket,
   hero_img.path                                                                                     AS hero_path,
   ps.popularity_score,
-  COALESCE(pt.goldenbook_note, pt_lang.goldenbook_note, pt_fb.goldenbook_note)                    AS goldenbook_note,
-  COALESCE(pt.why_we_love_it,  pt_lang.why_we_love_it,  pt_fb.why_we_love_it)                    AS why_we_love_it,
-  COALESCE(pt.insider_tip,     pt_lang.insider_tip,     pt_fb.insider_tip)                        AS insider_tip,
-  COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description, p.short_description) AS short_description,
-  COALESCE(pt.full_description,  pt_lang.full_description,  pt_fb.full_description,  p.full_description)  AS full_description,
+  COALESCE(NULLIF(pt.goldenbook_note,''), NULLIF(pt_lang.goldenbook_note,''), NULLIF(pt_fb.goldenbook_note,''))                     AS goldenbook_note,
+  COALESCE(NULLIF(pt.why_we_love_it,''),  NULLIF(pt_lang.why_we_love_it,''),  NULLIF(pt_fb.why_we_love_it,''))                     AS why_we_love_it,
+  COALESCE(NULLIF(pt.insider_tip,''),     NULLIF(pt_lang.insider_tip,''),     NULLIF(pt_fb.insider_tip,''))                         AS insider_tip,
+  COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
+  COALESCE(NULLIF(pt.full_description,''),  NULLIF(pt_lang.full_description,''),  NULLIF(pt_fb.full_description,''),  p.full_description)  AS full_description,
   p.phone,
   p.email,
   p.website_url,
@@ -186,7 +186,7 @@ export async function getPlaceCategories(placeId: string, locale: string): Promi
     SELECT
       c.id,
       c.slug,
-      COALESCE(ct.name, ct_lang.name, ct_fb.name, c.slug) AS name,
+      COALESCE(NULLIF(ct.name,''), NULLIF(ct_lang.name,''), NULLIF(ct_fb.name,''), c.slug) AS name,
       'category'                                           AS type
     FROM place_categories pc
     JOIN categories c ON c.id = pc.category_id
@@ -203,7 +203,7 @@ export async function getPlaceCategories(placeId: string, locale: string): Promi
     SELECT
       s.id,
       s.slug,
-      COALESCE(st.name, st_lang.name, st_fb.name, s.slug) AS name,
+      COALESCE(NULLIF(st.name,''), NULLIF(st_lang.name,''), NULLIF(st_fb.name,''), s.slug) AS name,
       'subcategory'                                        AS type
     FROM place_categories pc
     JOIN subcategories s ON s.id = pc.subcategory_id
@@ -288,8 +288,8 @@ export async function getOtherLocations(
     SELECT
       p.id,
       p.slug,
-      COALESCE(pt.name,   pt_lang.name,   pt_fb.name,   p.name)   AS name,
-      COALESCE(dt.name,   dt_lang.name,   dt_fb.name,   d.name)   AS city_name,
+      COALESCE(NULLIF(pt.name,''),   NULLIF(pt_lang.name,''),   NULLIF(pt_fb.name,''),   p.name)   AS name,
+      COALESCE(NULLIF(dt.name,''),   NULLIF(dt_lang.name,''),   NULLIF(dt_fb.name,''),   d.name)   AS city_name,
       hero_img.bucket                                              AS hero_bucket,
       hero_img.path                                               AS hero_path
     FROM places p
@@ -356,7 +356,7 @@ export async function getNearbyGems(
       SELECT
         p.id,
         p.slug,
-        COALESCE(pt.name, pt_lang.name, pt_fb.name, p.name) AS name,
+        COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name) AS name,
         hero_img.bucket                                      AS hero_bucket,
         hero_img.path                                        AS hero_path,
         6371000 * 2 * ASIN(SQRT(

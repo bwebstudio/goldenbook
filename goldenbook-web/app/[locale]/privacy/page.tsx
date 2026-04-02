@@ -14,7 +14,7 @@ export async function generateMetadata({
   params: { locale: string }
 }): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: 'privacy' })
-  return { title: `${t('title')} — Goldenbook` }
+  return { title: `${t('title')} — Goldenbook Go` }
 }
 
 export default async function PrivacyPage({
@@ -28,7 +28,7 @@ export default async function PrivacyPage({
   return (
     <div className="bg-ivory min-h-screen">
       <div className="section-padding pt-40 pb-32 max-w-2xl">
-        <p className="eyebrow mb-6">Goldenbook</p>
+        <p className="eyebrow mb-6">Goldenbook Go</p>
         <h1
           className="text-[40px] md:text-[52px] font-medium leading-tight tracking-tight text-ink mb-6"
           style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}

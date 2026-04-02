@@ -23,7 +23,7 @@ export const pt: Translations = {
     language: 'Idioma',
     notifications: 'Notificações',
     changeDestination: 'Mudar Destino',
-    about: 'Sobre o Goldenbook',
+    about: 'Sobre o Goldenbook Go',
     contact: 'Contacto',
     privacy: 'Política de Privacidade',
     terms: 'Termos e Condições',
@@ -51,7 +51,7 @@ export const pt: Translations = {
   preferences: {
     title: 'As Minhas Preferências',
     subtitle: 'O que adoras?',
-    body: 'Seleciona os teus interesses — o Goldenbook usa-os para mostrar os picks, rotas e lugares que mais importam para ti.',
+    body: 'Seleciona os teus interesses — o Goldenbook Go usa-os para mostrar os picks, rotas e lugares que mais importam para ti.',
     saved: 'Guardado',
     selectHint: 'Seleciona quantos quiseres',
     selectedSingular: 'interesse selecionado',
@@ -63,6 +63,7 @@ export const pt: Translations = {
     subtitle: 'Escolhe o teu idioma preferido.',
     english: 'English',
     portugues: 'Português (Portugal)',
+    spanish: 'Español',
     current: 'Idioma atual',
   },
 
@@ -100,10 +101,10 @@ export const pt: Translations = {
     goldenPicks: 'Golden Picks',
     exploreByCategory: 'Explorar por Categoria',
     goldenRoutes: 'Golden Routes',
-    newOnGoldenbook: 'Novidades no Goldenbook',
+    newOnGoldenbook: 'Novidades no Goldenbook Go',
     seeAll: 'Ver Todos',
     exploreNow: 'Explorar Agora',
-    goldenbookRecommendation: 'Recomendação Goldenbook',
+    goldenbookRecommendation: 'Recomendação Goldenbook Go',
     nearYou: 'Perto de Ti',
     curatedItinerary: 'Itinerário Curado',
     beginRoute: 'Iniciar Rota',
@@ -115,10 +116,10 @@ export const pt: Translations = {
   now: {
     eyebrowMorning: 'AGORA EM',
     eyebrowMidday: 'PARA ESTE MOMENTO EM',
-    eyebrowAfternoon: 'O TEU GOLDENBOOK AGORA',
-    eyebrowEvening: 'PERFEITO AGORA EM',
+    eyebrowAfternoon: 'O TEU GOLDENBOOK GO AGORA',
+    eyebrowEvening: 'RECOMENDADO AGORA EM',
     eyebrowNight: 'PARA ESTA NOITE EM',
-    headlineMorning: 'Uma paragem perfeita a meio da manhã',
+    headlineMorning: 'Uma paragem ideal a meio da manhã',
     headlineMidday: 'Ideal para agora em',
     headlineAfternoon: 'Ideal para uma tarde tranquila',
     headlineEvening: 'O tipo de lugar para viveres esta noite',
@@ -128,6 +129,13 @@ export const pt: Translations = {
     supportingAfternoon: 'Aberto agora · Vale cada momento',
     supportingEvening: 'Aberto agora · Elegante · Esta noite',
     supportingNight: 'Aberto agora · Para a noite que se aproxima',
+    seeAnother: 'Ver outra opção',
+    lookingForMore: 'Procura algo diferente?',
+    openConcierge: 'Perguntar ao Concierge',
+    exploreNow: 'EXPLORAR AGORA',
+    adjustRelax: 'Mais tranquilo',
+    adjustEnergy: 'Mais animado',
+    adjustTreat: 'Algo especial',
   },
 
   concierge: {
@@ -169,7 +177,7 @@ export const pt: Translations = {
 
   place: {
     couldNotLoad: 'Não foi possível carregar este lugar.\nVerifica a tua ligação e tenta novamente.',
-    goldenbookPerspective: 'A Perspectiva Goldenbook',
+    goldenbookPerspective: 'A Perspectiva Goldenbook Go',
     editorialStaff: 'Equipa Editorial',
     whyWeLoveIt: 'Porque Adoramos',
     insiderTip: 'Dica de Insider',
@@ -191,7 +199,7 @@ export const pt: Translations = {
     editorsFavorite: 'Favorito da Redação',
     threeMichelinStars: 'Três Estrelas Michelin',
     exceptional: 'Excecional',
-    goldenbookNotePlaceholder: 'Um endereço verdadeiramente essencial nesta cidade. Cada detalhe foi escolhido com intenção — é exatamente o tipo de lugar que o Goldenbook existe para revelar.',
+    goldenbookNotePlaceholder: 'Um endereço verdadeiramente essencial nesta cidade. Cada detalhe foi escolhido com intenção — é exatamente o tipo de lugar que o Goldenbook Go existe para revelar.',
     insiderTipPlaceholder: 'Chega cedo ou reserva com antecedência. As horas mais tranquilas revelam uma atmosfera completamente diferente, e o serviço é muito mais atento quando não está cheio.',
     readMore: 'Ler mais',
     readLess: 'Ler menos',
@@ -199,7 +207,7 @@ export const pt: Translations = {
 
   goldenPicks: {
     title: 'Golden Picks',
-    curatedBy: 'Curado pelo Goldenbook',
+    curatedBy: 'Curado pelo Goldenbook Go',
     featured: 'Destaque',
     allPicks: 'Todos os Golden Picks',
     couldNotLoad: 'Não foi possível carregar os Golden Picks.\nVerifica a tua ligação e tenta novamente.',
@@ -219,6 +227,24 @@ export const pt: Translations = {
 
   route: {
     couldNotLoad: 'Não foi possível carregar esta rota.\nVerifica a tua ligação e tenta novamente.',
+  },
+
+  location: {
+    discoverNearYouTitle: 'Descobre lugares perto de ti',
+    discoverNearYouBody: 'A localização ajuda-nos a mostrar lugares próximos e recomendações locais.',
+    useLocation: 'Usar localização',
+    notNow: 'Agora não',
+    exploreCuratedTitle: 'Explora recantos selecionados',
+    exploreCuratedBody: 'A localização ajuda-nos a mostrar lugares próximos, mas podes continuar a descobrir a nossa seleção editorial em Portugal.',
+    browsePlaces: 'Explorar lugares',
+    outsideRegionsTitle: 'Ainda não há lugares perto de ti',
+    outsideRegionsBody: 'O Goldenbook está centrado em lugares selecionados em Portugal. Podes explorar por destino ou descobrir a nossa seleção editorial.',
+    explorePortugal: 'Explorar Portugal',
+    changeDestination: 'Mudar destino',
+    noPlacesNearbyTitle: 'Sem lugares por perto neste momento',
+    noPlacesNearbyBody: 'Experimenta outro destino ou explora a nossa seleção curada.',
+    locationErrorTitle: 'Não foi possível determinar a tua localização',
+    locationErrorBody: 'Não conseguimos aceder à tua posição. Podes tentar novamente ou explorar as nossas seleções curadas.',
   },
 
   journey: {

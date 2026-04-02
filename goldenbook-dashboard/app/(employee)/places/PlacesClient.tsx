@@ -27,7 +27,7 @@ const BOOKING_OPTIONS: { value: BookingFilter; label: string }[] = [
 ];
 
 const filterSelectClass =
-  "rounded-xl border border-border bg-white px-4 py-3 text-base text-text focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition appearance-none cursor-pointer min-w-[160px]";
+  "rounded-xl border border-border bg-white px-4 py-3 text-base text-text focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition appearance-none cursor-pointer w-full sm:min-w-[160px] sm:w-auto";
 
 interface PlacesClientProps {
   places: UIPlace[];
@@ -110,11 +110,11 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
   }, [places]);
 
   return (
-    <div className="max-w-5xl flex flex-col gap-6">
+    <div className="w-full max-w-5xl flex flex-col gap-6">
       {/* Suggestion summary bar */}
       {suggestionStats.withSuggestion > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-6 text-sm">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-sm">
             <span className="text-amber-800 font-semibold">{suggestionStats.withSuggestion} suggestions available</span>
             <span className="text-muted">{suggestionStats.highConf} high confidence</span>
             <span className="text-muted">{suggestionStats.pendingReview} pending review</span>
@@ -124,7 +124,7 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
             <button
               onClick={handleBulkApply}
               disabled={bulkActionStatus === "loading"}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-60 w-full sm:w-auto"
             >
               {bulkActionStatus === "loading" ? "Applying..." :
                bulkActionStatus === "done" ? "Applied!" :
@@ -135,9 +135,9 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
       )}
 
       {/* Top action row */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         {/* Search */}
-        <div className="relative flex-1 min-w-60 max-w-sm">
+        <div className="relative flex-1 min-w-0 sm:min-w-60 sm:max-w-sm">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B0AAA3] pointer-events-none">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
@@ -155,7 +155,7 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
 
         <Link
           href="/places/new"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors whitespace-nowrap"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors whitespace-nowrap w-full sm:w-auto"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
@@ -166,8 +166,8 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
       </div>
 
       {/* Filters row */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-sm font-semibold text-muted mr-1">Filter by:</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <span className="text-sm font-semibold text-muted sm:col-span-2 lg:col-span-4">Filter by:</span>
 
         {/* City */}
         <select
@@ -218,7 +218,7 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="text-sm font-semibold text-muted hover:text-gold underline transition-colors cursor-pointer ml-1"
+            className="text-sm font-semibold text-muted hover:text-gold underline transition-colors cursor-pointer sm:col-span-2 lg:col-span-4"
           >
             Clear filters
           </button>
@@ -239,7 +239,7 @@ export default function PlacesClient({ places, cities, categories }: PlacesClien
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-20 flex flex-col items-center gap-5 text-center">
+        <div className="bg-white rounded-2xl border border-border shadow-sm px-4 py-12 sm:px-8 sm:py-20 flex flex-col items-center gap-5 text-center">
           <div className="w-16 h-16 rounded-2xl bg-[#FBF7F0] flex items-center justify-center text-gold">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />

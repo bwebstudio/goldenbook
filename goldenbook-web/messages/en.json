@@ -4,7 +4,7 @@
     "routes": "Golden Routes",
     "cities": "Explore",
     "download": "Download",
-    "logoAlt": "Goldenbook"
+    "logoAlt": "Goldenbook Go"
   },
   "hero": {
     "eyebrow": "The curated city guide",
@@ -20,15 +20,55 @@
     "eyebrow": "Golden Picks",
     "headline": "The places\nworth knowing.",
     "subheadline": "Curated by taste. Not by algorithm.",
-    "whyWeLoveIt": "Why we love it",
-    "viewAll": "View all picks"
+    "viewAll": "Discover all",
+    "archetype": {
+      "stay": {
+        "eyebrow": "Experiences",
+        "title": "Where Lisbon slows down",
+        "subtitle": "Elegant retreats above the city."
+      },
+      "dine": {
+        "eyebrow": "Gastronomy",
+        "title": "Dinner with a view",
+        "subtitle": "Flavours that follow the sunset."
+      },
+      "discover": {
+        "eyebrow": "Lifestyle",
+        "title": "The luxury of discovery",
+        "subtitle": "Unique pieces, discreet places."
+      }
+    }
   },
   "whatNow": {
-    "eyebrow": "For you, right now",
-    "morning": "Start your morning here.",
-    "afternoon": "The perfect afternoon stop.",
-    "evening": "Where to be tonight.",
-    "night": "The city after dark.",
+    "tab": {
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "night": "Night"
+    },
+    "mood": {
+      "calm": {
+        "eyebrow": "For you, right now",
+        "title": "Start the day gently",
+        "subtitle": "Lisbon still in silence."
+      },
+      "vibrant": {
+        "eyebrow": "For you, right now",
+        "title": "Lisbon in golden light",
+        "subtitle": "The best of the city at golden hour."
+      },
+      "relaxed": {
+        "eyebrow": "For you, right now",
+        "title": "Between Lisbon and the Atlantic",
+        "subtitle": "Breathe, slow down, enjoy."
+      },
+      "intimate": {
+        "eyebrow": "For you, right now",
+        "title": "Lisbon after the lights",
+        "subtitle": "The city at a different pace."
+      }
+    },
+    "suggestion": "Our suggestion",
     "explore": "Explore"
   },
   "goldenRoutes": {
@@ -72,30 +112,30 @@
   "finalCta": {
     "eyebrow": "Available now",
     "headline": "Discover the city\nbefore you arrive.",
-    "subheadline": "Download Goldenbook and start exploring Lisbon, Porto, and beyond.",
+    "subheadline": "Download Goldenbook Go and start exploring Lisbon, Porto, and beyond.",
     "appStore": "Download on the App Store",
     "googlePlay": "Get it on Google Play",
     "free": "Free to download"
   },
   "about": {
-    "title": "About Goldenbook",
+    "title": "About Goldenbook Go",
     "subtitle": "The curated city guide for the discerning traveller.",
-    "body1": "Goldenbook is a curated guide to the places that actually matter — the restaurants worth the detour, the viewpoints only locals know, the neighbourhood bars with no sign on the door.",
-    "body2": "We believe the best travel experiences come from genuine knowledge, not algorithms. Every place in Goldenbook is selected by editors with deep roots in their cities.",
+    "body1": "Goldenbook Go is a curated guide to the places that actually matter — the restaurants worth the detour, the viewpoints only locals know, the neighbourhood bars with no sign on the door.",
+    "body2": "We believe the best travel experiences come from genuine knowledge, not algorithms. Every place in Goldenbook Go is selected by editors with deep roots in their cities.",
     "body3": "We started in Lisbon. We are expanding to Porto, the Algarve, and beyond."
   },
   "privacy": {
     "title": "Privacy Policy",
     "subtitle": "We keep your data simple and your experience clean.",
-    "body1": "Goldenbook collects only the data necessary to personalise your experience: your saved places, preferred city, and language setting. We do not sell your data.",
+    "body1": "Goldenbook Go collects only the data necessary to personalise your experience: your saved places, preferred city, and language setting. We do not sell your data.",
     "body2": "We use Supabase for secure authentication and data storage. Analytics are anonymised and never linked to your identity.",
     "body3": "To request deletion of your account and data, contact us at privacy@goldenbook.app."
   },
   "terms": {
     "title": "Terms of Use",
-    "subtitle": "Simple rules for using Goldenbook.",
-    "body1": "By using Goldenbook, you agree to use the app and website for personal, non-commercial purposes only.",
-    "body2": "All editorial content — picks, routes, and descriptions — is the property of Goldenbook. You may share links, but reproduction without permission is not permitted.",
+    "subtitle": "Simple rules for using Goldenbook Go.",
+    "body1": "By using Goldenbook Go, you agree to use the app and website for personal, non-commercial purposes only.",
+    "body2": "All editorial content — picks, routes, and descriptions — is the property of Goldenbook Go. You may share links, but reproduction without permission is not permitted.",
     "body3": "We reserve the right to update these terms. Continued use of the app constitutes acceptance of any changes."
   },
   "contact": {
@@ -113,6 +153,6 @@
       "contact": "Contact"
     },
     "cities": "Lisboa · Porto · Algarve · Madeira",
-    "copyright": "© {year} Goldenbook. All rights reserved."
+    "copyright": "© {year} Goldenbook Go. All rights reserved."
   }
 }

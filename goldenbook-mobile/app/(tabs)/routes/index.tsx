@@ -1,11 +1,11 @@
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoutes } from '@/features/routes/hooks/useRoutes';
 import { RouteCard } from '@/features/routes/components';
 import { useTranslation } from '@/i18n';
 
 export default function RoutesScreen() {
-  const { data, isLoading, isError } = useRoutes();
+  const { data, isLoading, isError, refetch } = useRoutes();
   const t = useTranslation();
 
   // Featured = first item with featured flag, fallback to first item
@@ -18,7 +18,7 @@ export default function RoutesScreen() {
         {/* Editorial header */}
         <View className="px-6 pt-8 pb-4">
           <Text className="text-[10px] uppercase tracking-widest font-bold text-primary mb-2">
-            Goldenbook
+            Goldenbook Go
           </Text>
           <Text
             className="text-3xl font-bold text-navy tracking-tight"
@@ -44,7 +44,16 @@ export default function RoutesScreen() {
         {/* Error */}
         {isError && (
           <View className="items-center justify-center py-20 px-8">
-            <Text className="text-navy/40 text-center text-sm">{t.routes.couldNotLoad}</Text>
+            <Text className="text-navy/40 text-center text-sm mb-5">{t.routes.couldNotLoad}</Text>
+            <TouchableOpacity
+              onPress={() => refetch()}
+              activeOpacity={0.85}
+              className="bg-primary rounded-lg px-6 py-3"
+            >
+              <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+                {t.common.retry}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 

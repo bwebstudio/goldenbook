@@ -17,6 +17,15 @@ export interface BusinessImageDTO {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export interface BusinessPlaceSummary {
+  id: string;
+  name: string;
+  slug: string;
+  cityName: string | null;
+  status: string;
+  role: "owner" | "manager";
+}
+
 export interface BusinessMeResponse {
   client: {
     id: string;
@@ -33,6 +42,7 @@ export interface BusinessMeResponse {
     citySlug: string | null;
     status: string;
   } | null;
+  places: BusinessPlaceSummary[];
 }
 
 export interface BusinessPlaceProfile {
@@ -152,6 +162,42 @@ export interface PurchaseDTO {
 export async function fetchBusinessPurchases(): Promise<PurchaseDTO[]> {
   const data = await apiGet<{ items: PurchaseDTO[] }>("/api/v1/business/purchases");
   return data.items;
+}
+
+// ─── Billing ───────────────────────────────────────────────────────────────
+
+export interface BillingPurchase {
+  id: string;
+  placementType: string | null;
+  city: string | null;
+  unitDays: number;
+  price: string;
+  currency: string;
+  status: string;
+  receiptUrl: string | null;
+  createdAt: string;
+  activatedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface BillingMembership {
+  id: string;
+  status: string;
+  pricePaid: string;
+  currency: string;
+  stripeSubscriptionId: string | null;
+  startsAt: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface BillingData {
+  purchases: BillingPurchase[];
+  memberships: BillingMembership[];
+}
+
+export async function fetchBusinessBilling(): Promise<BillingData> {
+  return apiGet("/api/v1/business/billing");
 }
 
 export interface AdminPurchaseDTO extends PurchaseDTO {

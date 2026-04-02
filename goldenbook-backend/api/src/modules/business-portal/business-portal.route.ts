@@ -14,6 +14,12 @@ import {
   approveAndCreateVisibility,
 } from './placement-requests.query'
 import { getPlaceImages } from '../admin/places/admin-images.query'
+import {
+  notifyChangeApproved,
+  notifyChangeRejected,
+  notifyPromotionApproved,
+  notifyPromotionRejected,
+} from '../notifications/notifications.triggers'
 
 const placementTypes = [
   'golden_picks', 'now', 'hidden_gems', 'category_featured',
@@ -70,6 +76,19 @@ export async function businessPortalRoutes(app: FastifyInstance) {
 
     const place = rows[0]
 
+    // Fetch summary for all linked places
+    const allPlaceIds = client.places.map((p) => p.placeId)
+    const { rows: allPlaces } = allPlaceIds.length > 0
+      ? await db.query<{
+          id: string; name: string; slug: string; city_name: string | null; status: string
+        }>(`
+          SELECT p.id, p.name, p.slug, d.name AS city_name, p.status
+          FROM places p
+          LEFT JOIN destinations d ON d.id = p.destination_id
+          WHERE p.id = ANY($1)
+        `, [allPlaceIds])
+      : { rows: [] as { id: string; name: string; slug: string; city_name: string | null; status: string }[] }
+
     return reply.send({
       client: {
         id: client.id,
@@ -86,6 +105,14 @@ export async function businessPortalRoutes(app: FastifyInstance) {
         citySlug: place.city_slug,
         status: place.status,
       } : null,
+      places: allPlaces.map((p) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        cityName: p.city_name,
+        status: p.status,
+        role: client.places.find((pu) => pu.placeId === p.id)?.role ?? 'owner',
+      })),
     })
   })
 
@@ -269,6 +296,109 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     return reply.send({ items: rows })
   })
 
+  // ── GET /business/billing ───────────────────────────────────────────────
+  // Full billing history with Stripe receipt URLs
+  app.get('/business/billing', { preHandler: [authenticateBusinessClient] }, async (request, reply) => {
+    const client = request.businessClient!
+
+    const { rows: purchases } = await db.query<{
+      id: string
+      placement_type: string | null
+      city: string | null
+      unit_days: number
+      final_price: string
+      currency: string
+      status: string
+      stripe_payment_intent_id: string | null
+      stripe_checkout_session_id: string | null
+      created_at: string
+      activated_at: string | null
+      expires_at: string | null
+    }>(
+      `SELECT id, placement_type, city, unit_days, final_price, currency,
+              status, stripe_payment_intent_id, stripe_checkout_session_id,
+              created_at, activated_at, expires_at
+       FROM purchases
+       WHERE business_client_id = $1
+       ORDER BY created_at DESC`,
+      [client.id],
+    ).catch(() => ({ rows: [] as never[] }))
+
+    // Fetch Stripe receipt URLs for paid purchases
+    const { env } = await import('../../config/env')
+    let receiptMap: Record<string, string> = {}
+
+    if (env.STRIPE_SECRET_KEY) {
+      const Stripe = (await import('stripe')).default
+      const stripe = new Stripe(env.STRIPE_SECRET_KEY)
+
+      const piIds = purchases
+        .filter((p) => p.stripe_payment_intent_id && ['paid', 'activated', 'expired'].includes(p.status))
+        .map((p) => p.stripe_payment_intent_id!)
+
+      // Batch fetch charges for payment intents (max 10 to avoid rate limits)
+      const toFetch = piIds.slice(0, 10)
+      const results = await Promise.allSettled(
+        toFetch.map(async (piId) => {
+          const charges = await stripe.charges.list({ payment_intent: piId, limit: 1 })
+          const charge = charges.data[0]
+          return { piId, receiptUrl: charge?.receipt_url ?? null }
+        }),
+      )
+
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value.receiptUrl) {
+          receiptMap[r.value.piId] = r.value.receiptUrl
+        }
+      }
+    }
+
+    // Membership info
+    const { rows: memberships } = await db.query<{
+      id: string
+      status: string
+      price_paid: string
+      currency: string
+      stripe_subscription_id: string | null
+      starts_at: string
+      expires_at: string
+      created_at: string
+    }>(
+      `SELECT id, status, price_paid::text, currency, stripe_subscription_id,
+              starts_at::text, expires_at::text, created_at::text
+       FROM memberships
+       WHERE business_client_id = $1
+       ORDER BY created_at DESC`,
+      [client.id],
+    ).catch(() => ({ rows: [] as never[] }))
+
+    return reply.send({
+      purchases: purchases.map((p) => ({
+        id: p.id,
+        placementType: p.placement_type,
+        city: p.city,
+        unitDays: p.unit_days,
+        price: p.final_price,
+        currency: p.currency,
+        status: p.status,
+        receiptUrl: p.stripe_payment_intent_id ? (receiptMap[p.stripe_payment_intent_id] ?? null) : null,
+        createdAt: p.created_at,
+        activatedAt: p.activated_at,
+        expiresAt: p.expires_at,
+      })),
+      memberships: memberships.map((m) => ({
+        id: m.id,
+        status: m.status,
+        pricePaid: m.price_paid,
+        currency: m.currency,
+        stripeSubscriptionId: m.stripe_subscription_id,
+        startsAt: m.starts_at,
+        expiresAt: m.expires_at,
+        createdAt: m.created_at,
+      })),
+    })
+  })
+
   // ── POST /business/requests ─────────────────────────────────────────────
   // Submit a new placement request
   app.post('/business/requests', { preHandler: [authenticateBusinessClient] }, async (request, reply) => {
@@ -440,6 +570,14 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     }).parse(request.body)
 
     const visibilityId = await approveAndCreateVisibility(id, body.adminNotes)
+
+    // Notify the business user
+    const req = await getRequestByIdAdmin(id)
+    if (req) {
+      const { rows: bcRows } = await db.query<{ user_id: string }>('SELECT user_id FROM business_clients WHERE id = $1', [req.client_id]).catch(() => ({ rows: [] as { user_id: string }[] }))
+      if (bcRows[0]) notifyPromotionApproved(bcRows[0].user_id, req.placement_type).catch(() => {})
+    }
+
     return reply.send({ approved: true, visibilityId })
   })
 
@@ -454,6 +592,13 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     const body = z.object({
       adminNotes: z.string().nullable().default(null),
     }).parse(request.body)
+
+    // Notify the business user
+    const req = await getRequestByIdAdmin(id)
+    if (req) {
+      const { rows: bcRows } = await db.query<{ user_id: string }>('SELECT user_id FROM business_clients WHERE id = $1', [req.client_id]).catch(() => ({ rows: [] as { user_id: string }[] }))
+      if (bcRows[0]) notifyPromotionRejected(bcRows[0].user_id, req.placement_type, body.adminNotes).catch(() => {})
+    }
 
     await updateRequestStatus(id, 'rejected', body.adminNotes, null)
     return reply.send({ rejected: true })
@@ -561,6 +706,10 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       [request.adminUser?.email ?? 'unknown', body.reviewNote, id],
     )
 
+    // Notify the submitter
+    const { rows: crRows } = await db.query<{ created_by: string | null }>('SELECT created_by FROM place_change_requests WHERE id = $1', [id]).catch(() => ({ rows: [] as { created_by: string | null }[] }))
+    if (crRows[0]?.created_by) notifyChangeApproved(crRows[0].created_by, field_name).catch(() => {})
+
     return reply.send({ approved: true })
   })
 
@@ -568,6 +717,10 @@ export async function businessPortalRoutes(app: FastifyInstance) {
   app.post('/admin/review-queue/:id/reject', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
     const body = z.object({ reviewNote: z.string().nullable().default(null) }).parse(request.body)
+
+    // Notify the submitter before updating
+    const { rows: crInfo } = await db.query<{ created_by: string | null; field_name: string }>('SELECT created_by, field_name FROM place_change_requests WHERE id = $1', [id]).catch(() => ({ rows: [] as { created_by: string | null; field_name: string }[] }))
+    if (crInfo[0]?.created_by) notifyChangeRejected(crInfo[0].created_by, crInfo[0].field_name, body.reviewNote).catch(() => {})
 
     await db.query(
       `UPDATE place_change_requests SET status = 'rejected', reviewed_by = $1, review_note = $2, reviewed_at = now() WHERE id = $3`,
@@ -586,17 +739,70 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       id: string; email: string; full_name: string | null; role: string
     }>('SELECT id, email, full_name, role FROM admin_users ORDER BY role, email')
 
-    const { rows: clients } = await db.query<{
-      id: string; user_id: string; contact_name: string | null; contact_email: string | null
-      place_name: string; place_slug: string; is_active: boolean
-    }>(`
-      SELECT DISTINCT ON (COALESCE(bc.contact_email, bc.user_id::text), bc.place_id)
-             bc.id, bc.user_id, bc.contact_name, bc.contact_email,
-             p.name AS place_name, p.slug AS place_slug, bc.is_active
-      FROM business_clients bc
-      JOIN places p ON p.id = bc.place_id
-      ORDER BY COALESCE(bc.contact_email, bc.user_id::text), bc.place_id, bc.created_at DESC
-    `)
+    // Fetch all user↔place links. Try with place_users first, fall back to business_clients only.
+    let clientRows: {
+      user_id: string; contact_name: string | null; contact_email: string | null; is_active: boolean
+      place_id: string; place_name: string; place_slug: string; place_role: string
+    }[]
+
+    try {
+      const result = await db.query<typeof clientRows[number]>(`
+        SELECT
+          COALESCE(pu.user_id, bc.user_id) AS user_id,
+          bc.contact_name,
+          bc.contact_email,
+          COALESCE(bc.is_active, true) AS is_active,
+          COALESCE(pu.place_id, bc.place_id) AS place_id,
+          p.name AS place_name,
+          p.slug AS place_slug,
+          COALESCE(pu.role, 'owner') AS place_role
+        FROM business_clients bc
+        FULL OUTER JOIN place_users pu
+          ON pu.user_id = bc.user_id AND pu.place_id = bc.place_id
+        JOIN places p ON p.id = COALESCE(pu.place_id, bc.place_id)
+        WHERE COALESCE(bc.is_active, true) = true
+        ORDER BY COALESCE(pu.user_id, bc.user_id), p.name
+      `)
+      clientRows = result.rows
+    } catch {
+      // place_users table may not exist yet — fall back to business_clients only
+      const result = await db.query<typeof clientRows[number]>(`
+        SELECT bc.user_id, bc.contact_name, bc.contact_email, bc.is_active,
+               bc.place_id, p.name AS place_name, p.slug AS place_slug, 'owner' AS place_role
+        FROM business_clients bc
+        JOIN places p ON p.id = bc.place_id
+        WHERE bc.is_active = true
+        ORDER BY bc.user_id, p.name
+      `)
+      clientRows = result.rows
+    }
+
+    // Group by user
+    const clientMap = new Map<string, {
+      user_id: string; contact_name: string | null; contact_email: string | null; is_active: boolean
+      places: { id: string; name: string; slug: string; role: string }[]
+    }>()
+    for (const row of clientRows) {
+      let entry = clientMap.get(row.user_id)
+      if (!entry) {
+        entry = {
+          user_id: row.user_id,
+          contact_name: row.contact_name,
+          contact_email: row.contact_email,
+          is_active: row.is_active,
+          places: [],
+        }
+        clientMap.set(row.user_id, entry)
+      }
+      if (!entry.contact_name && row.contact_name) entry.contact_name = row.contact_name
+      if (!entry.contact_email && row.contact_email) entry.contact_email = row.contact_email
+      // Avoid duplicate places
+      if (!entry.places.some((ep) => ep.id === row.place_id)) {
+        entry.places.push({ id: row.place_id, name: row.place_name, slug: row.place_slug, role: row.place_role })
+      }
+    }
+
+    const clients = Array.from(clientMap.values())
 
     return reply.send({ admins, clients })
   })
@@ -623,13 +829,21 @@ export async function businessPortalRoutes(app: FastifyInstance) {
   })
 
   // ── POST /admin/users/create-client ─────────────────────────────────────
-  // Both super_admin and editor can create business clients
+  // Both super_admin and editor can create business clients.
+  // Accepts placeIds (array) or placeId (single) for backward compat.
   app.post('/admin/users/create-client', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const body = z.object({
       email: z.string().email(),
       contactName: z.string().min(1),
-      placeId: z.string().uuid(),
+      placeIds: z.array(z.string().uuid()).optional(),
+      placeId: z.string().uuid().optional(),
+      role: z.enum(['owner', 'manager']).default('owner'),
     }).parse(request.body)
+
+    const placeIds = body.placeIds ?? (body.placeId ? [body.placeId] : [])
+    if (placeIds.length === 0) {
+      throw new AppError(400, 'At least one place is required', 'VALIDATION_ERROR')
+    }
 
     // Find the auth user by email
     const { rows: authUsers } = await db.query<{ id: string }>(
@@ -649,13 +863,153 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       [userId],
     )
 
-    // Create business client
-    await db.query(`
-      INSERT INTO business_clients (user_id, place_id, contact_name, contact_email, is_active)
-      VALUES ($1, $2, $3, $4, true)
-      ON CONFLICT (user_id, place_id) DO UPDATE SET contact_name = $3, contact_email = $4, is_active = true
-    `, [userId, body.placeId, body.contactName, body.email])
+    // Create business_clients + place_users for each place
+    for (const pid of placeIds) {
+      await db.query(`
+        INSERT INTO business_clients (user_id, place_id, contact_name, contact_email, is_active)
+        VALUES ($1, $2, $3, $4, true)
+        ON CONFLICT (user_id, place_id) DO UPDATE SET contact_name = $3, contact_email = $4, is_active = true
+      `, [userId, pid, body.contactName, body.email])
+
+      // place_users may not exist yet if migration is pending
+      await db.query(`
+        INSERT INTO place_users (place_id, user_id, role)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (place_id, user_id) DO UPDATE SET role = $3
+      `, [pid, userId, body.role]).catch(() => {})
+    }
 
     return reply.status(201).send({ created: true })
+  })
+
+  // ── PUT /admin/users/:userId/places ────────────────────────────────────
+  // Sync a business user's linked places (add/remove)
+  app.put('/admin/users/:userId/places', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const body = z.object({
+      placeIds: z.array(z.string().uuid()).min(1, 'At least one place is required'),
+      contactName: z.string().min(1).optional(),
+      contactEmail: z.string().email().optional(),
+    }).parse(request.body)
+
+    const newSet = new Set(body.placeIds)
+
+    // Get current places from both tables
+    let currentPlaceIds: string[] = []
+    try {
+      const { rows } = await db.query<{ place_id: string }>(
+        'SELECT place_id FROM place_users WHERE user_id = $1',
+        [userId],
+      )
+      currentPlaceIds = rows.map((r) => r.place_id)
+    } catch { /* place_users may not exist */ }
+
+    // Also check business_clients for completeness
+    const { rows: bcRows } = await db.query<{ place_id: string }>(
+      'SELECT place_id FROM business_clients WHERE user_id = $1 AND is_active = true',
+      [userId],
+    )
+    for (const r of bcRows) {
+      if (!currentPlaceIds.includes(r.place_id)) currentPlaceIds.push(r.place_id)
+    }
+
+    const currentSet = new Set(currentPlaceIds)
+
+    // Places to add
+    const toAdd = body.placeIds.filter((id) => !currentSet.has(id))
+    // Places to remove
+    const toRemove = currentPlaceIds.filter((id) => !newSet.has(id))
+
+    for (const pid of toAdd) {
+      await db.query(
+        `INSERT INTO place_users (place_id, user_id, role) VALUES ($1, $2, 'owner') ON CONFLICT (place_id, user_id) DO NOTHING`,
+        [pid, userId],
+      ).catch(() => {})
+      await db.query(`
+        INSERT INTO business_clients (user_id, place_id, contact_name, contact_email, is_active)
+        VALUES ($1, $2, $3, $4, true)
+        ON CONFLICT (user_id, place_id) DO UPDATE SET is_active = true
+      `, [userId, pid, body.contactName ?? null, body.contactEmail ?? null])
+    }
+
+    for (const pid of toRemove) {
+      await db.query('DELETE FROM place_users WHERE user_id = $1 AND place_id = $2', [userId, pid]).catch(() => {})
+      await db.query('UPDATE business_clients SET is_active = false WHERE user_id = $1 AND place_id = $2', [userId, pid])
+    }
+
+    return reply.send({ updated: true, added: toAdd.length, removed: toRemove.length })
+  })
+
+  // ── POST /admin/users/create-client-with-place ─────────────────────────
+  // Create a new place + business client in one flow
+  app.post('/admin/users/create-client-with-place', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const body = z.object({
+      email: z.string().email(),
+      contactName: z.string().min(1),
+      placeName: z.string().min(1),
+      placeSlug: z.string().min(1),
+      destinationId: z.string().uuid().nullable().default(null),
+    }).parse(request.body)
+
+    // Find the auth user by email
+    const { rows: authUsers } = await db.query<{ id: string }>(
+      'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
+      [body.email],
+    )
+
+    if (authUsers.length === 0) {
+      throw new AppError(400, 'No Supabase auth user found for this email. Create the user in Supabase Auth first.', 'USER_NOT_FOUND')
+    }
+
+    const userId = authUsers[0].id
+    const client = await db.connect()
+
+    try {
+      await client.query('BEGIN')
+
+      // Ensure public users record exists
+      await client.query(
+        'INSERT INTO users (id, onboarding_completed, created_at, updated_at) VALUES ($1, false, NOW(), NOW()) ON CONFLICT (id) DO NOTHING',
+        [userId],
+      )
+
+      // Create the place
+      const { rows: placeRows } = await client.query<{ id: string }>(
+        `INSERT INTO places (name, slug, status, destination_id, created_by)
+         VALUES ($1, $2, 'draft', $3, $4)
+         RETURNING id`,
+        [body.placeName, body.placeSlug, body.destinationId, userId],
+      )
+      const placeId = placeRows[0].id
+
+      // Create business client
+      await client.query(`
+        INSERT INTO business_clients (user_id, place_id, contact_name, contact_email, is_active)
+        VALUES ($1, $2, $3, $4, true)
+        ON CONFLICT (user_id, place_id) DO UPDATE SET contact_name = $3, contact_email = $4, is_active = true
+      `, [userId, placeId, body.contactName, body.email])
+
+      // Create place_users link as owner (table may not exist yet)
+      await client.query('SAVEPOINT sp_place_users')
+      try {
+        await client.query(`
+          INSERT INTO place_users (place_id, user_id, role)
+          VALUES ($1, $2, 'owner')
+          ON CONFLICT (place_id, user_id) DO UPDATE SET role = 'owner'
+        `, [placeId, userId])
+        await client.query('RELEASE SAVEPOINT sp_place_users')
+      } catch {
+        await client.query('ROLLBACK TO SAVEPOINT sp_place_users')
+      }
+
+      await client.query('COMMIT')
+
+      return reply.status(201).send({ created: true, placeId })
+    } catch (err) {
+      await client.query('ROLLBACK')
+      throw err
+    } finally {
+      client.release()
+    }
   })
 }

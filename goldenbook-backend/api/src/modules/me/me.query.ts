@@ -39,8 +39,8 @@ export async function getSavedPlaces(userId: string, locale: string): Promise<Sa
     `SELECT
        p.id,
        p.slug,
-       COALESCE(pt.name,  pt_lang.name,  pt_fb.name,  p.name)                             AS name,
-       COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description,
+       COALESCE(NULLIF(pt.name,''),  NULLIF(pt_lang.name,''),  NULLIF(pt_fb.name,''),  p.name)                             AS name,
+       COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''),
                 p.short_description)                                                        AS short_description,
        uf.created_at                                                                        AS saved_at,
        hero_img.bucket                                                                      AS image_bucket,
@@ -75,8 +75,8 @@ export async function getSavedRoutes(userId: string, locale: string): Promise<Sa
     `SELECT
        r.id,
        r.slug,
-       COALESCE(rt.title,   rt_lang.title,   rt_fb.title,   r.title)   AS title,
-       COALESCE(rt.summary, rt_lang.summary, rt_fb.summary, r.summary)  AS summary,
+       COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)   AS title,
+       COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)  AS summary,
        usr.created_at                                                    AS saved_at,
        ma.bucket                                                         AS image_bucket,
        ma.path                                                           AS image_path
@@ -102,8 +102,8 @@ export async function getRecentlyViewed(userId: string, locale: string): Promise
     `SELECT
        p.id,
        p.slug,
-       COALESCE(pt.name,  pt_lang.name,  pt_fb.name,  p.name)                             AS name,
-       COALESCE(pt.short_description, pt_lang.short_description, pt_fb.short_description,
+       COALESCE(NULLIF(pt.name,''),  NULLIF(pt_lang.name,''),  NULLIF(pt_fb.name,''),  p.name)                             AS name,
+       COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''),
                 p.short_description)                                                        AS short_description,
        urvp.viewed_at,
        hero_img.bucket                                                                      AS image_bucket,

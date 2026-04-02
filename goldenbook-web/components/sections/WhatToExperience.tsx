@@ -6,13 +6,13 @@ import { useTranslations } from 'next-intl'
 import { useState, useEffect } from 'react'
 import { getTimeSlot, type TimeSlot } from '@/lib/time'
 import type { WebHomeDTO } from '@/lib/types'
-import { CategoryIcon } from '@/components/ui/CategoryIcon'
+import { getNowSlotImage, getNowSlotMood } from '@/lib/images'
 
 interface WhatToExperienceProps {
   slots: WebHomeDTO['experienceNow']
 }
 
-// Stroke-style time-of-day icons — consistent with CategoryIcon visual language
+// Stroke-style time-of-day icons
 function MorningSVG({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -62,24 +62,14 @@ const SLOT_ICONS: Record<TimeSlot, (p: { className?: string }) => JSX.Element> =
   night:     NightSVG,
 }
 
-const SLOT_LABELS: Record<TimeSlot, string> = {
-  morning:   'Morning',
-  afternoon: 'Afternoon',
-  evening:   'Evening',
-  night:     'Night',
-}
-
-// Fixed order so tabs always appear in the correct sequence
 const SLOT_ORDER: TimeSlot[] = ['morning', 'afternoon', 'evening', 'night']
 
 export function WhatToExperience({ slots }: WhatToExperienceProps) {
   const t = useTranslations('whatNow')
   const [activeSlot, setActiveSlot] = useState<TimeSlot>('morning')
 
-  // Default to the slot that matches the user's local time, on mount only
   useEffect(() => {
     const current = getTimeSlot()
-    // Fall back to first available slot if current time slot has no data
     const available = SLOT_ORDER.filter((s) => slots[s] !== null)
     if (available.includes(current)) {
       setActiveSlot(current)
@@ -89,112 +79,125 @@ export function WhatToExperience({ slots }: WhatToExperienceProps) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const availableSlots = SLOT_ORDER.filter((s) => slots[s] !== null)
-
   if (availableSlots.length === 0) return null
 
-  // Ensure activeSlot is always valid (guard against stale state)
   const safeSlot: TimeSlot = availableSlots.includes(activeSlot) ? activeSlot : availableSlots[0]
   const place = slots[safeSlot]
+  const mood = getNowSlotMood(safeSlot)
+  const imageSrc = getNowSlotImage(safeSlot)
 
   return (
     <section
-      className="relative min-h-screen flex flex-col justify-end overflow-hidden"
+      className="bg-navy-dark"
       aria-label="What to experience now"
     >
-      {/* ── Background image with soft fade ──────────────────────────── */}
-      <AnimatePresence mode="sync">
-        <motion.div
-          key={`bg-${safeSlot}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
-          className="absolute inset-0 pointer-events-none"
-        >
-          {place?.imageUrl ? (
-            <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[85vh]">
+        {/* ── Image side ──────────────────────────────────────────────── */}
+        <div className="relative overflow-hidden min-h-[50vh] lg:min-h-full group">
+          <AnimatePresence mode="sync">
+            <motion.div
+              key={`bg-${safeSlot}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
+              className="absolute inset-0"
+            >
               <Image
-                src={place.imageUrl}
-                alt={place.name}
+                src={imageSrc}
+                alt={t(`mood.${mood}.title`)}
                 fill
-                sizes="100vw"
-                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover editorial-image transition-transform duration-700 group-hover:scale-[1.03]"
                 quality={90}
                 priority
-                unoptimized
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy-dark via-navy-dark/50 to-navy-dark/10" />
-            </>
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(160deg, #161E38 0%, #222D52 100%)' }}
-            />
-          )}
-        </motion.div>
-      </AnimatePresence>
+              {/* Right-fade overlay for text readability on content side */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to right, rgba(10,10,10,0.05), rgba(10,10,10,0.55))',
+                }}
+              />
+            </motion.div>
+          </AnimatePresence>
 
-      {/* ── Time slot tabs ───────────────────────────────────────────── */}
-      <div className="absolute top-0 left-0 right-0 z-20">
-        <div className="section-padding pt-8 flex gap-2 overflow-x-auto scrollbar-hide">
-          {availableSlots.map((s) => {
-            const Icon = SLOT_ICONS[s]
-            const isActive = s === safeSlot
-            return (
-              <button
-                key={s}
-                onClick={() => setActiveSlot(s)}
-                className={[
-                  'flex-shrink-0 flex items-center gap-1.5 font-sans text-small px-4 py-2 rounded-full transition-all duration-300',
-                  isActive
-                    ? 'bg-primary text-navy-dark font-medium'
-                    : 'bg-navy-dark/40 text-ivory/50 hover:text-ivory/80 hover:bg-navy-dark/60',
-                ].join(' ')}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {SLOT_LABELS[s]}
-              </button>
-            )
-          })}
+          {/* Bottom gradient on mobile */}
+          <div
+            className="absolute inset-0 lg:hidden pointer-events-none"
+            style={{
+              background: 'linear-gradient(to bottom, transparent 50%, rgba(22,30,56,0.6))',
+            }}
+          />
         </div>
-      </div>
 
-      {/* ── Content with soft fade ───────────────────────────────────── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`content-${safeSlot}`}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-          className="relative z-10 section-padding pb-20 md:pb-28"
-        >
-          <p className="eyebrow mb-4">{t('eyebrow')}</p>
+        {/* ── Content side ────────────────────────────────────────────── */}
+        <div className="flex flex-col justify-center px-8 py-16 md:px-14 md:py-20 lg:px-20 lg:py-24">
+          {/* Time slot tabs */}
+          <div className="flex gap-2 mb-12 overflow-x-auto scrollbar-hide">
+            {availableSlots.map((s) => {
+              const Icon = SLOT_ICONS[s]
+              const isActive = s === safeSlot
+              return (
+                <button
+                  key={s}
+                  onClick={() => setActiveSlot(s)}
+                  className={[
+                    'flex-shrink-0 flex items-center gap-1.5 font-sans text-small px-4 py-2 rounded-full transition-all duration-300',
+                    isActive
+                      ? 'bg-primary text-navy-dark font-medium'
+                      : 'bg-ivory/8 text-ivory/50 hover:text-ivory/80 hover:bg-ivory/12',
+                  ].join(' ')}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {t(`tab.${s}`)}
+                </button>
+              )
+            })}
+          </div>
 
-          <p className="font-sans text-ivory/50 text-small mb-2">
-            {t(safeSlot)}
-          </p>
+          {/* Mood-driven editorial copy */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`content-${safeSlot}`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <p className="eyebrow mb-6">{t(`mood.${mood}.eyebrow`)}</p>
 
-          {place ? (
-            <>
-              <h2 className="headline-section text-ivory mb-4 max-w-2xl">{place.name}</h2>
+              <h2 className="headline-section text-ivory mb-5">
+                {t(`mood.${mood}.title`)}
+              </h2>
 
-              {place.category && (
-                <div className="flex items-center gap-3 mb-6">
-                  <CategoryIcon iconName={place.iconName ?? null} className="w-5 h-5 text-primary" />
-                  <span className="font-sans text-primary text-small">{place.category}</span>
+              <div className="w-8 h-px bg-primary mb-6" />
+
+              <p className="font-sans text-ivory/50 text-body max-w-sm leading-relaxed mb-10">
+                {t(`mood.${mood}.subtitle`)}
+              </p>
+
+              {/* Place info from DB — secondary to the mood copy */}
+              {place && (
+                <div className="border-t border-ivory/10 pt-8">
+                  <p className="font-sans text-primary text-small uppercase tracking-wider font-medium mb-2">
+                    {t('suggestion')}
+                  </p>
+                  <p className="headline-small text-ivory mb-2">{place.name}</p>
+                  {place.category && (
+                    <p className="font-sans text-ivory/40 text-small">{place.category}</p>
+                  )}
+                  {place.description && (
+                    <p className="font-sans text-ivory/45 text-small leading-relaxed mt-3 max-w-sm line-clamp-2">
+                      {place.description}
+                    </p>
+                  )}
                 </div>
-              )}
-
-              {place.description && (
-                <p className="font-sans text-ivory/65 text-body max-w-md leading-relaxed mb-10">
-                  {place.description}
-                </p>
               )}
 
               <a
                 href="#download"
-                className="inline-flex items-center gap-3 font-sans text-body text-ivory group"
+                className="inline-flex items-center gap-3 font-sans text-body text-ivory group mt-10"
               >
                 <span className="border-b border-ivory/30 pb-0.5 group-hover:border-primary group-hover:text-primary transition-colors duration-200">
                   {t('explore')}
@@ -203,12 +206,10 @@ export function WhatToExperience({ slots }: WhatToExperienceProps) {
                   →
                 </span>
               </a>
-            </>
-          ) : (
-            <p className="font-sans text-ivory/40 text-body">No recommendation available right now.</p>
-          )}
-        </motion.div>
-      </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
     </section>
   )
 }

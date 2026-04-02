@@ -14,7 +14,15 @@ import * as SecureStore from 'expo-secure-store';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type Locale = 'en' | 'pt-PT';
+export type Locale = 'en' | 'pt' | 'es';
+
+function normalizeLocale(value: string | undefined | null): Locale {
+  if (!value) return 'en';
+  const family = value.trim().toLowerCase().replace('_', '-').split('-')[0];
+  if (family === 'pt') return 'pt';
+  if (family === 'es') return 'es';
+  return 'en';
+}
 
 // ─── SecureStore adapter (mirrors appStore / onboardingStore pattern) ─────────
 
@@ -64,7 +72,7 @@ export const useSettingsStore = create<SettingsState>()(
       locale: 'en',
       isHydrated: false,
 
-      setLocale: (locale) => set({ locale }),
+      setLocale: (locale) => set({ locale: normalizeLocale(locale) }),
       _setHydrated: () => set({ isHydrated: true }),
     }),
     {
@@ -72,6 +80,9 @@ export const useSettingsStore = create<SettingsState>()(
       storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({ locale: state.locale }),
       onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setLocale(state.locale);
+        }
         state?._setHydrated();
       },
     },

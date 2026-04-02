@@ -31,13 +31,13 @@ export function buildNowCopy(timeSegment: TimeSegment, cityName: string): NowCop
   const eyebrows: Record<TimeSegment, string> = {
     morning:   `RIGHT NOW IN ${city.toUpperCase()}`,
     midday:    `FOR THIS MOMENT IN ${city.toUpperCase()}`,
-    afternoon: `YOUR GOLDENBOOK NOW`,
-    evening:   `PERFECT RIGHT NOW IN ${city.toUpperCase()}`,
+    afternoon: `YOUR GOLDENBOOK GO NOW`,
+    evening:   `RECOMMENDED RIGHT NOW IN ${city.toUpperCase()}`,
     night:     `FOR THIS EVENING IN ${city.toUpperCase()}`,
   }
 
   const headlines: Record<TimeSegment, string> = {
-    morning:   'A perfect late-morning stop',
+    morning:   'A wonderful late-morning stop',
     midday:    `Ideal for right now in ${city}`,
     afternoon: 'Just right for a slow afternoon',
     evening:   'The kind of place to experience this evening',

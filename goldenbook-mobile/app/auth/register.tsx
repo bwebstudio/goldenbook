@@ -90,7 +90,7 @@ export default function RegisterScreen() {
           <Text style={styles.ornamentStar}>✦</Text>
           <Text style={styles.successTitle}>Account created</Text>
           <Text style={styles.successBody}>
-            Welcome to Goldenbook!{'\n\n'}If email confirmation is required,{'\n'}check your inbox before signing in.
+            Welcome to Goldenbook Go!{'\n\n'}If email confirmation is required,{'\n'}check your inbox before signing in.
           </Text>
 
           <View style={styles.goldRule} />

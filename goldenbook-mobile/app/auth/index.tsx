@@ -1,5 +1,5 @@
 /**
- * Auth Entry Screen — front door of Goldenbook.
+ * Auth Entry Screen — front door of Goldenbook Go.
  *
  * Deep navy canvas. Brand identity up top, auth options below.
  * Social auth (Google, Apple) are first-class options here alongside
@@ -62,7 +62,7 @@ export default function AuthEntryScreen() {
           </View>
 
           {/* Wordmark */}
-          <Text style={styles.wordmark}>GOLDENBOOK</Text>
+          <Text style={styles.wordmark}>GOLDENBOOK GO</Text>
 
           {/* Gold accent rule */}
           <View style={styles.accentRule} />
@@ -155,7 +155,7 @@ export default function AuthEntryScreen() {
 
           {/* Legal */}
           <Text style={styles.legal}>
-            By continuing you agree to Goldenbook's{'\n'}Terms of Service and Privacy Policy.
+            By continuing you agree to Goldenbook Go's{'\n'}Terms of Service and Privacy Policy.
           </Text>
         </View>
       </ScrollView>

@@ -1,5 +1,5 @@
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
@@ -19,8 +19,9 @@ import {
 
 export default function PlaceDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const router = useRouter();
   const t = useTranslation();
-  const { data, isLoading, isError } = usePlaceDetail(slug ?? '');
+  const { data, isLoading, isError, refetch } = usePlaceDetail(slug ?? '');
   const { isSaved, toggle: toggleSave } = useSavePlace(data?.id ?? '');
 
   if (isLoading) {
@@ -34,9 +35,21 @@ export default function PlaceDetailScreen() {
   if (isError || !data) {
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm">
+        <Text className="text-navy/40 text-center text-sm mb-5">
           {t.place.couldNotLoad}
         </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          activeOpacity={0.85}
+          className="bg-primary rounded-lg px-6 py-3 mb-3"
+        >
+          <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+            {t.common.retry}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+          <Text className="text-navy/30 text-xs tracking-wide">{t.common.goBack}</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

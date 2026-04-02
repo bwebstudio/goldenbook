@@ -3,6 +3,8 @@
 import type { DashboardUser } from "@/types/auth";
 import { useT, useLocale, type Locale } from "@/lib/i18n";
 import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
+import PlaceSelector from "@/components/ui/PlaceSelector";
+import NotificationBell from "@/components/ui/NotificationBell";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -148,7 +150,9 @@ export default function PortalShell({ user, children }: { user: DashboardUser; c
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <PlaceSelector />
+          <NotificationBell />
           <UserMenu name={user.name} t={t} />
         </div>
       </header>
@@ -164,6 +168,8 @@ export default function PortalShell({ user, children }: { user: DashboardUser; c
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          <PlaceSelector />
+          <NotificationBell />
           <UserMenu name={user.name} t={t} />
         </div>
       </header>

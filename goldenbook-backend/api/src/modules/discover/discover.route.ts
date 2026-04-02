@@ -21,6 +21,7 @@ import {
   rerankPlaces,
 } from '../../shared/ranking/place.ranking'
 import { getActiveVisibilityPlaceIds, getActiveVisibilityBySlot } from '../visibility/visibility.query'
+import { normalizeLocale } from '../../shared/i18n/locale'
 
 const querySchema = z.object({
   city:      z.string().min(1),
@@ -42,7 +43,8 @@ function segmentToSlot(segment: TimeSegment): string {
 
 export async function discoverRoutes(app: FastifyInstance) {
   app.get('/discover', async (request, reply) => {
-    const { city, locale, interests: rawInterests, style } = querySchema.parse(request.query)
+    const { city, locale: rawLocale, interests: rawInterests, style } = querySchema.parse(request.query)
+    const locale = normalizeLocale(rawLocale)
 
     const cityHeader = await getCityHeader(city, locale)
     if (!cityHeader) throw new NotFoundError('City')

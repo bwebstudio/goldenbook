@@ -60,7 +60,7 @@ export default function SelectDestinationScreen() {
         {/* ── Branding ──────────────────────────────────────────────────────── */}
         <View style={styles.brandRow}>
           <Text style={styles.brandStar}>✦</Text>
-          <Text style={styles.brandLabel}>GOLDENBOOK</Text>
+          <Text style={styles.brandLabel}>GOLDENBOOK GO</Text>
         </View>
 
         {/* ── Heading ───────────────────────────────────────────────────────── */}

@@ -1,7 +1,7 @@
 import { db } from '../../../db/postgres'
 import { AppError, NotFoundError, ValidationError } from '../../../shared/errors/AppError'
 import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from './admin-places.dto'
-import { translateFields } from '../../../lib/translation/deepl'
+import { translatePlaceFields, type PlaceTranslationFields } from '../../../lib/translation/deepl'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -38,6 +38,58 @@ async function resolveSubcategoryId(
 
 function nullify(v: string | undefined): string | null {
   return v === undefined || v === '' ? null : v
+}
+
+type TranslationLocale = 'en' | 'pt' | 'es'
+
+async function upsertPlaceTranslation(
+  client: { query: typeof db.query },
+  placeId: string,
+  locale: TranslationLocale,
+  fields: PlaceTranslationFields,
+): Promise<void> {
+  await client.query(
+    `
+    INSERT INTO place_translations (
+      place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ON CONFLICT (place_id, locale) DO UPDATE SET
+      name = EXCLUDED.name,
+      short_description = EXCLUDED.short_description,
+      full_description = EXCLUDED.full_description,
+      goldenbook_note = EXCLUDED.goldenbook_note,
+      why_we_love_it = EXCLUDED.why_we_love_it,
+      insider_tip = EXCLUDED.insider_tip,
+      updated_at = now()
+    `,
+    [
+      placeId,
+      locale,
+      fields.name,
+      fields.short_description,
+      fields.full_description,
+      fields.goldenbook_note,
+      fields.why_we_love_it,
+      fields.insider_tip,
+    ],
+  )
+}
+
+async function upsertAutoTranslationsFromEnglish(
+  client: { query: typeof db.query },
+  placeId: string,
+  englishFields: PlaceTranslationFields,
+): Promise<void> {
+  const targets: TranslationLocale[] = ['pt', 'es']
+  for (const targetLocale of targets) {
+    try {
+      const translated = await translatePlaceFields(englishFields, targetLocale, 'en')
+      await upsertPlaceTranslation(client, placeId, targetLocale, translated)
+    } catch (err) {
+      // Per-locale failure must not block remaining locales
+      console.error(`[translation] DeepL failed for ${targetLocale} on place ${placeId}:`, err)
+    }
+  }
 }
 
 /** Resolve multiple city slugs to destination IDs. */
@@ -85,7 +137,7 @@ async function getPlaceCitySlugs(placeId: string): Promise<string[]> {
   return rows.map((r) => r.slug)
 }
 
-// ─── Create place ─────────────────────────────────────────────────────────────
+// ─── Create place ───────────────────────��─────────────────────────────────────
 
 export async function createPlace(
   input: CreatePlaceInput,
@@ -162,33 +214,17 @@ export async function createPlace(
     )
     const place = placed[0]
 
-    // Upsert English translation
-    await client.query(
-      `
-      INSERT INTO place_translations (
-        place_id, locale, name,
-        short_description, full_description,
-        goldenbook_note, why_we_love_it, insider_tip
-      ) VALUES ($1, 'en', $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (place_id, locale) DO UPDATE SET
-        name              = EXCLUDED.name,
-        short_description = EXCLUDED.short_description,
-        full_description  = EXCLUDED.full_description,
-        goldenbook_note   = EXCLUDED.goldenbook_note,
-        why_we_love_it    = EXCLUDED.why_we_love_it,
-        insider_tip       = EXCLUDED.insider_tip,
-        updated_at        = now()
-      `,
-      [
-        place.id,
-        input.name,
-        nullify(input.shortDescription),
-        nullify(input.fullDescription),
-        nullify(input.goldenbookNote),
-        nullify(input.whyWeLoveIt),
-        nullify(input.insiderTip),
-      ],
-    )
+    const englishFields: PlaceTranslationFields = {
+      name: input.name,
+      short_description: nullify(input.shortDescription),
+      full_description: nullify(input.fullDescription),
+      goldenbook_note: nullify(input.goldenbookNote),
+      why_we_love_it: nullify(input.whyWeLoveIt),
+      insider_tip: nullify(input.insiderTip),
+    }
+
+    await upsertPlaceTranslation(client, place.id, 'en', englishFields)
+    await upsertAutoTranslationsFromEnglish(client, place.id, englishFields)
 
     // Insert primary category
     await client.query(
@@ -237,13 +273,14 @@ export async function updatePlace(
   // Verify place exists first
   const { rows: found } = await db.query<{
     id: string
+    name: string
     slug: string
     status: string
     featured: boolean
     destination_id: string
   }>(
     `
-    SELECT p.id, p.slug, p.status, p.featured, p.destination_id
+    SELECT p.id, p.name, p.slug, p.status, p.featured, p.destination_id
     FROM places p WHERE p.id = $1 LIMIT 1
     `,
     [placeId],
@@ -327,6 +364,13 @@ export async function updatePlace(
       }
     }
 
+    // NOW visibility fields
+    if (input.nowEnabled   !== undefined) addField('now_enabled',  input.nowEnabled)
+    if (input.nowPriority  !== undefined) addField('now_priority', input.nowPriority)
+    if (input.nowFeatured  !== undefined) addField('now_featured', input.nowFeatured)
+    if (input.nowStartAt   !== undefined) addField('now_start_at', input.nowStartAt)
+    if (input.nowEndAt     !== undefined) addField('now_end_at',   input.nowEndAt)
+
     // Handle status + published_at together
     if (input.status !== undefined) {
       addField('status', input.status)
@@ -356,90 +400,27 @@ export async function updatePlace(
       input.insiderTip       !== undefined
 
     if (hasTranslationUpdate) {
-      // Fetch current PT translation as fallback
-      const { rows: currentPt } = await client.query<{
+      // EN is the base source-of-truth for auto-translations.
+      const { rows: currentEn } = await client.query<{
         name: string | null; short_description: string | null; full_description: string | null
         goldenbook_note: string | null; why_we_love_it: string | null; insider_tip: string | null
       }>(
         `SELECT name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip
-         FROM place_translations WHERE place_id = $1 AND locale = 'pt' LIMIT 1`,
-        [placeId],
-      )
-      const ptPrev = currentPt[0] ?? {}
-
-      // Build the PT values
-      const ptName = input.name ?? ptPrev.name ?? ''
-      const ptShort = input.shortDescription !== undefined ? nullify(input.shortDescription) : ptPrev.short_description
-      const ptFull = input.fullDescription !== undefined ? nullify(input.fullDescription) : ptPrev.full_description
-      const ptNote = input.goldenbookNote !== undefined ? nullify(input.goldenbookNote) : ptPrev.goldenbook_note
-      const ptWhy = input.whyWeLoveIt !== undefined ? nullify(input.whyWeLoveIt) : ptPrev.why_we_love_it
-      const ptTip = input.insiderTip !== undefined ? nullify(input.insiderTip) : ptPrev.insider_tip
-
-      // 1. Save Portuguese (source of truth)
-      await client.query(
-        `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip)
-         VALUES ($1, 'pt', $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (place_id, locale) DO UPDATE SET
-           name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-           goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
-           updated_at = now()`,
-        [placeId, ptName, ptShort, ptFull, ptNote, ptWhy, ptTip],
-      )
-
-      // 2. Check if EN has a manual override
-      const { rows: enRow } = await client.query<{ translation_override: boolean }>(
-        `SELECT COALESCE(translation_override, false) AS translation_override
          FROM place_translations WHERE place_id = $1 AND locale = 'en' LIMIT 1`,
         [placeId],
       )
-      const hasOverride = enRow[0]?.translation_override ?? false
-
-      // 3. Auto-translate to EN if no manual override
-      if (!hasOverride) {
-        // Release client before async translation (commit PT first)
-        await client.query('SAVEPOINT pre_translate')
-
-        try {
-          const translated = await translateFields({
-            name: ptName,
-            short_description: ptShort,
-            full_description: ptFull,
-            goldenbook_note: ptNote,
-            insider_tip: ptTip,
-          })
-
-          await client.query(
-            `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip)
-             VALUES ($1, 'en', $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (place_id, locale) DO UPDATE SET
-               name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-               goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
-               updated_at = now()`,
-            [
-              placeId,
-              translated.name ?? ptName,
-              translated.short_description ?? ptShort,
-              translated.full_description ?? ptFull,
-              translated.goldenbook_note ?? ptNote,
-              translated.why_we_love_it ?? ptWhy,
-              translated.insider_tip ?? ptTip,
-            ],
-          )
-        } catch (translationErr) {
-          console.error('[translation] Auto-translate failed, using PT as EN fallback:', translationErr)
-          await client.query('ROLLBACK TO SAVEPOINT pre_translate')
-          // Save PT content as EN fallback
-          await client.query(
-            `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip)
-             VALUES ($1, 'en', $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (place_id, locale) DO UPDATE SET
-               name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-               goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
-               updated_at = now()`,
-            [placeId, ptName, ptShort, ptFull, ptNote, ptWhy, ptTip],
-          )
-        }
+      const enPrev = currentEn[0] ?? {}
+      const englishFields: PlaceTranslationFields = {
+        name: input.name ?? enPrev.name ?? existing.name,
+        short_description: input.shortDescription !== undefined ? nullify(input.shortDescription) : (enPrev.short_description ?? null),
+        full_description: input.fullDescription !== undefined ? nullify(input.fullDescription) : (enPrev.full_description ?? null),
+        goldenbook_note: input.goldenbookNote !== undefined ? nullify(input.goldenbookNote) : (enPrev.goldenbook_note ?? null),
+        why_we_love_it: input.whyWeLoveIt !== undefined ? nullify(input.whyWeLoveIt) : (enPrev.why_we_love_it ?? null),
+        insider_tip: input.insiderTip !== undefined ? nullify(input.insiderTip) : (enPrev.insider_tip ?? null),
       }
+
+      await upsertPlaceTranslation(client, placeId, 'en', englishFields)
+      await upsertAutoTranslationsFromEnglish(client, placeId, englishFields)
     }
 
     // Replace primary category if categorySlug is being changed
@@ -471,6 +452,35 @@ export async function updatePlace(
         `INSERT INTO place_destinations (place_id, destination_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [placeId, destinationId],
       )
+    }
+
+    // Sync NOW context tags if provided
+    if (input.nowTagSlugs !== undefined) {
+      // Delete existing tags and re-insert
+      await client.query(`DELETE FROM place_now_tags WHERE place_id = $1`, [placeId])
+      if (input.nowTagSlugs.length > 0) {
+        for (const tagSlug of input.nowTagSlugs) {
+          await client.query(
+            `INSERT INTO place_now_tags (place_id, tag_id)
+             SELECT $1, id FROM now_context_tags WHERE slug = $2
+             ON CONFLICT DO NOTHING`,
+            [placeId, tagSlug],
+          )
+        }
+      }
+    }
+
+    // Sync NOW time windows if provided
+    if (input.nowTimeWindows !== undefined) {
+      await client.query(`DELETE FROM place_now_time_windows WHERE place_id = $1`, [placeId])
+      if (input.nowTimeWindows.length > 0) {
+        for (const tw of input.nowTimeWindows) {
+          await client.query(
+            `INSERT INTO place_now_time_windows (place_id, time_window) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [placeId, tw],
+          )
+        }
+      }
     }
 
     await client.query('COMMIT')
