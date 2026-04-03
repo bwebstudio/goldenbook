@@ -22,7 +22,7 @@ const PRODUCT_GROUPS = [
   { key: "discover", products: ["golden_picks", "now", "hidden_gems", "new_on_goldenbook"] },
   { key: "intent", products: ["search_priority", "category_featured"] },
   { key: "dynamic", products: ["concierge"] },
-  { key: "listing", products: ["extra_images", "extended_description", "listing_premium_pack"] },
+  { key: "listing", products: ["extra_images", "extended_description"] },
 ] as const;
 
 const GROUP_LABELS: Record<string, Record<string, string>> = {
@@ -87,6 +87,8 @@ export default function PortalPromote() {
   const [promotion, setPromotion] = useState<ActivePromoInfo | null>(null);
   const [businessCities, setBusinessCities] = useState<BusinessCity[]>([]);
   const [availability, setAvailability] = useState<Record<string, SectionAvailability>>({});
+  const [inventory, setInventory] = useState<Record<string, { max: number; active: number; remaining: number }>>({});
+  const [inventoryCity, setInventoryCity] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [computed, setComputed] = useState<PriceComputation | null>(null);
   const [computing, setComputing] = useState(false);
@@ -100,6 +102,8 @@ export default function PortalPromote() {
   const categories = t.promote.categories as Record<string, string>;
   const lang = (t.common.save === "Guardar alterações") ? "pt" : "en";
   const groupLabels = GROUP_LABELS[lang] ?? GROUP_LABELS.en;
+  const dateLocale = lang === "pt" ? "pt-PT" : "en-GB";
+  const citySuffix = (cityLabel: string) => cityLabel ? `${lang === "pt" ? " em " : " in "}${cityLabel}` : "";
   const promoDiscount = promotion ? parseFloat(promotion.discount_pct) : 0;
   const isMultiCity = businessCities.length > 1;
   const cityName = businessCities.find((c) => c.slug === city)?.name ?? city;
@@ -109,7 +113,7 @@ export default function PortalPromote() {
   useEffect(() => {
     Promise.all([
       fetchBusinessPricing().catch(() => null),
-      fetchPricingAvailability().catch(() => ({ sections: {} })),
+      fetchPricingAvailability().catch(() => ({ sections: {}, inventory: {}, city: '' })),
     ]).then(([pricing, avail]) => {
       if (pricing) {
         setPlans(pricing.plans);
@@ -119,6 +123,8 @@ export default function PortalPromote() {
         if (bc.length > 0) setCity(bc[0].slug);
       }
       setAvailability(avail.sections);
+      setInventory((avail as any).inventory ?? {});
+      setInventoryCity((avail as any).city ?? '');
       setLoaded(true);
     });
   }, []);
@@ -278,7 +284,7 @@ export default function PortalPromote() {
   const canCheckout = selected && startDate && computed && !submitting
     && (!SCOPE_PRODUCTS.has(selected) || scopeId);
 
-  const monthLabel = new Date(calMonth.year, calMonth.month).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const monthLabel = new Date(calMonth.year, calMonth.month).toLocaleDateString(dateLocale, { month: "long", year: "numeric" });
 
   return (
     <div className="flex flex-col gap-6">
@@ -295,7 +301,11 @@ export default function PortalPromote() {
           </div>
           <div>
             <p className="text-sm font-bold text-emerald-800">{promotion.label}</p>
-            {promotion.valid_until && <p className="text-[11px] text-emerald-600 mt-0.5">Valid until {fmtValidUntil(promotion.valid_until)}</p>}
+            {promotion.valid_until && (
+              <p className="text-[11px] text-emerald-600 mt-0.5">
+                {t.promote.validUntil.replace("{date}", fmtValidUntil(promotion.valid_until))}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -330,7 +340,13 @@ export default function PortalPromote() {
                     </div>
                     {!isAvailable && (
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 whitespace-nowrap shrink-0">
-                        {reason === "ALREADY_ACTIVE" ? "Active" : reason === "DISCOVER_CONFLICT" ? "1 Discover max" : "Unavailable"}
+                        {reason === "ALREADY_ACTIVE"
+                          ? t.promote.unavailableActive
+                          : reason === "DISCOVER_CONFLICT"
+                            ? t.promote.unavailableDiscoverMax
+                            : reason === "INVENTORY_FULL"
+                              ? t.promote.unavailableSoldOut
+                              : t.promote.unavailableGeneric}
                       </span>
                     )}
                   </div>
@@ -348,10 +364,32 @@ export default function PortalPromote() {
                     </div>
                   )}
                   <div className="mt-2 space-y-0.5">
-                    {(pk === "now" ? [p.where, p.why, p.context].filter(Boolean) : [p.where, p.why]).map((line, idx) => (
+                    {[p.where, p.why, p.context].filter(Boolean).map((line, idx) => (
                       <CheckLine key={`${pk}-${idx}`} text={line as string} />
                     ))}
                   </div>
+                  {/* Scarcity indicator */}
+                  {pk === "now" ? (
+                    <p className="mt-2 text-[9px] font-semibold text-amber-600">
+                      {lang === "pt" ? "Prioridade limitada por cidade" : "Limited priority per city"}
+                    </p>
+                  ) : inventory[pk] && (() => {
+                    const inv = inventory[pk];
+                    const cityLabel = inventoryCity ? inventoryCity.charAt(0).toUpperCase() + inventoryCity.slice(1) : '';
+                    if (inv.remaining <= 0) {
+                      return <p className="mt-2 text-[9px] font-bold text-red-500">{t.promote.soldOutLabel}</p>;
+                    }
+                    if (inv.remaining <= 2) {
+                      const lowSlots = t.promote.lowSlotsLabel
+                        .replace("{remaining}", String(inv.remaining))
+                        .replace("{max}", String(inv.max));
+                      return <p className="mt-2 text-[9px] font-bold text-red-500">{lowSlots}{citySuffix(cityLabel)}</p>;
+                    }
+                    const availableSlots = t.promote.availableSlotsLabel
+                      .replace("{remaining}", String(inv.remaining))
+                      .replace("{max}", String(inv.max));
+                    return <p className="mt-2 text-[9px] font-semibold text-amber-600">{availableSlots}{citySuffix(cityLabel)}</p>;
+                  })()}
                 </button>
               );
             })}
@@ -369,7 +407,7 @@ export default function PortalPromote() {
             {/* City */}
             {isMultiCity && (
               <div>
-                <label className="text-xs font-medium text-muted mb-1.5 block">City</label>
+                <label className="text-xs font-medium text-muted mb-1.5 block">{t.promote.cityLabel}</label>
                 <div className="flex items-center gap-2 flex-wrap">
                   {businessCities.map((c) => (
                     <button key={c.slug} onClick={() => setCity(c.slug)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${city === c.slug ? "bg-gold/10 text-gold border border-gold/30" : "bg-white border border-border text-muted hover:border-gold/30"}`}>{c.name}</button>
@@ -381,7 +419,7 @@ export default function PortalPromote() {
             {/* Golden Picks position */}
             {selected === "golden_picks" && (
               <div>
-                <label className="text-xs font-medium text-muted mb-1.5 block">Position</label>
+                <label className="text-xs font-medium text-muted mb-1.5 block">{t.promote.positionLabel}</label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((pos) => (
                     <button key={pos} onClick={() => setPosition(pos)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${position === pos ? "bg-gold/10 text-gold border border-gold/30" : "bg-white border border-border text-muted hover:border-gold/30"}`}>#{pos}</button>
@@ -429,7 +467,7 @@ export default function PortalPromote() {
 
             {/* ═══ CALENDAR ═══ */}
             <div>
-              <label className="text-xs font-medium text-muted mb-2 block">Select start date</label>
+              <label className="text-xs font-medium text-muted mb-2 block">{t.promote.startDateLabel}</label>
               {calendarLoading ? (
                 <div className="flex items-center justify-center py-8"><div className="w-5 h-5 border-2 border-gold border-t-transparent rounded-full animate-spin" /></div>
               ) : (
@@ -498,9 +536,9 @@ export default function PortalPromote() {
 
                   {/* Legend */}
                   <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border">
-                    <span className="flex items-center gap-1.5 text-[10px] text-muted"><span className="w-2.5 h-2.5 rounded bg-gold" /> Start</span>
-                    <span className="flex items-center gap-1.5 text-[10px] text-muted"><span className="w-2.5 h-2.5 rounded bg-gold/20" /> Duration</span>
-                    <span className="flex items-center gap-1.5 text-[10px] text-muted"><span className="w-2.5 h-2.5 rounded bg-gray-200" /> Unavailable</span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted"><span className="w-2.5 h-2.5 rounded bg-gold" /> {t.promote.legendStart}</span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted"><span className="w-2.5 h-2.5 rounded bg-gold/20" /> {t.promote.legendDuration}</span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted"><span className="w-2.5 h-2.5 rounded bg-gray-200" /> {t.promote.legendUnavailable}</span>
                   </div>
                 </div>
               )}
@@ -511,16 +549,16 @@ export default function PortalPromote() {
               <div className="bg-gold/5 border border-gold/15 rounded-lg px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-text">
-                    {new Date(startDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    {new Date(startDate + "T00:00:00").toLocaleDateString(dateLocale, { day: "2-digit", month: "short", year: "numeric" })}
                     {" → "}
-                    {endDate && new Date(endDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    {endDate && new Date(endDate + "T00:00:00").toLocaleDateString(dateLocale, { day: "2-digit", month: "short", year: "numeric" })}
                   </p>
                   <span className="text-[10px] text-muted">{duration} {t.common.days}</span>
                 </div>
                 {computing ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm text-muted">Calculating...</span>
+                    <span className="text-sm text-muted">{t.promote.calculating}</span>
                   </div>
                 ) : computed ? (
                   <div className="flex flex-col gap-1">
@@ -534,7 +572,7 @@ export default function PortalPromote() {
                     ) : (
                       <span className="text-2xl font-bold text-text">&euro;{fmtPrice(computed.finalPrice)}</span>
                     )}
-                    <p className="text-[10px] text-muted">Excl. VAT · Confirmed after payment</p>
+                    <p className="text-[10px] text-muted">{t.promote.priceFootnote}</p>
                   </div>
                 ) : null}
               </div>
@@ -546,15 +584,15 @@ export default function PortalPromote() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" className="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <div>
                   <p className="text-xs font-semibold text-amber-800">
-                    Reservation held for {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
+                    {t.promote.holdReservation.replace("{time}", `${Math.floor(countdown / 60)}:${(countdown % 60).toString().padStart(2, "0")}`)}
                   </p>
-                  <p className="text-[10px] text-amber-700">Complete payment before this reservation expires.</p>
+                  <p className="text-[10px] text-amber-700">{t.promote.holdCompletePayment}</p>
                 </div>
               </div>
             )}
             {countdown === 0 && holdExpires && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                <p className="text-xs font-semibold text-red-700">Hold expired. Please select a new date and try again.</p>
+                <p className="text-xs font-semibold text-red-700">{t.promote.holdExpired}</p>
               </div>
             )}
 
@@ -566,7 +604,7 @@ export default function PortalPromote() {
                 className="px-6 py-2.5 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {submitting && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                {submitting ? "Processing..." : selected === "now" ? t.promote.activateRecommendation : t.promote.purchasePlacement}
+                {submitting ? t.promote.processing : selected === "now" ? t.promote.activateRecommendation : t.promote.purchasePlacement}
               </button>
               <button onClick={() => { setSelected(null); setHoldExpires(null); }} className="px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted hover:text-text transition-colors cursor-pointer">
                 {t.common.cancel}

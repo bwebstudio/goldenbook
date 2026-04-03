@@ -29,8 +29,8 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
       activeOpacity={0.85}
       className="flex-row items-center gap-4"
     >
-      {/* Thumbnail */}
-      <View className="flex-shrink-0">
+      {/* Thumbnail with sponsored overlay */}
+      <View className="flex-shrink-0" style={{ width: 80, height: 80 }}>
         <ProgressiveImage
           uri={imageUrl}
           height={80}
@@ -39,6 +39,13 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
           placeholderColor="#222D52"
           style={{ width: 80 }}
         />
+        {place.isSponsored && (
+          <View style={{ position: 'absolute', top: 4, left: 4 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 7, letterSpacing: 0.2 }}>
+              Sponsored
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Text */}
@@ -111,6 +118,15 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
           locations={[0, 0.55, 1]}
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: CARD_HEIGHT * 0.65 }}
         />
+
+        {/* Sponsored badge (top-left, subtle) */}
+        {place.isSponsored && (
+          <View className="absolute top-3 left-3">
+            <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: 0.3 }}>
+              Sponsored · Goldenbook
+            </Text>
+          </View>
+        )}
 
         {/* Bottom content */}
         <View className="absolute bottom-5 left-5 right-5">

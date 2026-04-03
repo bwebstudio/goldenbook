@@ -73,7 +73,7 @@ export default function DiscoverScreen() {
             {/* 2. Search */}
             <DiscoverSearchBar placeholder={data.search.placeholder} />
 
-            {/* 3. What Should I Experience Now — contextual, powered by /concierge/now */}
+            {/* 3. NOW — contextual recommendation (monetizable) */}
             <View>
               <SectionHeader title={t.discover.whatShouldIExperience} />
               <NowRecommendationSection
@@ -81,7 +81,7 @@ export default function DiscoverScreen() {
               />
             </View>
 
-            {/* 4. Golden Picks — horizontal portrait cards */}
+            {/* 4. Golden Picks — premium placements (monetizable) */}
             {data.editorsPicks.length > 0 && (
               <View>
                 <SectionHeader title={t.discover.goldenPicks} onSeeAll={() => router.push('/golden-picks')} />
@@ -98,10 +98,22 @@ export default function DiscoverScreen() {
               </View>
             )}
 
-            {/* 5. Hidden Spots Near You — location-gated with Apple-safe UX */}
+            {/* 5. Hidden Gems — discovery placements (monetizable) */}
             <View>
               <SectionHeader title={t.discover.hiddenSpotsNearYou} />
-              <HiddenGemsGate nearbyCount={data.hiddenSpotsNearYou.length}>
+              <HiddenGemsGate
+                nearbyCount={data.hiddenSpotsNearYou.length}
+                cityName={data.cityHeader.name}
+                editorialFallback={
+                  data.hiddenSpotsNearYou.length > 0 ? (
+                    <View className="px-6 gap-5">
+                      {data.hiddenSpotsNearYou.slice(0, 3).map((place) => (
+                        <PlaceCard key={place.id} place={place} variant="horizontal" />
+                      ))}
+                    </View>
+                  ) : undefined
+                }
+              >
                 <View className="px-6 gap-5">
                   {data.hiddenSpotsNearYou.slice(0, 3).map((place) => (
                     <PlaceCard key={place.id} place={place} variant="horizontal" />
@@ -110,25 +122,7 @@ export default function DiscoverScreen() {
               </HiddenGemsGate>
             </View>
 
-            {/* 6. Explore by Category */}
-            {data.categories.length > 0 && (
-              <View>
-                <SectionHeader title={t.discover.exploreByCategory} />
-                <CategoryPills categories={data.categories} />
-              </View>
-            )}
-
-            {/* 7. Golden Routes — dark navy cards */}
-            {data.goldenRoutes.length > 0 && (
-              <View>
-                <SectionHeader title={t.discover.goldenRoutes} onSeeAll={() => {}} />
-                {data.goldenRoutes.map((route) => (
-                  <RouteCard key={route.id} route={route} />
-                ))}
-              </View>
-            )}
-
-            {/* 8. New on Goldenbook — horizontal portrait cards */}
+            {/* 6. New on Goldenbook */}
             {data.newOnGoldenbook.length > 0 && (
               <View>
                 <SectionHeader title={t.discover.newOnGoldenbook} />
@@ -142,6 +136,24 @@ export default function DiscoverScreen() {
                   contentContainerStyle={{ paddingHorizontal: 24 }}
                   showsHorizontalScrollIndicator={false}
                 />
+              </View>
+            )}
+
+            {/* 7. Explore by Category */}
+            {data.categories.length > 0 && (
+              <View>
+                <SectionHeader title={t.discover.exploreByCategory} />
+                <CategoryPills categories={data.categories} />
+              </View>
+            )}
+
+            {/* 8. Golden Routes */}
+            {data.goldenRoutes.length > 0 && (
+              <View>
+                <SectionHeader title={t.discover.goldenRoutes} onSeeAll={() => {}} />
+                {data.goldenRoutes.map((route) => (
+                  <RouteCard key={route.id} route={route} />
+                ))}
               </View>
             )}
           </View>

@@ -21,16 +21,21 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useLocationPermission, type HiddenGemsMode } from '@/hooks/useLocationPermission';
+import { useAppStore } from '@/store/appStore';
 import { useTranslation } from '@/i18n';
 
 interface HiddenGemsGateProps {
   /** Number of nearby places returned by the API (0 = no results). */
   nearbyCount: number;
+  /** City name for the selected destination (shown in editorial fallback title). */
+  cityName: string;
   /** Rendered when location is granted, within coverage, and places exist. */
   children: React.ReactNode;
+  /** Editorial Hidden Gems for the selected destination (rendered when location denied). */
+  editorialFallback?: React.ReactNode;
 }
 
-export function HiddenGemsGate({ nearbyCount, children }: HiddenGemsGateProps) {
+export function HiddenGemsGate({ nearbyCount, cityName, children, editorialFallback }: HiddenGemsGateProps) {
   const {
     hiddenGemsMode,
     requestPermission,
@@ -38,6 +43,7 @@ export function HiddenGemsGate({ nearbyCount, children }: HiddenGemsGateProps) {
     openSettings,
   } = useLocationPermission();
   const router = useRouter();
+  const setCity = useAppStore((s) => s.setCity);
   const t = useTranslation();
 
   // Refine nearby_results → no_results_fallback when API returned 0 places
@@ -69,8 +75,10 @@ export function HiddenGemsGate({ nearbyCount, children }: HiddenGemsGateProps) {
         />
       );
 
-    // ── Denied or dismissed → editorial fallback ──────────────────────────
+    // ── Denied or dismissed → show editorial Hidden Gems for selected destination
     case 'denied_fallback':
+      // If we have editorial content for this destination, show it directly
+      if (editorialFallback) return <>{editorialFallback}</>;
       return (
         <GateCard
           icon="compass-outline"
@@ -91,7 +99,11 @@ export function HiddenGemsGate({ nearbyCount, children }: HiddenGemsGateProps) {
           title={t.location.outsideRegionsTitle}
           body={t.location.outsideRegionsBody}
           primaryLabel={t.location.explorePortugal}
-          onPrimary={() => router.push('/(tabs)' as any)}
+          onPrimary={() => {
+            // Set destination to Lisboa (main Portugal destination) and stay on Discover
+            setCity('lisboa');
+            router.replace('/(tabs)' as any);
+          }}
           secondaryLabel={t.location.changeDestination}
           onSecondary={() => router.push('/select-destination' as any)}
         />

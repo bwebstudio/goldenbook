@@ -126,7 +126,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
 
   // ── Normal recommendation card ─────────────────────────────────────────────
 
-  const { place, title, subtitle, context } = data
+  const { place, title, subtitle, context, isSponsored } = data
   const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path)
 
   const weatherKey = context.weather_icon
@@ -206,6 +206,15 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
             {cityName}
           </Text>
         </View>
+
+        {/* Sponsored label (top-left, subtle) */}
+        {isSponsored && (
+          <View style={{ position: 'absolute', top: 16, left: 16 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 8, letterSpacing: 0.3 }}>
+              Sponsored · Goldenbook
+            </Text>
+          </View>
+        )}
 
         {/* Content overlay */}
         <View className="absolute bottom-0 left-0 right-0 p-7">

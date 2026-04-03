@@ -127,10 +127,8 @@ export default function PortalShell({ user, children }: { user: DashboardUser; c
       <header className="hidden md:flex items-center justify-between px-8 lg:px-12 py-4 bg-white border-b border-[#EDE9E3]">
         <Link href="/portal" className="flex items-center gap-2.5">
           <span className="text-xl font-bold tracking-tight text-[#222D52]">
-            Golden<span className="text-[#D2B68A]">book</span>
-          </span>
-          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#D2B68A] border border-[#D2B68A]/30 rounded-full px-2 py-0.5">
-            {t.overview.badge}
+            Golden<span className="text-[#D2B68A]">book</span>{" "}
+            <span className="text-[#D2B68A]">GO</span>
           </span>
         </Link>
 
@@ -161,10 +159,8 @@ export default function PortalShell({ user, children }: { user: DashboardUser; c
       <header className="md:hidden flex items-center justify-between px-5 py-3.5 bg-white border-b border-[#EDE9E3]">
         <Link href="/portal" className="flex items-center gap-2">
           <span className="text-lg font-bold tracking-tight text-[#222D52]">
-            Golden<span className="text-[#D2B68A]">book</span>
-          </span>
-          <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-[#D2B68A] border border-[#D2B68A]/30 rounded-full px-1.5 py-0.5">
-            {t.overview.badge}
+            Golden<span className="text-[#D2B68A]">book</span>{" "}
+            <span className="text-[#D2B68A]">GO</span>
           </span>
         </Link>
         <div className="flex items-center gap-2">

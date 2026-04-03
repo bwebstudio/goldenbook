@@ -42,6 +42,7 @@ export default function PortalOverview() {
 
   const products = t.promote.products as Record<string, { label: string }>;
   const ov = t.overview;
+  const isPt = t.common.save === "Guardar alterações";
 
   return (
     <div className="flex flex-col gap-5">
@@ -57,7 +58,7 @@ export default function PortalOverview() {
             {ov.editListing}
           </Link>
           <Link href="/portal/promote" className="px-3.5 py-1.5 rounded-lg border border-white/20 text-white text-xs font-semibold hover:bg-white/10 transition-colors">
-            {ov.promote}
+            {ov.boostVisibility}
           </Link>
         </div>
       </div>
@@ -66,10 +67,10 @@ export default function PortalOverview() {
       <div>
         <p className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2">{ov.performance}</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <PerfCard icon={<EyeIcon />} value={analytics?.views} label={t.metrics.views} />
-          <PerfCard icon={<LinkIcon />} value={analytics?.websiteClicks} label={t.metrics.websiteClicks} />
-          <PerfCard icon={<MapIcon />} value={analytics?.directions} label={t.metrics.directions} />
-          <PerfCard icon={<CalIcon />} value={analytics?.reservations} label={t.metrics.reservations} />
+          <PerfCard icon={<EyeIcon />} value={analytics?.views} prevValue={(analytics as any)?.prevViews} label={t.metrics.views} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<LinkIcon />} value={analytics?.websiteClicks} prevValue={(analytics as any)?.prevWebsiteClicks} label={t.metrics.websiteClicks} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<MapIcon />} value={analytics?.directions} prevValue={(analytics as any)?.prevDirections} label={t.metrics.directions} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<CalIcon />} value={analytics?.reservations} prevValue={(analytics as any)?.prevReservations} label={t.metrics.reservations} trendLabel={t.common.thisWeek} />
         </div>
       </div>
 
@@ -77,19 +78,23 @@ export default function PortalOverview() {
       {recommendations.length > 0 && (() => {
         const rc = t.recs as Record<string, string>;
         const sectionLabels: Record<string, string> = {
-          golden_picks: products.golden_picks?.label ?? "Golden Picks", now: products.now?.label ?? "Now", hidden_gems: products.hidden_gems?.label ?? "Hidden Gems",
-          search_priority: products.search_priority?.label ?? "Search Priority", category_featured: products.category_featured?.label ?? "Category Featured",
-          concierge: products.concierge?.label ?? "Concierge", new_on_goldenbook: products.new_on_goldenbook?.label ?? "New on Goldenbook",
-          extended_description: "Extended Description", extra_images: "Extra Images",
-          listing_premium_pack: "Premium Pack",
+          golden_picks: products.golden_picks?.label ?? "Golden Picks",
+          now: products.now?.label ?? "Recommended at the right moment",
+          hidden_gems: products.hidden_gems?.label ?? "Hidden Gems",
+          search_priority: products.search_priority?.label ?? "Search Priority",
+          category_featured: products.category_featured?.label ?? "Category Spotlight",
+          concierge: products.concierge?.label ?? "Concierge Recommendation",
+          new_on_goldenbook: products.new_on_goldenbook?.label ?? "New on Goldenbook",
+          extended_description: products.extended_description?.label ?? "Extended Description",
+          extra_images: products.extra_images?.label ?? "Extra Images",
         };
         const bucketLabels: Record<string, string> = {
-          morning: rc.title === "Recomendações" ? "manhã" : "morning",
-          lunch: rc.title === "Recomendações" ? "almoço" : "lunch",
-          afternoon: rc.title === "Recomendações" ? "tarde" : "afternoon",
-          evening: rc.title === "Recomendações" ? "noite" : "evening",
-          night: rc.title === "Recomendações" ? "noite" : "night",
-          all_day: rc.title === "Recomendações" ? "dia inteiro" : "all day",
+          morning: isPt ? "manhã" : "morning",
+          lunch: isPt ? "almoço" : "lunch",
+          afternoon: isPt ? "tarde" : "afternoon",
+          evening: isPt ? "noite" : "evening",
+          night: isPt ? "noite" : "night",
+          all_day: isPt ? "dia inteiro" : "all day",
         };
         function fill(tpl: string, r: typeof recommendations[0]): string {
           return tpl
@@ -160,6 +165,7 @@ export default function PortalOverview() {
                 <div className="space-y-1">
                   <VItem active label={ov.searchResults} />
                   <VItem active label={ov.categoryPage} />
+                  <VItem active label={ov.editorialPage} />
                   {activeSurfaceItems.map((s) => <VItem key={s.key} active label={s.label} />)}
                 </div>
               </div>
@@ -167,7 +173,14 @@ export default function PortalOverview() {
                 <div>
                   <p className="text-[10px] font-medium text-muted uppercase tracking-wider mb-1.5">{ov.notFeaturedIn}</p>
                   <div className="space-y-1">
-                    {inactiveSurfaceItems.map((s) => <VItem key={s.key} label={s.label} />)}
+                    {inactiveSurfaceItems.map((s) => (
+                      <div key={s.key} className="flex items-center justify-between">
+                        <VItem label={s.label} />
+                        <Link href="/portal/promote" className="text-[9px] font-semibold text-gold hover:text-gold-dark">
+                          {ov.boostVisibility} →
+                        </Link>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -183,17 +196,17 @@ export default function PortalOverview() {
           <OpCard
             title={(products.golden_picks as { label: string }).label}
             desc={ov.opportunityPicks}
-            cta={ov.promoteSpace}
+            cta={ov.boostVisibility}
           />
           <OpCard
             title={(products.now as { label: string }).label}
             desc={ov.opportunityNow}
-            cta={ov.promoteSpace}
+            cta={ov.boostVisibility}
           />
           <OpCard
             title={(products.search_priority as { label: string }).label}
             desc={ov.opportunitySearch}
-            cta={ov.promoteSpace}
+            cta={ov.boostVisibility}
           />
         </div>
       </div>
@@ -235,8 +248,10 @@ export default function PortalOverview() {
 
 /* ── Sub-components ── */
 
-function PerfCard({ icon, value, label }: { icon: React.ReactNode; value?: number; label: string }) {
+function PerfCard({ icon, value, prevValue, label, trendLabel }: { icon: React.ReactNode; value?: number; prevValue?: number; label: string; trendLabel: string }) {
   const has = value !== undefined && value > 0;
+  const hasTrend = has && prevValue !== undefined && prevValue > 0;
+  const delta = hasTrend ? Math.round(((value! - prevValue!) / prevValue!) * 100) : null;
   return (
     <div className="bg-white rounded-lg border border-border px-3.5 py-3">
       <div className="flex items-center justify-between mb-1.5">
@@ -246,6 +261,11 @@ function PerfCard({ icon, value, label }: { icon: React.ReactNode; value?: numbe
         {has ? value!.toLocaleString() : "—"}
       </p>
       <p className="text-[9px] text-muted mt-0.5">{label}</p>
+      {delta !== null && (
+        <p className={`text-[9px] font-semibold mt-1 ${delta >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+          {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}% {trendLabel}
+        </p>
+      )}
     </div>
   );
 }

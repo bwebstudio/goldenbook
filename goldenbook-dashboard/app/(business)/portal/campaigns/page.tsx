@@ -109,11 +109,11 @@ export default function PortalCampaigns() {
   const statusCfg: Record<string, { label: string; cls: string }> = {
     active:    { label: t.status.active,   cls: "bg-emerald-50 text-emerald-700" },
     activated: { label: t.status.active,   cls: "bg-emerald-50 text-emerald-700" },
-    paid:      { label: "Paid",            cls: "bg-emerald-50 text-emerald-700" },
+    paid:      { label: t.campaigns.statusPaid, cls: "bg-emerald-50 text-emerald-700" },
     approved:  { label: t.status.approved, cls: "bg-blue-50 text-blue-700" },
     pending:   { label: t.status.pending,  cls: "bg-amber-50 text-amber-700" },
     rejected:  { label: t.status.rejected, cls: "bg-red-50 text-red-600" },
-    failed:    { label: "Failed",          cls: "bg-red-50 text-red-600" },
+    failed:    { label: t.campaigns.statusFailed, cls: "bg-red-50 text-red-600" },
     expired:   { label: t.status.expired,  cls: "bg-gray-50 text-gray-500" },
   };
 
@@ -164,15 +164,15 @@ export default function PortalCampaigns() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-text">{products[item.placementType]?.label ?? item.placementType}</p>
                       {item.type === "purchase" && (
-                        <span className="text-[9px] font-semibold text-gold bg-gold/10 rounded px-1.5 py-0.5">Paid</span>
+                        <span className="text-[9px] font-semibold text-gold bg-gold/10 rounded px-1.5 py-0.5">{t.campaigns.paidTag}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1 flex-wrap text-[10px] text-muted">
                       {cityLabel && <span>{cityLabel}</span>}
                       <span>{item.duration} {t.common.days}</span>
                       {item.price && <span>&euro;{fmtPrice(parseFloat(item.price))}</span>}
-                      {item.activatedAt && <span>Started {new Date(item.activatedAt).toLocaleDateString()}</span>}
-                      {item.expiresAt && <span>Until {new Date(item.expiresAt).toLocaleDateString()}</span>}
+                      {item.activatedAt && <span>{t.campaigns.startedOn} {new Date(item.activatedAt).toLocaleDateString()}</span>}
+                      {item.expiresAt && <span>{t.campaigns.untilLabel} {new Date(item.expiresAt).toLocaleDateString()}</span>}
                       {!item.activatedAt && <span>{t.common.requested} {new Date(item.createdAt).toLocaleDateString()}</span>}
                     </div>
                   </div>

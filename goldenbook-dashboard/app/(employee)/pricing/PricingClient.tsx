@@ -28,9 +28,8 @@ const TYPE_LABELS: Record<string, string> = {
   new_on_goldenbook: "New on Goldenbook",
   route_featured_stop: "Route Featured Stop",
   route_sponsor: "Route Sponsor",
-  extra_images: "Extra Images (5-15)",
-  extended_description: "Extended Description",
-  listing_premium_pack: "Listing Premium Pack",
+  extra_images: "Extra Images (up to 10) · Monthly",
+  extended_description: "Extended Description (up to 600 chars) · Monthly",
 };
 
 const SEASON_COLORS: Record<string, string> = {

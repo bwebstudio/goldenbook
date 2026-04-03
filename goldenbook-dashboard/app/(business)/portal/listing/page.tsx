@@ -78,7 +78,7 @@ export default function PortalListing() {
         setChangeRequests(refreshed.changeRequests ?? []);
       } catch { /* ignore */ }
     } catch (err) {
-      showToast("error", err instanceof Error ? err.message : "Error");
+      showToast("error", err instanceof Error ? err.message : t.common.error);
     } finally { setSaving(false); }
   };
 
@@ -96,12 +96,12 @@ export default function PortalListing() {
       if (error) throw error;
       await addImage(place.id, { bucket, path: `${bucket}/${path}`, mimeType: file.type, sizeBytes: file.size });
       setImages(await fetchBusinessImages().catch(() => []));
-    } catch { showToast("error", "Upload failed"); }
+    } catch { showToast("error", t.listing.uploadFailed); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
   const handleImgDelete = async (imgId: string) => {
-    if (!place || !confirm("Delete this image?")) return;
+    if (!place || !confirm(t.listing.deleteImageConfirm)) return;
     setImgBusy(true);
     try {
       await deleteImagePermanent(place.id, imgId);
@@ -196,7 +196,7 @@ export default function PortalListing() {
               <div key={img.id} className="aspect-[4/3] rounded-lg overflow-hidden border border-border bg-surface relative group">
                 {url ? <img src={url} alt={img.caption ?? ""} className="w-full h-full object-cover" /> : <EmptySlot />}
                 {(img.image_role === 'hero' || img.image_role === 'cover') && (
-                  <span className="absolute top-1 left-1 bg-black/50 text-white text-[8px] font-semibold uppercase px-1.5 py-0.5 rounded">Cover</span>
+                  <span className="absolute top-1 left-1 bg-black/50 text-white text-[8px] font-semibold uppercase px-1.5 py-0.5 rounded">{t.listing.cover}</span>
                 )}
                 <button onClick={() => handleImgDelete(img.id)} disabled={imgBusy} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer disabled:opacity-50">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -212,7 +212,7 @@ export default function PortalListing() {
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImgUpload} className="hidden" />
           {visibleImages.length < 4 && (
             <button onClick={() => fileRef.current?.click()} disabled={uploading || imgBusy} className="px-4 py-1.5 rounded-lg border border-border text-xs font-semibold text-text hover:border-gold/50 transition-colors bg-white cursor-pointer disabled:opacity-50">
-              {uploading ? "..." : t.listing.gallery + " +"}
+              {uploading ? "..." : t.listing.addImages}
             </button>
           )}
           <p className="text-[10px] text-muted leading-relaxed">

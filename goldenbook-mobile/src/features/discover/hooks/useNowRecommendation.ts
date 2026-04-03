@@ -33,6 +33,7 @@ export interface NowPlaceDTO {
 
 export interface NowRecommendationResponse {
   place: NowPlaceDTO | null
+  isSponsored?: boolean
   title: string        // max 60 chars — short contextual headline
   subtitle: string     // max 100 chars — editorial one-liner
   explanation: string  // backward compat

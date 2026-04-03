@@ -104,20 +104,20 @@ export default function PortalAnalytics() {
       {/* Campaign spending */}
       {purchases.length > 0 && (
         <div className="bg-white rounded-xl border border-border p-5">
-          <h2 className="text-sm font-bold text-text mb-3">Your Placements</h2>
+          <h2 className="text-sm font-bold text-text mb-3">{t.analytics.placementsTitle}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
-              <p className="text-[10px] text-muted">Total Spent</p>
+              <p className="text-[10px] text-muted">{t.analytics.totalSpent}</p>
               <p className="text-lg font-bold text-text">
                 &euro;{purchases.reduce((s, p) => s + (parseFloat(p.final_price) || 0), 0).toFixed(0)}
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted">Purchases</p>
+              <p className="text-[10px] text-muted">{t.analytics.purchases}</p>
               <p className="text-lg font-bold text-text">{purchases.length}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted">Active</p>
+              <p className="text-[10px] text-muted">{t.analytics.active}</p>
               <p className="text-lg font-bold text-emerald-600">
                 {purchases.filter((p) => p.status === "activated" || p.status === "paid").length}
               </p>
@@ -130,16 +130,16 @@ export default function PortalAnalytics() {
             if (active.length === 0) {
               return (
                 <div className="bg-gold/5 border border-gold/15 rounded-lg px-4 py-3">
-                  <p className="text-xs font-semibold text-gold">No active placements</p>
-                  <p className="text-[10px] text-muted mt-0.5">Visit the Promote page to boost your visibility.</p>
+                  <p className="text-xs font-semibold text-gold">{t.analytics.noActivePlacementsTitle}</p>
+                  <p className="text-[10px] text-muted mt-0.5">{t.analytics.noActivePlacementsDesc}</p>
                 </div>
               );
             }
             if (!sections.has("golden_picks") && !sections.has("now")) {
               return (
                 <div className="bg-gold/5 border border-gold/15 rounded-lg px-4 py-3">
-                  <p className="text-xs font-semibold text-gold">Try Golden Picks or Now</p>
-                  <p className="text-[10px] text-muted mt-0.5">These premium sections have the highest visibility and engagement.</p>
+                  <p className="text-xs font-semibold text-gold">{t.analytics.tryPicksNowTitle}</p>
+                  <p className="text-[10px] text-muted mt-0.5">{t.analytics.tryPicksNowDesc}</p>
                 </div>
               );
             }

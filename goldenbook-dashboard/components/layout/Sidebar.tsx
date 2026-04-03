@@ -118,8 +118,12 @@ export default function Sidebar({ currentUser }: { currentUser: DashboardUser })
     <>
       <div className="px-6 lg:px-8 py-5 lg:py-8 border-b border-border flex items-center justify-between">
         <span className="text-xl lg:text-2xl font-bold tracking-tight text-text">
-          <span className="hidden lg:inline">Golden<span className="text-gold">book</span> Go</span>
-          <span className="lg:hidden">GB <span className="text-gold">Go</span></span>
+          <span className="hidden lg:inline">
+            <span className="text-[#222D52]">Goldenbook</span> <span className="text-gold">GO</span>
+          </span>
+          <span className="lg:hidden">
+            <span className="text-[#222D52]">Goldenbook</span> <span className="text-gold">GO</span>
+          </span>
         </span>
         <button onClick={() => setMobileOpen(false)} className="lg:hidden p-1 text-muted hover:text-text cursor-pointer">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
