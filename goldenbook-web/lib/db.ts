@@ -22,9 +22,9 @@ export function getPool(): Pool {
 
     pool = new Pool({
       connectionString,
-      ssl: process.env.NODE_ENV === 'production'
-        ? { rejectUnauthorized: true }
-        : { rejectUnauthorized: false },
+      // Supabase pooler uses a self-signed certificate chain —
+      // rejectUnauthorized must be false for both dev and Vercel.
+      ssl: { rejectUnauthorized: false },
       max: 5,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 5_000,
