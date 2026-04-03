@@ -21,6 +21,7 @@ import {
   BulkCreateInventorySchema,
   SECTION_TO_GROUP,
 } from '../../campaigns/campaigns.dto'
+import { incrementSlot, decrementSlot, placementToSurface, syncAllSlots, getInventoryForCity } from '../../inventory/promotion-inventory.query'
 
 function requireSuperAdmin(request: { adminUser?: { dashboardRole: string } }) {
   if (request.adminUser?.dashboardRole !== 'super_admin') {
@@ -169,15 +170,19 @@ export async function adminCampaignsRoutes(app: FastifyInstance) {
     }).parse(request.body)
 
     if (source === 'purchase') {
-      const validStatuses = ['pending', 'paid', 'activated', 'expired', 'failed', 'refunded']
+      const validStatuses = ['pending', 'paid', 'activated', 'expired', 'failed', 'refunded', 'inventory_conflict']
       if (!validStatuses.includes(status)) {
         throw new AppError(400, `Invalid purchase status: ${status}`, 'INVALID_STATUS')
       }
 
       // Update purchase
-      const { rows } = await db.query<{ visibility_id: string | null; campaign_id: string | null }>(
+      const { rows } = await db.query<{
+        visibility_id: string | null; campaign_id: string | null;
+        city: string | null; placement_type: string | null; status: string;
+      }>(
         `UPDATE purchases SET status = $2, updated_at = now() WHERE id = $1
-         RETURNING visibility_id, campaign_id`,
+         RETURNING visibility_id, campaign_id, city, placement_type,
+                   (SELECT p2.status FROM purchases p2 WHERE p2.id = $1) AS prev_status`,
         [id, status],
       )
       if (!rows[0]) throw new AppError(404, 'Purchase not found', 'NOT_FOUND')
@@ -216,6 +221,16 @@ export async function adminCampaignsRoutes(app: FastifyInstance) {
              WHERE purchase_id = $1 AND status = 'sold'`,
             [id],
           )
+        }
+      }
+
+      // ── Global slot adjustment (promotion_inventory) ─────────────────────
+      if (rows[0].city && rows[0].placement_type) {
+        const surface = placementToSurface(rows[0].placement_type)
+        if (isDeactivating) {
+          await decrementSlot(rows[0].city, surface)
+        } else if (isActivating) {
+          await incrementSlot(rows[0].city, surface)
         }
       }
     } else {
@@ -423,5 +438,26 @@ export async function adminCampaignsRoutes(app: FastifyInstance) {
     })
 
     return reply.status(201).send({ created })
+  })
+
+  // ── POST /admin/campaigns/inventory/sync ──────────────────────────────────
+  // Recompute promotion_inventory.active_slots from ground truth.
+  // Safe to run at any time. Should be called periodically or after manual changes.
+  app.post('/admin/campaigns/inventory/sync', {
+    preHandler: [authenticateDashboardUser],
+  }, async (request, reply) => {
+    requireSuperAdmin(request)
+    const updated = await syncAllSlots()
+    return reply.send({ synced: updated })
+  })
+
+  // ── GET /admin/campaigns/inventory/:city ──────────────────────────────────
+  // Get current slot inventory for a city.
+  app.get('/admin/campaigns/inventory/:city', {
+    preHandler: [authenticateDashboardUser],
+  }, async (request, reply) => {
+    const { city } = z.object({ city: z.string().min(1) }).parse(request.params)
+    const inventory = await getInventoryForCity(city)
+    return reply.send({ items: inventory })
   })
 }

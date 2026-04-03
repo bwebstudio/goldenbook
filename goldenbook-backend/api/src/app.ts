@@ -40,6 +40,7 @@ import { recommendationsRoutes } from './modules/recommendations/recommendations
 import { nowRoutes } from './modules/now/now.route'
 import { notificationsRoutes } from './modules/notifications/notifications.route'
 import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
+import { syncAllSlots } from './modules/inventory/promotion-inventory.query'
 
 export function buildApp() {
   const app = Fastify({
@@ -139,6 +140,19 @@ export function buildApp() {
       error: 'NOT_FOUND',
       message: 'Route not found',
     })
+  })
+
+  // ── Promotion inventory: sync on startup + periodic self-heal ───────────
+  app.addHook('onReady', async () => {
+    syncAllSlots().catch((err) =>
+      app.log.error(err, '[promotion-inventory] startup sync failed'),
+    )
+    // Re-sync every 15 minutes to catch expired placements and counter drift
+    setInterval(() => {
+      syncAllSlots().catch((err) =>
+        app.log.error(err, '[promotion-inventory] periodic sync failed'),
+      )
+    }, 15 * 60 * 1000)
   })
 
   return app

@@ -150,8 +150,15 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       height: z.number().int().nullable().default(null),
       sizeBytes: z.number().int().nullable().default(null),
     }).parse(request.body)
-    const image = await addImageToPlace(id, body)
-    return reply.status(201).send(image)
+    try {
+      const image = await addImageToPlace(id, body)
+      return reply.status(201).send(image)
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Maximum is')) {
+        return reply.status(400).send({ error: 'IMAGE_LIMIT_REACHED', message: err.message })
+      }
+      throw err
+    }
   })
 
   // ── Delete place ──────────────────────────────────────────────────────────

@@ -105,6 +105,9 @@ export async function deleteImage(placeId: string, imageId: string): Promise<{ b
 }
 
 /** Create a media_asset and link it to a place as a gallery image */
+/** Maximum total images per place (hero + gallery). */
+const MAX_IMAGES_PER_PLACE = 10
+
 export async function addImageToPlace(placeId: string, data: {
   bucket: string; path: string; mimeType: string | null;
   width: number | null; height: number | null; sizeBytes: number | null;
@@ -112,6 +115,16 @@ export async function addImageToPlace(placeId: string, data: {
   const client = await db.connect()
   try {
     await client.query('BEGIN')
+
+    // Enforce image limit — do not allow new uploads above the cap
+    const { rows: [{ count }] } = await client.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM place_images WHERE place_id = $1`,
+      [placeId],
+    )
+    if (parseInt(count, 10) >= MAX_IMAGES_PER_PLACE) {
+      await client.query('ROLLBACK')
+      throw new Error(`This place already has ${count} images. Maximum is ${MAX_IMAGES_PER_PLACE}.`)
+    }
 
     // Create media_asset
     const { rows: [asset] } = await client.query<{ id: string }>(`

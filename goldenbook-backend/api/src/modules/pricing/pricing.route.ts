@@ -16,6 +16,7 @@ import {
 import { CampaignCheckoutSchema } from '../campaigns/campaigns.dto'
 import { validateCampaignCheckout } from '../campaigns/campaigns.validation'
 import { getCampaignById } from '../campaigns/campaigns.query'
+import { checkSlotAvailabilityForPeriod, placementToSurface } from '../inventory/promotion-inventory.query'
 
 // Placement type labels for Stripe line items
 const PLACEMENT_LABELS: Record<string, string> = {
@@ -28,9 +29,8 @@ const PLACEMENT_LABELS: Record<string, string> = {
   new_on_goldenbook: 'New on Goldenbook Go',
   route_featured_stop: 'Route Featured Stop',
   route_sponsor: 'Route Sponsor',
-  extra_images: 'Extra Images (5-15)',
-  extended_description: 'Extended Description',
-  listing_premium_pack: 'Listing Premium Pack',
+  extra_images: 'Extra Images (up to 10)',
+  extended_description: 'Extended Description (up to 600 chars)',
 }
 
 function cityLabel(city: string): string {
@@ -133,6 +133,24 @@ export async function pricingRoutes(app: FastifyInstance) {
     const discoverTypes = new Set(['golden_picks', 'now', 'hidden_gems', 'new_on_goldenbook'])
     const intentTypes = new Set(['search_priority', 'category_featured'])
 
+    // Resolve city slug for this business client's place
+    const { rows: placeCity } = await db.query<{ city_slug: string }>(
+      `SELECT d.slug AS city_slug
+       FROM places p JOIN destinations d ON d.id = p.destination_id
+       WHERE p.id = $1 LIMIT 1`,
+      [placeId],
+    ).catch(() => ({ rows: [] as { city_slug: string }[] }))
+    const citySlug = placeCity[0]?.city_slug ?? 'lisboa'
+
+    // Check global slot caps from promotion_inventory
+    const { rows: inventoryRows } = await db.query<{
+      surface: string; max_slots: number; active_slots: number
+    }>(
+      `SELECT surface, max_slots, active_slots FROM promotion_inventory WHERE city = $1`,
+      [citySlug],
+    ).catch(() => ({ rows: [] as { surface: string; max_slots: number; active_slots: number }[] }))
+    const inventoryMap = new Map(inventoryRows.map((r) => [r.surface, r]))
+
     // Build availability per section
     const sections: Record<string, { available: boolean; reason: string | null; group: string }> = {}
 
@@ -158,11 +176,29 @@ export async function pricingRoutes(app: FastifyInstance) {
         available = false
         reason = 'DISCOVER_CONFLICT'
       }
+      // Global slot cap (promotion_inventory)
+      else {
+        const inv = inventoryMap.get(section)
+        if (inv && inv.active_slots >= inv.max_slots) {
+          available = false
+          reason = 'INVENTORY_FULL'
+        }
+      }
 
       sections[section] = { available, reason, group }
     }
 
-    return reply.send({ sections })
+    // Build inventory map for scarcity display
+    const inventory: Record<string, { max: number; active: number; remaining: number }> = {}
+    for (const row of inventoryRows) {
+      inventory[row.surface] = {
+        max: row.max_slots,
+        active: row.active_slots,
+        remaining: Math.max(0, row.max_slots - row.active_slots),
+      }
+    }
+
+    return reply.send({ sections, inventory, city: citySlug })
   })
 
   // ── GET /pricing/calendar ─────────────────────────────────────────────────
@@ -276,6 +312,30 @@ export async function pricingRoutes(app: FastifyInstance) {
     const priceResult = await computePrice(body.planId, body.city, body.month)
     if (!priceResult) {
       throw new AppError(500, 'Could not compute price', 'PRICE_ERROR')
+    }
+
+    // ── Global slot cap check (promotion_inventory) ─────────────────────
+    if (plan.pricing_type !== 'membership' && plan.placement_type) {
+      const surface = placementToSurface(plan.placement_type)
+      const placementStart = startDate ?? new Date().toISOString().split('T')[0]
+      const placementEnd = new Date(
+        new Date(placementStart).getTime() + plan.unit_days * 86_400_000,
+      ).toISOString().split('T')[0]
+
+      const slotCheck = await checkSlotAvailabilityForPeriod(
+        body.city, surface, placementStart, placementEnd,
+      )
+
+      if (slotCheck && !slotCheck.available) {
+        console.warn(
+          `[promotion-inventory] Slot validation failed: city=${body.city} surface=${surface} active=${slotCheck.active_slots} max=${slotCheck.max_slots} requested=${placementStart}→${placementEnd}`,
+        )
+        throw new AppError(
+          409,
+          'No promotion slots available for this city and surface in the selected period.',
+          'INVENTORY_FULL',
+        )
+      }
     }
 
     // Build descriptive line item name

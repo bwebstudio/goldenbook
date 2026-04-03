@@ -16,30 +16,30 @@ import { db } from '../../db/postgres'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface NowWeights {
-  proximity:  number
-  moment:     number
-  time:       number
-  weather:    number
-  editorial:  number
-  user:       number
-  commercial: number
-  now_tags:   number
+  proximity:     number
+  moment:        number
+  time:          number
+  weather:       number
+  base_quality:  number  // was editorial — now auto-computed: saves + images + freshness
+  user:          number
+  commercial:    number
+  now_tags:      number
 }
 
 /**
- * Rebalanced defaults: proximity reduced from 0.30 → 0.10 so NOW works
- * without location. now_tags (0.20) is the new dominant signal for
- * dashboard-configured editorial intent.
+ * Rebalanced defaults.
+ * base_quality replaces editorial — calculated from saves, image completeness, freshness.
+ * No manual editorial boosts, no ratings, no manual curation flags.
  */
 export const DEFAULT_WEIGHTS: NowWeights = {
-  proximity:  0.10,
-  moment:     0.15,
-  time:       0.10,
-  weather:    0.08,
-  editorial:  0.22,
-  user:       0.10,
-  commercial: 0.05,
-  now_tags:   0.20,
+  proximity:     0.10,
+  moment:        0.15,
+  time:          0.10,
+  weather:       0.08,
+  base_quality:  0.22,
+  user:          0.10,
+  commercial:    0.05,
+  now_tags:      0.20,
 }
 
 const WEIGHT_KEYS = Object.keys(DEFAULT_WEIGHTS) as (keyof NowWeights)[]

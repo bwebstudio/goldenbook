@@ -15,6 +15,7 @@
 
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { db } from '../../db/postgres'
 import { getNowTimeOfDay, type NowTimeOfDay, type WeatherCondition, getAllowedMoments, filterMomentsForTime } from './now.moments'
 import { getMomentLabel } from './now.moments'
 import { resolveWeather } from './now.weather'
@@ -75,6 +76,32 @@ function getSession(sessionId: string): NowSession {
   return session
 }
 
+// ─── City-level place cooldown (6 hours) ─────────────────────────────────────
+// Prevents the same place from appearing in NOW too frequently across all users.
+// Uses now_impressions table for persistence across restarts and instances.
+
+const COOLDOWN_HOURS = 6
+
+/**
+ * Get place IDs that have been shown in NOW within the last 6 hours for a city.
+ * Reads from now_impressions (persisted, survives restarts, works multi-instance).
+ */
+async function getCooldownPlaceIds(citySlug: string): Promise<Set<string>> {
+  try {
+    const { rows } = await db.query<{ place_id: string }>(
+      `SELECT DISTINCT place_id::text FROM now_impressions
+       WHERE city = $1 AND created_at > now() - ($2 || ' hours')::interval`,
+      [citySlug, COOLDOWN_HOURS],
+    )
+    return new Set(rows.map((r) => r.place_id))
+  } catch {
+    // DB error → return empty set (don't block recommendations)
+    return new Set()
+  }
+}
+
+// recordPlaceCooldown is no longer needed — trackImpression already writes to now_impressions
+
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
 const nowQuerySchema = z.object({
@@ -124,6 +151,7 @@ interface NowRecommendationDTO {
     category: string
     distance: number | null
   }
+  isSponsored: boolean
   title: string       // max 60 chars — short contextual headline
   subtitle: string    // max 100 chars — editorial one-liner
   explanation: string // kept for backward compat
@@ -245,7 +273,7 @@ function buildNowDTO(
   citySlug?: string,
   cityName?: string,
 ): NowRecommendationDTO {
-  const { place, bestMoment } = result
+  const { place, bestMoment, isSponsored } = result
   const city = cityName ?? place.city_name
   const explanation = buildNowExplanation(bestMoment, timeOfDay, weather, place.distance_meters, locale)
   return {
@@ -259,6 +287,7 @@ function buildNowDTO(
       category: place.place_type,
       distance: place.distance_meters ? Math.round(place.distance_meters) : null,
     },
+    isSponsored,
     title: buildNowTitle(bestMoment, timeOfDay, city, locale),
     subtitle: buildNowSubtitle(bestMoment, timeOfDay, locale),
     explanation,
@@ -279,7 +308,6 @@ async function resolveNow(
   locale: string,
   lat: number | undefined,
   lon: number | undefined,
-  profile: OnboardingProfile,
   excludeIds: Set<string>,
   weights: NowWeights,
 ): Promise<{
@@ -310,8 +338,12 @@ async function resolveNow(
   // Coordinates are OPTIONAL — NOW works without them
   const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
 
+  // Merge city-level cooldown into exclude set (6-hour same-place prevention)
+  const cooldownIds = await getCooldownPlaceIds(city.slug)
+  const allExcludeIds = new Set([...excludeIds, ...cooldownIds])
+
   const ranked = rankNowCandidates(
-    candidates, timeOfDay, weather, profile, paidPlaceIds, excludeIds, weights,
+    candidates, timeOfDay, weather, paidPlaceIds, allExcludeIds, weights,
   )
 
   return { city, timeOfDay, weather, ranked }
@@ -356,7 +388,7 @@ export async function nowRoutes(app: FastifyInstance) {
     )
 
     const { timeOfDay, weather, ranked } = await resolveNow(
-      cityParam, locale, lat, lon, profile, session.shownPlaceIds, weights,
+      cityParam, locale, lat, lon, session.shownPlaceIds, weights,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
@@ -384,6 +416,7 @@ export async function nowRoutes(app: FastifyInstance) {
 
     const top = ranked[0]
     session.shownPlaceIds.add(top.place.id)
+
 
     // Track impression (fire-and-forget)
     trackImpression({
@@ -452,14 +485,14 @@ export async function nowRoutes(app: FastifyInstance) {
     )
 
     const { timeOfDay, weather, ranked } = await resolveNow(
-      cityParam, locale, lat, lon, profile, session.shownPlaceIds, weights,
+      cityParam, locale, lat, lon, session.shownPlaceIds, weights,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
 
     if (ranked.length === 0) {
       session.shownPlaceIds.clear()
-      const retry = await resolveNow(cityParam, locale, lat, lon, profile, session.shownPlaceIds, weights)
+      const retry = await resolveNow(cityParam, locale, lat, lon, session.shownPlaceIds, weights)
 
       if (retry.ranked.length === 0) {
         const localeFamily = locale.split('-')[0]
@@ -485,6 +518,7 @@ export async function nowRoutes(app: FastifyInstance) {
       const top = retry.ranked[0]
       session.shownPlaceIds.add(top.place.id)
 
+
       trackImpression({
         sessionId, userId, placeId: top.place.id, city: city.slug,
         context: { time_of_day: retry.timeOfDay, weather: retry.weather ?? null, moment: top.bestMoment, segment, experiment_variant: experimentVariant },
@@ -496,6 +530,7 @@ export async function nowRoutes(app: FastifyInstance) {
 
     const top = ranked[0]
     session.shownPlaceIds.add(top.place.id)
+
 
     trackImpression({
       sessionId, userId, placeId: top.place.id, city: city.slug,
@@ -533,7 +568,7 @@ export async function nowRoutes(app: FastifyInstance) {
     const { weights } = await resolveEffectiveWeights(sessionId, city.slug, segment)
 
     const { timeOfDay, weather, ranked } = await resolveNow(
-      cityParam, locale, lat, lon, profile, session.shownPlaceIds, weights,
+      cityParam, locale, lat, lon, session.shownPlaceIds, weights,
     )
 
     const alternatives = ranked.slice(0, limit)

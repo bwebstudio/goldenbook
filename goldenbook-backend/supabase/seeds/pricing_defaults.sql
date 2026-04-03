@@ -32,52 +32,51 @@ INSERT INTO pricing_plans (pricing_type, unit_label, unit_days, base_price) VALU
 
 -- Now Recommendation (7 days, 1 time slot)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'now', '7 days', 7, 420.00);
+  ('placement', 'now', '7 days', 7, 360.00);
 
 -- Golden Picks #1–#5
 INSERT INTO pricing_plans (pricing_type, placement_type, position, unit_label, unit_days, base_price) VALUES
-  ('placement', 'golden_picks', 1, '7 days', 7, 650.00),
-  ('placement', 'golden_picks', 2, '7 days', 7, 550.00),
-  ('placement', 'golden_picks', 3, '7 days', 7, 450.00),
-  ('placement', 'golden_picks', 4, '7 days', 7, 390.00),
-  ('placement', 'golden_picks', 5, '7 days', 7, 350.00);
+  ('placement', 'golden_picks', 1, '7 days', 7, 550.00),
+  ('placement', 'golden_picks', 2, '7 days', 7, 470.00),
+  ('placement', 'golden_picks', 3, '7 days', 7, 380.00),
+  ('placement', 'golden_picks', 4, '7 days', 7, 330.00),
+  ('placement', 'golden_picks', 5, '7 days', 7, 300.00);
 
 -- Search Priority (28 days, per vertical)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'search_priority', '28 days', 28, 480.00);
+  ('placement', 'search_priority', '28 days', 28, 410.00);
 
 -- Category Featured (28 days, per main category)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'category_featured', '28 days', 28, 360.00);
+  ('placement', 'category_featured', '28 days', 28, 300.00);
 
 -- Hidden Gems Near You (7 days)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'hidden_gems', '7 days', 7, 290.00);
+  ('placement', 'hidden_gems', '7 days', 7, 250.00);
 
 -- Concierge Recommendation (7 days)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'concierge', '7 days', 7, 320.00);
+  ('placement', 'concierge', '7 days', 7, 270.00);
 
 -- New on Goldenbook (14 days)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'new_on_goldenbook', '14 days', 14, 240.00);
+  ('placement', 'new_on_goldenbook', '14 days', 14, 200.00);
 
 -- Route Featured Stop (14 days)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'route_featured_stop', '14 days', 14, 260.00);
+  ('placement', 'route_featured_stop', '14 days', 14, 220.00);
 
 -- Route Sponsor (28 days)
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('placement', 'route_sponsor', '28 days', 28, 520.00);
+  ('placement', 'route_sponsor', '28 days', 28, 440.00);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- LISTING UPGRADES — Lisboa base prices only
 -- ═══════════════════════════════════════════════════════════════════════════
 
 INSERT INTO pricing_plans (pricing_type, placement_type, unit_label, unit_days, base_price) VALUES
-  ('upgrade', 'extra_images',         'monthly', 30, 50.00),
-  ('upgrade', 'extended_description', 'monthly', 30, 35.00),
-  ('upgrade', 'listing_premium_pack', 'monthly', 30, 75.00);
+  ('upgrade', 'extra_images',         'month', 30, 42.00),
+  ('upgrade', 'extended_description', 'month', 30,  9.00);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- SEASON RULES (unchanged)

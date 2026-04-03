@@ -6,6 +6,7 @@ import {
   releaseInventory,
   getCampaignById,
 } from '../campaigns/campaigns.query'
+import { incrementSlot, decrementSlot, placementToSurface } from '../inventory/promotion-inventory.query'
 
 // ─── Idempotency ─────────────────────────────────────────────────────────────
 
@@ -119,6 +120,13 @@ export async function failPurchase(sessionId: string): Promise<void> {
 export async function refundPurchase(purchaseId: string): Promise<void> {
   console.info('[campaign-refund] Processing refund', { action: 'refund', purchase_id: purchaseId })
 
+  // Fetch purchase data before updating status (need city + placement_type for slot decrement)
+  const { rows: purchaseRows } = await db.query<{ city: string | null; placement_type: string | null; status: string }>(
+    `SELECT city, placement_type, status FROM purchases WHERE id = $1 LIMIT 1`,
+    [purchaseId],
+  )
+  const purchase = purchaseRows[0]
+
   await db.query(
     `UPDATE purchases SET status = 'refunded', updated_at = now()
      WHERE id = $1 AND status IN ('paid', 'activated')`,
@@ -130,6 +138,12 @@ export async function refundPurchase(purchaseId: string): Promise<void> {
 
   await cancelSlotByPurchase(purchaseId)
   console.info('[campaign-refund] Slot cancelled', { action: 'refund_slot_cancel', purchase_id: purchaseId })
+
+  // Decrement global slot if this was an activated placement
+  if (purchase?.status === 'activated' && purchase.city && purchase.placement_type) {
+    const surface = placementToSurface(purchase.placement_type)
+    await decrementSlot(purchase.city, surface)
+  }
 }
 
 // ─── Placement activation (creates place_visibility) ────────────────────────
@@ -148,6 +162,19 @@ const SURFACE_MAP: Record<string, string> = {
 
 const UPGRADE_TYPES = new Set(['extra_images', 'extended_description', 'listing_premium_pack'])
 
+/**
+ * Activate a purchase by creating a place_visibility record.
+ *
+ * SLOT SAFETY: The global slot cap (promotion_inventory) is checked and
+ * incremented BEFORE the visibility record is created. If the slot is full,
+ * the purchase is marked as 'inventory_conflict' and an auto-refund is
+ * returned to the caller.
+ *
+ * Returns:
+ *   - visibility ID on success
+ *   - 'upgrade-activated' for listing upgrades (no visibility)
+ *   - 'inventory_conflict' if the slot cap is exceeded → caller must refund
+ */
 export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promise<string> {
   const startsAt = new Date()
   const endsAt = new Date(startsAt.getTime() + purchase.unit_days * 86_400_000)
@@ -156,6 +183,29 @@ export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promi
   if (UPGRADE_TYPES.has(purchase.placement_type ?? '')) {
     await activatePurchase(purchase.id, null as unknown as string, startsAt, endsAt)
     return 'upgrade-activated'
+  }
+
+  // ── Global slot check + atomic increment BEFORE creating visibility ────
+  if (purchase.city && purchase.placement_type) {
+    const invKey = placementToSurface(purchase.placement_type)
+    const slotOk = await incrementSlot(purchase.city, invKey)
+
+    if (!slotOk) {
+      // Slot cap exceeded — do NOT create visibility, do NOT activate.
+      // Mark purchase as inventory_conflict so admin can see it and auto-refund is triggered.
+      console.error(
+        `[promotion-inventory] INVENTORY_CONFLICT: city=${purchase.city} surface=${invKey} ` +
+        `purchase=${purchase.id} stripe_session=${purchase.stripe_checkout_session_id} ` +
+        `stripe_payment=${purchase.stripe_payment_intent_id}`,
+      )
+
+      await db.query(
+        `UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`,
+        [purchase.id],
+      )
+
+      return 'inventory_conflict'
+    }
   }
 
   const surface = SURFACE_MAP[purchase.placement_type ?? ''] ?? purchase.placement_type ?? 'golden_picks'

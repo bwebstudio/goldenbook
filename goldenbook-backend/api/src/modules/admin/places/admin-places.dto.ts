@@ -47,7 +47,7 @@ export const createPlaceSchema = z.object({
     .string()
     .min(1, 'Slug is required')
     .regex(SLUG_RE, 'Slug must be lowercase letters, numbers, and hyphens only'),
-  shortDescription: z.string().optional(),
+  shortDescription: z.string().max(600, 'Description cannot exceed 600 characters').optional(),
   fullDescription:  z.string().optional(),
   goldenbookNote:   z.string().optional(),
   whyWeLoveIt:      z.string().optional(),
@@ -77,7 +77,7 @@ const nowTimeWindowEnum = z.enum(['morning', 'midday', 'afternoon', 'evening', '
 export const updatePlaceSchema = z.object({
   name:             z.string().min(2).optional(),
   slug:             z.string().regex(SLUG_RE).optional(),
-  shortDescription: z.string().optional(),
+  shortDescription: z.string().max(600, 'Description cannot exceed 600 characters').optional(),
   fullDescription:  z.string().optional(),
   goldenbookNote:   z.string().optional(),
   whyWeLoveIt:      z.string().optional(),

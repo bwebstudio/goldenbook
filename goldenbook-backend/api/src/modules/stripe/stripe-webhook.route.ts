@@ -174,6 +174,36 @@ async function fulfillPlacementPurchase(
 
   // Activate: create visibility + claim campaign inventory atomically
   const visibilityId = await createVisibilityFromPurchase(paid)
+
+  // ── Handle inventory conflict: auto-refund ──────────────────────────────
+  if (visibilityId === 'inventory_conflict') {
+    app.log.warn(
+      `[stripe-webhook] INVENTORY_CONFLICT for purchase ${paid.id} — triggering auto-refund. ` +
+      `session=${session.id} payment_intent=${paid.stripe_payment_intent_id}`,
+    )
+
+    // Trigger Stripe refund if we have a payment intent
+    if (paid.stripe_payment_intent_id && env.STRIPE_SECRET_KEY) {
+      try {
+        const stripe = new Stripe(env.STRIPE_SECRET_KEY)
+        await stripe.refunds.create({
+          payment_intent: paid.stripe_payment_intent_id,
+          reason: 'requested_by_customer',
+          metadata: {
+            reason: 'inventory_conflict',
+            purchase_id: paid.id,
+            city: paid.city ?? '',
+            placement_type: paid.placement_type ?? '',
+          },
+        })
+        app.log.info(`[stripe-webhook] Auto-refund issued for purchase ${paid.id}`)
+      } catch (refundErr) {
+        app.log.error(refundErr, `[stripe-webhook] Auto-refund FAILED for purchase ${paid.id} — manual intervention required`)
+      }
+    }
+    return
+  }
+
   app.log.info(`[stripe-webhook] Activated purchase ${paid.id} — visibility ${visibilityId}`)
 }
 
@@ -241,6 +271,26 @@ async function createPurchaseFromMetadata(
   const purchase = await getPurchaseBySessionId(session.id)
   if (purchase) {
     const visibilityId = await createVisibilityFromPurchase(purchase)
+
+    if (visibilityId === 'inventory_conflict') {
+      app.log.warn(
+        `[stripe-webhook] INVENTORY_CONFLICT for purchase ${purchaseId} (from metadata) — triggering auto-refund`,
+      )
+      if (purchase.stripe_payment_intent_id && env.STRIPE_SECRET_KEY) {
+        try {
+          const stripe = new Stripe(env.STRIPE_SECRET_KEY)
+          await stripe.refunds.create({
+            payment_intent: purchase.stripe_payment_intent_id,
+            reason: 'requested_by_customer',
+            metadata: { reason: 'inventory_conflict', purchase_id: purchaseId },
+          })
+        } catch (refundErr) {
+          app.log.error(refundErr, `[stripe-webhook] Auto-refund FAILED for purchase ${purchaseId}`)
+        }
+      }
+      return
+    }
+
     app.log.info(`[stripe-webhook] Activated purchase ${purchaseId} — visibility ${visibilityId}`)
   }
 }
