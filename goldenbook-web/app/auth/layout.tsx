@@ -3,6 +3,15 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Goldenbook GO',
   robots: { index: false, follow: false },
+  icons: {
+    icon: [
+      { url: '/favicon-transparent.svg', type: 'image/svg+xml' },
+      { url: '/favicon-transparent-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-transparent-16x16.png', type: 'image/png', sizes: '16x16' },
+    ],
+    shortcut: '/favicon-transparent.ico',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
