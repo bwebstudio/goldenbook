@@ -1,24 +1,33 @@
-import Card from "@/components/ui/Card";
+import { requireAdminDashboardUser } from "@/lib/auth/server";
+import InviteManager from "@/components/settings/InviteManager";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const user = await requireAdminDashboardUser();
+  const isSuperAdmin = user.role === "super_admin";
+
   return (
-    <div className="max-w-5xl">
-      <Card>
-        <div className="flex flex-col items-center justify-center py-16 gap-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#FBF7F0] flex items-center justify-center text-gold">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-text">Settings</h2>
-            <p className="text-base text-muted mt-2 max-w-sm">
-              This section is under construction. Dashboard settings will be available soon.
-            </p>
-          </div>
+    <div className="max-w-5xl flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-bold text-text">Settings</h1>
+        <p className="text-xs text-muted mt-0.5">Dashboard configuration and user management</p>
+      </div>
+
+      {/* Invite Management — super_admin only */}
+      {isSuperAdmin && (
+        <div>
+          <h2 className="text-base font-bold text-text mb-3">Invite Users</h2>
+          <p className="text-xs text-muted mb-4">
+            Send invitations to new editors or business clients. They will receive an email to set their password.
+          </p>
+          <InviteManager />
         </div>
-      </Card>
+      )}
+
+      {!isSuperAdmin && (
+        <div className="bg-white rounded-xl border border-border p-5">
+          <p className="text-sm text-muted">Settings and user management are available to super admins only.</p>
+        </div>
+      )}
     </div>
   );
 }

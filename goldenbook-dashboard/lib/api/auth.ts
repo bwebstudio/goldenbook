@@ -133,6 +133,11 @@ export function getCookieValue(cookieHeader: string | null | undefined, name: st
 export async function getBrowserAccessToken(): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
+  // During logout, don't attempt to read/refresh the Supabase session
+  // as it triggers internal retries that cascade into re-renders.
+  const { isLoggingOut } = await import("@/lib/api/client");
+  if (isLoggingOut()) return null;
+
   try {
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();

@@ -115,6 +115,25 @@ export const api = {
       .post<ConciergeRecommendResponseDTO>('/concierge/recommend', params)
       .then((r) => r.data),
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  register: (email: string, password: string) =>
+    apiClient.post<{ status: string; message: string }>('/auth/register', { email, password }).then((r) => r.data),
+
+  verifyEmail: (token: string) =>
+    apiClient.get<{ status: string; message: string }>('/auth/verify-email', { params: { token } }).then((r) => r.data),
+
+  resendVerification: () =>
+    apiClient.post<{ status: string; message: string }>('/auth/resend-verification').then((r) => r.data),
+
+  forgotPassword: (email: string) =>
+    apiClient.post<{ status: string; message: string }>('/auth/forgot-password', { email, source: 'app' }).then((r) => r.data),
+
+  resetPassword: (token: string, password: string) =>
+    apiClient.post<{ status: string; message: string }>('/auth/reset-password', { token, password }).then((r) => r.data),
+
+  verificationStatus: () =>
+    apiClient.get<{ email_verified: boolean }>('/auth/verification-status').then((r) => r.data),
+
   // ── NOW contextual recommendation ──────────────────────────────────────────
   nowRecommendation: (params: {
     city?: string

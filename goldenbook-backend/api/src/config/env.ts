@@ -25,8 +25,14 @@ const envSchema = z.object({
   // URL the dashboard runs on — used for Stripe redirect URLs
   DASHBOARD_URL: z.string().url().default('http://localhost:3000'),
   // Comma-separated list of allowed CORS origins (production)
-  // Example: https://goldenbook.vercel.app,https://dashboard.goldenbook.com
+  // Example: https://goldenbook.app,https://dashboard.goldenbook.app
   CORS_ORIGINS: z.string().optional(),
+  // Resend API key for transactional emails (verification, invites, password reset)
+  RESEND_API_KEY: z.string().min(1).optional(),
+  // From address for outbound emails
+  EMAIL_FROM: z.string().default('Goldenbook GO <noreply@goldenbook.app>'),
+  // App base URL — used for deep links and email CTAs
+  APP_URL: z.string().url().optional(),
 })
 
 const result = envSchema.safeParse(process.env)

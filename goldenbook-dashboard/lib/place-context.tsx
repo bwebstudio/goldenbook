@@ -34,8 +34,11 @@ export function PlaceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     fetchBusinessMe()
       .then((me) => {
+        if (cancelled) return;
         const p = me.places ?? [];
         setPlaces(p);
 
@@ -48,7 +51,9 @@ export function PlaceProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
   }, []);
 
   const activePlace = places.find((p) => p.id === activePlaceId) ?? null;

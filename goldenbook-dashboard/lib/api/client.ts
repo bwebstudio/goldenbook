@@ -6,6 +6,19 @@ import { AUTH_COOKIE_NAMES, getBrowserAccessToken } from "@/lib/api/auth";
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
+// ─── Logout guard ───────────────────────────────────────────────────────────
+// When set to true, ALL outbound API requests are blocked immediately.
+// This prevents cascading fetches during the logout → redirect transition.
+let _loggingOut = false;
+
+export function markLoggingOut() {
+  _loggingOut = true;
+}
+
+export function isLoggingOut() {
+  return _loggingOut;
+}
+
 export class ApiError extends Error {
   public readonly data: Record<string, unknown>;
 
@@ -68,14 +81,19 @@ async function refreshBrowserSession(): Promise<boolean> {
 }
 
 async function requestWithAuthRetry(input: RequestInfo | URL, init: RequestInit): Promise<Response> {
+  // Abort immediately if we're in the middle of logging out
+  if (_loggingOut) {
+    return new Response(JSON.stringify({ error: "LOGGING_OUT" }), { status: 401 });
+  }
+
   let response = await fetch(input, init);
 
-  if (response.status !== 401 || typeof window === "undefined") {
+  if (response.status !== 401 || typeof window === "undefined" || _loggingOut) {
     return response;
   }
 
   const refreshed = await refreshBrowserSession();
-  if (!refreshed) {
+  if (!refreshed || _loggingOut) {
     return response;
   }
 

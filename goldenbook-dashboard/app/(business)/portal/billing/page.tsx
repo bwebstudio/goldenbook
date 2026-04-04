@@ -39,15 +39,20 @@ export default function PortalBilling() {
   const products = t.promote.products as Record<string, { label: string }>;
 
   useEffect(() => {
+    let cancelled = false;
+
     Promise.all([
       fetchBusinessBilling().catch(() => ({ purchases: [], memberships: [] })),
       fetchBusinessPricing().catch(() => ({ plans: [] as PricingPlan[] })),
     ]).then(([billing, pricing]) => {
+      if (cancelled) return;
       setPurchases(billing.purchases);
       setMemberships(billing.memberships);
       const mem = pricing.plans.find((p) => p.pricing_type === "membership");
       if (mem) setMembershipPlan(mem);
-    }).finally(() => setLoading(false));
+    }).finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
   }, []);
 
   const handleMembershipCheckout = async () => {

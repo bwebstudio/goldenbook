@@ -108,13 +108,16 @@ export default function PortalPromote() {
   const isMultiCity = businessCities.length > 1;
   const cityName = businessCities.find((c) => c.slug === city)?.name ?? city;
 
-  // ── Load pricing + availability ───────────────────────────────────────────
+  // ── Load pricing + availability (once on mount) ────────────────────────────
 
   useEffect(() => {
+    let cancelled = false;
+
     Promise.all([
       fetchBusinessPricing().catch(() => null),
       fetchPricingAvailability().catch(() => ({ sections: {}, inventory: {}, city: '' })),
     ]).then(([pricing, avail]) => {
+      if (cancelled) return;
       if (pricing) {
         setPlans(pricing.plans);
         setPromotion(pricing.promotion);
@@ -127,20 +130,24 @@ export default function PortalPromote() {
       setInventoryCity((avail as any).city ?? '');
       setLoaded(true);
     });
+
+    return () => { cancelled = true; };
   }, []);
 
   // ── Load calendar when section selected ───────────────────────────────────
 
   useEffect(() => {
     if (!selected) { setBlockedRanges([]); return; }
-    // Map placement_type to surface name for visibility lookup
+    let cancelled = false;
     const surfaceMap: Record<string, string> = { hidden_gems: "hidden_spots" };
     const surface = surfaceMap[selected] ?? selected;
     setCalendarLoading(true);
     fetchPricingCalendar(surface)
-      .then((data) => setBlockedRanges([...data.blocked, ...data.pending]))
-      .catch(() => setBlockedRanges([]))
-      .finally(() => setCalendarLoading(false));
+      .then((data) => { if (!cancelled) setBlockedRanges([...data.blocked, ...data.pending]); })
+      .catch(() => { if (!cancelled) setBlockedRanges([]); })
+      .finally(() => { if (!cancelled) setCalendarLoading(false); });
+
+    return () => { cancelled = true; };
   }, [selected]);
 
   // ── Find plan + compute price ─────────────────────────────────────────────
@@ -197,15 +204,21 @@ export default function PortalPromote() {
   const duration = selectedPlan?.unit_days ?? selectedDuration ?? 7;
   const endDate = startDate ? addDays(startDate, duration) : null;
 
+  // Derive planId as a stable primitive to avoid re-fetching when the
+  // findPlan callback reference changes but returns the same plan.
+  const computePlanId = selectedPlan?.id ?? null;
+
   useEffect(() => {
-    const plan = findPlan();
-    if (!plan || !city) { setComputed(null); return; }
+    if (!computePlanId || !city) { setComputed(null); return; }
+    let cancelled = false;
     setComputing(true);
-    computeBusinessPrice(plan.id, city)
-      .then(setComputed)
-      .catch(() => setComputed(null))
-      .finally(() => setComputing(false));
-  }, [findPlan, city]);
+    computeBusinessPrice(computePlanId, city)
+      .then((r) => { if (!cancelled) setComputed(r); })
+      .catch(() => { if (!cancelled) setComputed(null); })
+      .finally(() => { if (!cancelled) setComputing(false); });
+
+    return () => { cancelled = true; };
+  }, [computePlanId, city]);
 
   // ── Calendar data ─────────────────────────────────────────────────────────
 

@@ -42,6 +42,7 @@ export default function RegisterScreen() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [registered, setRegistered] = useState(false);
+  const [verificationResent, setVerificationResent] = useState(false);
 
   const [emailFocused, setEmailFocused] = useState(false);
   const [passFocused, setPassFocused]   = useState(false);
@@ -57,16 +58,75 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!canSubmit) return;
     setError('');
+    setVerificationResent(false);
     setLoading(true);
     try {
       await signUp(email.trim().toLowerCase(), password);
       setRegistered(true);
     } catch (e: any) {
-      setError(e.message ?? 'Account creation failed. Please try again.');
+      const code = e?.code ?? e?.message;
+
+      switch (code) {
+        case 'EMAIL_UNVERIFIED':
+          setVerificationResent(true);
+          break;
+        case 'EMAIL_ALREADY_EXISTS':
+          setError('An account with this email already exists. Sign in or reset your password.');
+          break;
+        default:
+          setError('We couldn\u2019t create your account right now. Please try again.');
+          break;
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // ── Verification resent state (unverified existing account) ─────────────────
+  if (verificationResent) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <View style={styles.successContainer}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => { setVerificationResent(false); }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+
+          <View style={styles.successIconWrap}>
+            <View style={[styles.successIconRing, { backgroundColor: 'rgba(210,182,138,0.08)', borderColor: 'rgba(210,182,138,0.30)' }]}>
+              <Text style={styles.successIconChar}>✉</Text>
+            </View>
+          </View>
+
+          <Text style={styles.ornamentStar}>✦</Text>
+          <Text style={styles.successTitle}>Verification{'\n'}email sent.</Text>
+          <Text style={styles.successBody}>
+            This email is already registered but not yet verified.
+          </Text>
+          <Text style={[styles.successBody, { marginTop: 8, marginBottom: 0 }]}>
+            We've sent a new confirmation email to
+          </Text>
+          <Text style={styles.successEmail}>{email.trim().toLowerCase()}</Text>
+          <Text style={styles.successHint}>
+            Check your inbox and spam folder.
+          </Text>
+
+          <View style={styles.goldRule} />
+
+          <TouchableOpacity
+            style={styles.btnPrimary}
+            onPress={() => router.replace('/auth/login')}
+            activeOpacity={0.82}
+          >
+            <Text style={styles.btnText}>Go to sign in</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // ── Success / confirmation pending state ────────────────────────────────────
   if (registered) {
@@ -88,9 +148,12 @@ export default function RegisterScreen() {
           </View>
 
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.successTitle}>Account created</Text>
+          <Text style={styles.successTitle}>Account{'\n'}created.</Text>
           <Text style={styles.successBody}>
-            Welcome to Goldenbook Go!{'\n\n'}If email confirmation is required,{'\n'}check your inbox before signing in.
+            Your account has been created.{'\n'}Please confirm your email to continue.
+          </Text>
+          <Text style={styles.successHint}>
+            Check your inbox and spam folder for the confirmation email.
           </Text>
 
           <View style={styles.goldRule} />
@@ -101,6 +164,13 @@ export default function RegisterScreen() {
             activeOpacity={0.82}
           >
             <Text style={styles.btnText}>Sign in</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.resendBtn}
+            onPress={() => router.push('/auth/verify-email')}
+          >
+            <Text style={styles.resendText}>Resend confirmation email</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -146,6 +216,17 @@ export default function RegisterScreen() {
           {!!error && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{error}</Text>
+              {error.includes('already exists') && (
+                <View style={styles.errorActions}>
+                  <TouchableOpacity onPress={() => router.push('/auth/login')}>
+                    <Text style={styles.errorLink}>Sign in</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.errorDot}> · </Text>
+                  <TouchableOpacity onPress={() => router.push('/auth/reset-password')}>
+                    <Text style={styles.errorLink}>Reset password</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
@@ -339,6 +420,21 @@ const styles = StyleSheet.create({
     color: '#B93131',
     lineHeight: 18,
   },
+  errorActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  errorLink: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: GOLD,
+  },
+  errorDot: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: 'rgba(34,45,82,0.30)',
+  },
 
   // Fields
   fieldWrapper: { marginBottom: 16 },
@@ -493,5 +589,33 @@ const styles = StyleSheet.create({
     color: 'rgba(34,45,82,0.55)',
     letterSpacing: 0.1,
     marginBottom: 28,
+  },
+  successEmail: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: NAVY,
+    letterSpacing: 0.1,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  successHint: {
+    fontFamily: 'Inter_300Light',
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(34,45,82,0.40)',
+    letterSpacing: 0.1,
+    marginBottom: 28,
+  },
+  resendBtn: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+  resendText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    color: GOLD,
+    letterSpacing: 0.2,
+    textDecorationLine: 'underline',
   },
 });

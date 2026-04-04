@@ -5,9 +5,18 @@ import { applySessionCookies, clearSessionCookies, getSessionFromRequest } from 
 
 const PROTECTED_PREFIXES = ["/dashboard", "/places", "/categories", "/routes", "/users", "/settings", "/placements", "/placement-requests", "/analytics", "/portal", "/review-queue", "/pricing"] as const;
 
+// Public auth pages that should NOT redirect to dashboard even if logged in
+const PUBLIC_AUTH_PATHS = ["/forgot-password", "/reset-password", "/set-password"] as const;
+
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
+function isPublicAuthPath(pathname: string): boolean {
+  return PUBLIC_AUTH_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
   );
 }
 
@@ -23,6 +32,11 @@ export async function middleware(request: NextRequest) {
   const protectedPath = isProtectedPath(pathname);
   const loginPath = pathname === "/login";
 
+  // Public auth paths — always allow through
+  if (isPublicAuthPath(pathname)) {
+    return NextResponse.next();
+  }
+
   if (!protectedPath && !loginPath) {
     return NextResponse.next();
   }
@@ -30,9 +44,13 @@ export async function middleware(request: NextRequest) {
   const currentSession = getSessionFromRequest(request);
   let session = currentSession;
 
-  if (session?.refreshToken && shouldRefreshSession(session.expiresAt)) {
+  // Only attempt refresh if we have a real refresh token AND a non-zero expiresAt.
+  // expiresAt === 0 means the session data is corrupted — skip straight to redirect.
+  const hasValidRefreshToken = !!(session?.refreshToken && session.expiresAt > 0);
+
+  if (hasValidRefreshToken && shouldRefreshSession(session!.expiresAt)) {
     try {
-      const refreshedSession = await refreshDashboardSession(session.refreshToken);
+      const refreshedSession = await refreshDashboardSession(session!.refreshToken);
       session = refreshedSession;
       const response = loginPath
         ? NextResponse.redirect(new URL("/dashboard", request.url))
@@ -72,5 +90,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/dashboard/:path*", "/places/:path*", "/categories/:path*", "/routes/:path*", "/users/:path*", "/settings/:path*", "/placements/:path*", "/placement-requests/:path*", "/analytics/:path*", "/portal/:path*", "/review-queue/:path*", "/pricing/:path*"],
+  matcher: ["/login", "/forgot-password", "/reset-password", "/set-password", "/dashboard/:path*", "/places/:path*", "/categories/:path*", "/routes/:path*", "/users/:path*", "/settings/:path*", "/placements/:path*", "/placement-requests/:path*", "/analytics/:path*", "/portal/:path*", "/review-queue/:path*", "/pricing/:path*"],
 };

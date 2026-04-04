@@ -8,7 +8,7 @@ export default createMiddleware({
 
 export const config = {
   matcher: [
-    // Match all paths except api, _next, _vercel, static files
-    '/((?!api|_next|_vercel|.*\\..*).*)',
+    // Match all paths except api, _next, _vercel, static files, and /auth routes
+    '/((?!api|_next|_vercel|auth|.*\\..*).*)',
   ],
 }

@@ -40,14 +40,25 @@ export default function LoginScreen() {
 
   const canSubmit = email.trim().length > 0 && password.length >= 1 && !loading;
 
+  const [needsVerification, setNeedsVerification] = useState(false);
+
   const handleLogin = async () => {
     if (!canSubmit) return;
     setError('');
+    setNeedsVerification(false);
     setLoading(true);
     try {
       await signIn(email.trim().toLowerCase(), password);
     } catch (e: any) {
-      setError(e.message ?? 'Sign in failed. Please check your credentials.');
+      const code = e?.code ?? e?.message;
+
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        setNeedsVerification(true);
+      } else if (e.message?.toLowerCase().includes('invalid login credentials')) {
+        setError('The email or password is incorrect.');
+      } else {
+        setError('Sign in failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -86,6 +97,22 @@ export default function LoginScreen() {
 
           {/* ── Gold rule ───────────────────────────────────────────── */}
           <View style={styles.goldRule} />
+
+          {/* ── Verification needed banner ──────────────────────────────── */}
+          {needsVerification && (
+            <View style={styles.verifyBanner}>
+              <Text style={styles.verifyTitle}>Please verify your email</Text>
+              <Text style={styles.verifyText}>
+                Your account exists but your email has not been verified yet. Check your inbox for the confirmation link.
+              </Text>
+              <TouchableOpacity
+                style={styles.verifyResendBtn}
+                onPress={() => router.push('/auth/verify-email')}
+              >
+                <Text style={styles.verifyResendText}>Resend verification email</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* ── Error banner ─────────────────────────────────────────── */}
           {!!error && (
@@ -242,6 +269,38 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(210,182,138,0.32)',
     marginBottom: 28,
+  },
+
+  // Verification needed
+  verifyBanner: {
+    backgroundColor: 'rgba(210,182,138,0.08)',
+    borderLeftWidth: 3,
+    borderLeftColor: GOLD,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 20,
+  },
+  verifyTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: NAVY,
+    marginBottom: 4,
+  },
+  verifyText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: 'rgba(34,45,82,0.60)',
+    lineHeight: 18,
+  },
+  verifyResendBtn: {
+    marginTop: 10,
+  },
+  verifyResendText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: GOLD,
+    textDecorationLine: 'underline',
   },
 
   // Error banner

@@ -96,12 +96,20 @@ export default function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label
-          htmlFor="password"
-          className="text-base font-semibold text-text"
-        >
-          Password
-        </label>
+        <div className="flex items-center justify-between">
+          <label
+            htmlFor="password"
+            className="text-base font-semibold text-text"
+          >
+            Password
+          </label>
+          <a
+            href="/forgot-password"
+            className="text-xs font-medium text-gold hover:text-gold-dark transition-colors"
+          >
+            Forgot password?
+          </a>
+        </div>
         <input
           id="password"
           type="password"

@@ -23,6 +23,7 @@ export interface MeDTO {
   locale: string | null
   homeDestinationId: string | null
   onboardingCompleted: boolean
+  emailVerified: boolean
 }
 
 interface UserRow {
@@ -32,6 +33,7 @@ interface UserRow {
   locale: string | null
   home_destination_id: string | null
   onboarding_completed: boolean
+  email_verified?: boolean
 }
 
 export function toMeDTO(
@@ -53,5 +55,6 @@ export function toMeDTO(
     locale: row.locale,
     homeDestinationId: row.home_destination_id,
     onboardingCompleted: row.onboarding_completed,
+    emailVerified: row.email_verified ?? false,
   }
 }

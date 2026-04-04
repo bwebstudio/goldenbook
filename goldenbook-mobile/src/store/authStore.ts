@@ -4,6 +4,7 @@ import { supabase } from '@/auth/supabaseClient';
 import { removeAuthToken, setAuthToken } from '@/auth/tokenStorage';
 import { useAppStore } from '@/store/appStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { api } from '@/api/endpoints';
 
 interface AuthState {
   session: Session | null;
@@ -41,8 +42,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
-        // Stored session is corrupted or the refresh token is already invalid.
-        // Clear local state immediately so the navigation guard redirects to /auth.
         console.warn('[AuthStore] getSession error — clearing local state:', error.message);
         await cleanupLocalState(set);
         return;
@@ -58,9 +57,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ session: null, user: null, isLoading: false });
     }
 
-    // Subscribe to future auth state changes (token refresh, sign-in, sign-out).
-    // Supabase emits SIGNED_OUT when auto-refresh fails, so this is the
-    // authoritative source for session validity after initialize().
     supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.access_token) {
         await setAuthToken(session.access_token).catch(() => {});
@@ -71,37 +67,88 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
+  // ── Sign Up ──────────────────────────────────────────────────────────────
+  // Registers the user via our backend. Does NOT sign in automatically.
+  // The user must verify their email before they can sign in.
+
   signUp: async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-    // If email confirmation is disabled, a session is returned immediately.
-    // If confirmation is required, data.session is null — the user must verify
-    // their email before signing in. Either way we don't throw.
-    if (data.session?.access_token) {
-      await setAuthToken(data.session.access_token).catch(() => {});
-      set({ session: data.session, user: data.user });
+    try {
+      await api.register(email, password);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const serverBody = err?.response?.data;
+      const serverError = typeof serverBody === 'object' && serverBody !== null
+        ? serverBody.error
+        : undefined;
+
+      console.warn('[signUp] register failed:', { status, serverError, raw: err?.message });
+
+      if (status === 409) {
+        if (serverError === 'EMAIL_UNVERIFIED') {
+          const e = new Error('EMAIL_UNVERIFIED');
+          (e as any).code = 'EMAIL_UNVERIFIED';
+          throw e;
+        }
+        const e = new Error('EMAIL_ALREADY_EXISTS');
+        (e as any).code = 'EMAIL_ALREADY_EXISTS';
+        throw e;
+      }
+
+      if (status === 400) {
+        throw new Error('Please check your email and password.');
+      }
+
+      const e = new Error('SIGNUP_FAILED');
+      (e as any).code = 'SIGNUP_FAILED';
+      throw e;
     }
+
+    // Do NOT auto-sign-in. The user must verify their email first.
+    // The register screen will show a pending-verification state.
   },
 
-  resetPassword: async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw error;
-  },
+  // ── Sign In ──────────────────────────────────────────────────────────────
+  // Signs in via Supabase, then checks email verification status.
+  // If the email is not verified, signs out immediately and throws.
 
   signIn: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+
     if (data.session?.access_token) {
       await setAuthToken(data.session.access_token).catch(() => {});
     }
+
+    // Check email verification status via our backend
+    try {
+      const { email_verified } = await api.verificationStatus();
+
+      if (!email_verified) {
+        // Not verified — sign out immediately and block access
+        await supabase.auth.signOut().catch(() => {});
+        await removeAuthToken().catch(() => {});
+
+        const e = new Error('EMAIL_NOT_VERIFIED');
+        (e as any).code = 'EMAIL_NOT_VERIFIED';
+        throw e;
+      }
+    } catch (err: any) {
+      // If the error is our EMAIL_NOT_VERIFIED, re-throw it
+      if (err?.code === 'EMAIL_NOT_VERIFIED') throw err;
+      // For any other error (network, 404, etc.), allow login to proceed.
+      // The verification check is best-effort — we don't want to block
+      // users if the backend is temporarily down.
+      console.warn('[signIn] verification check failed, allowing login:', err?.message);
+    }
+
     set({ session: data.session, user: data.user });
   },
 
+  resetPassword: async (email) => {
+    await api.forgotPassword(email);
+  },
+
   signOut: async () => {
-    // Attempt a server-side sign-out to invalidate the refresh token.
-    // If the session is already gone (expired, revoked, or dev-reset), the
-    // Supabase SDK throws "Invalid Refresh Token" — we catch it and continue
-    // with local cleanup so the app is never left in a broken state.
     try {
       await supabase.auth.signOut();
     } catch (err) {

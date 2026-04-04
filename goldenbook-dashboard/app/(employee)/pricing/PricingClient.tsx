@@ -14,6 +14,11 @@ import {
   type Promotion,
   type PriceComputation,
 } from "@/lib/api/pricing";
+import {
+  fetchAllPricingConfigs,
+  updatePricingConfigAdmin,
+  type PricingConfig,
+} from "@/lib/api/pricing-config";
 
 const CITIES = ["lisbon", "algarve", "madeira", "porto"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -38,13 +43,14 @@ const SEASON_COLORS: Record<string, string> = {
   low: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
-type Tab = "plans" | "cities" | "seasons" | "promotions" | "preview";
+type Tab = "plans" | "cities" | "seasons" | "promotions" | "preview" | "products";
 
 export default function PricingClient({ readOnly = false }: { readOnly?: boolean }) {
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [seasons, setSeasons] = useState<SeasonRule[]>([]);
   const [cities, setCities] = useState<CityMultiplier[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [pricingConfigs, setPricingConfigs] = useState<PricingConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("plans");
   const [saving, setSaving] = useState<string | null>(null);
@@ -55,19 +61,29 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
   const [previewMonth, setPreviewMonth] = useState(new Date().getMonth() + 1);
   const [previewResult, setPreviewResult] = useState<PriceComputation | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchAdminPricingConfig();
-      setPlans(data.plans);
-      setSeasons(data.seasons);
-      setCities(data.cities);
-      setPromotions(data.promotions);
-    } catch { /* ignore */ }
-    setLoading(false);
-  }, []);
+  useEffect(() => {
+    let cancelled = false;
 
-  useEffect(() => { load(); }, [load]);
+    async function load() {
+      setLoading(true);
+      try {
+        const [data, configs] = await Promise.all([
+          fetchAdminPricingConfig(),
+          fetchAllPricingConfigs().catch(() => []),
+        ]);
+        if (cancelled) return;
+        setPlans(data.plans);
+        setSeasons(data.seasons);
+        setCities(data.cities);
+        setPromotions(data.promotions);
+        setPricingConfigs(configs);
+      } catch { /* ignore */ }
+      if (!cancelled) setLoading(false);
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -160,7 +176,29 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
     );
   }
 
+  const saveConfig = async (config: PricingConfig, field: string, val: number | boolean | null) => {
+    setSaving(config.id);
+    try {
+      const body: Record<string, unknown> = {};
+      if (field === "price") body.price = val;
+      if (field === "duration_days") body.duration_days = val;
+      if (field === "max_slots") body.max_slots = val;
+      if (field === "is_active") body.is_active = val;
+      const u = await updatePricingConfigAdmin(config.id, body as Parameters<typeof updatePricingConfigAdmin>[1]);
+      setPricingConfigs((cs) => cs.map((x) => (x.id === u.id ? u : x)));
+    } catch { /* ignore */ }
+    setSaving(null);
+  };
+
+  const PRODUCT_LABELS: Record<string, string> = {
+    now_slot: "Now Slot",
+    concierge: "Concierge",
+    featured: "Featured",
+    subscription: "Subscription",
+  };
+
   const tabs: { key: Tab; label: string }[] = [
+    { key: "products", label: "Product Pricing" },
     { key: "plans", label: "Base Prices (Lisboa)" },
     { key: "cities", label: "City Multipliers" },
     { key: "seasons", label: "Season Rules" },
@@ -189,6 +227,59 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
           </button>
         ))}
       </div>
+
+      {/* ═══ PRODUCTS TAB ═══ */}
+      {tab === "products" && (
+        <div className="flex flex-col gap-4">
+          <p className="text-xs text-muted">Centralized product pricing for the app. Prices are in cents (e.g. 40000 = 400.00 EUR).</p>
+          <div className="bg-white rounded-xl border border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted border-b border-border">
+                    <th className="px-5 py-2.5">Product</th>
+                    <th className="px-5 py-2.5">City</th>
+                    <th className="px-5 py-2.5">Price (cents)</th>
+                    <th className="px-5 py-2.5">Duration</th>
+                    <th className="px-5 py-2.5">Max Slots</th>
+                    <th className="px-5 py-2.5">Active</th>
+                    <th className="px-5 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {pricingConfigs.map((config) => (
+                    <tr key={config.id} className={`border-b border-border/50 ${!config.is_active ? "opacity-50" : ""}`}>
+                      <td className="px-5 py-3 font-medium">{PRODUCT_LABELS[config.product_type] ?? config.product_type}</td>
+                      <td className="px-5 py-3 text-muted">{config.city ? config.city.charAt(0).toUpperCase() + config.city.slice(1) : "Global"}</td>
+                      <td className="px-5 py-3">
+                        <InlineEdit value={String(config.price)} onSave={(v) => saveConfig(config, "price", parseInt(v))} type="number" step="1" readOnly={readOnly} />
+                        <span className="text-xs text-muted ml-1">({(config.price / 100).toFixed(2)} {config.currency})</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        <InlineEdit value={String(config.duration_days)} onSave={(v) => saveConfig(config, "duration_days", parseInt(v))} type="number" step="1" width="w-16" readOnly={readOnly} />
+                        <span className="text-xs text-muted ml-1">days</span>
+                      </td>
+                      <td className="px-5 py-3">
+                        {config.max_slots !== null ? (
+                          <InlineEdit value={String(config.max_slots)} onSave={(v) => saveConfig(config, "max_slots", parseInt(v))} type="number" step="1" width="w-16" readOnly={readOnly} />
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        {readOnly
+                          ? <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${config.is_active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-500"}`}>{config.is_active ? "Active" : "Inactive"}</span>
+                          : <Toggle active={config.is_active} onToggle={() => saveConfig(config, "is_active", !config.is_active)} disabled={saving === config.id} />}
+                      </td>
+                      <td className="px-5 py-3">{saving === config.id && <span className="text-[10px] text-gold">Saving...</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══ PLANS TAB ═══ */}
       {tab === "plans" && (

@@ -40,6 +40,7 @@ import { recommendationsRoutes } from './modules/recommendations/recommendations
 import { nowRoutes } from './modules/now/now.route'
 import { notificationsRoutes } from './modules/notifications/notifications.route'
 import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
+import { pricingConfigRoutes } from './modules/pricing-config/pricing-config.route'
 import { syncAllSlots } from './modules/inventory/promotion-inventory.query'
 
 export function buildApp() {
@@ -97,6 +98,7 @@ export function buildApp() {
   app.register(recommendationsRoutes,  { prefix: env.API_PREFIX })
   app.register(nowRoutes,              { prefix: env.API_PREFIX })
   app.register(notificationsRoutes,   { prefix: env.API_PREFIX })
+  app.register(pricingConfigRoutes,   { prefix: env.API_PREFIX })
 
   // Stripe webhook — registered in its own encapsulated context so
   // the raw-body content-type parser doesn't affect other routes.
