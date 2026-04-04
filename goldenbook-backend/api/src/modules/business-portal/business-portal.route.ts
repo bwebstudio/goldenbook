@@ -4,6 +4,7 @@ import { authenticateBusinessClient, getBusinessClientByUserId } from '../../sha
 import { authenticateDashboardUser } from '../../shared/auth/dashboardAuth'
 import { authenticate } from '../../shared/auth/authPlugin'
 import { AppError } from '../../shared/errors/AppError'
+import { env } from '../../config/env'
 import { db } from '../../db/postgres'
 import {
   getRequestsByClient,
@@ -809,7 +810,6 @@ export async function businessPortalRoutes(app: FastifyInstance) {
 
   // ── POST /admin/users/create-editor ─────────────────────────────────────
   app.post('/admin/users/create-editor', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
-    // Only super_admin can create editors
     if (request.adminUser?.dashboardRole !== 'super_admin') {
       throw new AppError(403, 'Only super admins can create editor users', 'FORBIDDEN')
     }
@@ -819,13 +819,30 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       fullName: z.string().min(1),
     }).parse(request.body)
 
+    const normalizedEmail = body.email.toLowerCase().trim()
+
+    // 1. Create admin_users row
     await db.query(`
       INSERT INTO admin_users (email, full_name, role)
       VALUES ($1, $2, 'editor')
       ON CONFLICT (email) DO UPDATE SET full_name = $2, role = 'editor'
-    `, [body.email, body.fullName])
+    `, [normalizedEmail, body.fullName])
 
-    return reply.status(201).send({ created: true })
+    // 2. Create invite token + send email so the editor can set their password
+    try {
+      const { createInvite } = await import('../auth/auth-tokens.query')
+      const { sendInviteEmail } = await import('../../services/email/email.service')
+      const token = await createInvite(normalizedEmail, 'editor', request.user.sub)
+      const setPasswordUrl = `${env.DASHBOARD_URL ?? 'http://localhost:3000'}/set-password?token=${token}`
+      await sendInviteEmail(normalizedEmail, setPasswordUrl)
+      app.log.info('[create-editor] Invite email sent to %s', normalizedEmail)
+    } catch (err: any) {
+      app.log.error({ err: err.message }, '[create-editor] Invite email FAILED for %s', normalizedEmail)
+      // admin_users row was created — return success but note the email failed
+      return reply.status(201).send({ created: true, email_sent: false })
+    }
+
+    return reply.status(201).send({ created: true, email_sent: true })
   })
 
   // ── POST /admin/users/create-client ─────────────────────────────────────
@@ -845,21 +862,41 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       throw new AppError(400, 'At least one place is required', 'VALIDATION_ERROR')
     }
 
-    // Find the auth user by email
+    const normalizedEmail = body.email.toLowerCase().trim()
+
+    // Find the auth user by email — or create one via invite
+    let userId: string
     const { rows: authUsers } = await db.query<{ id: string }>(
       'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
-      [body.email],
-    )
+      [normalizedEmail],
+    ).catch(() => ({ rows: [] as { id: string }[] }))
 
-    if (authUsers.length === 0) {
-      throw new AppError(400, 'No Supabase auth user found for this email. Create the user in Supabase Auth first.', 'USER_NOT_FOUND')
+    if (authUsers.length > 0) {
+      userId = authUsers[0].id
+    } else {
+      // Create Supabase auth user so we have a user_id for business_clients
+      const supabaseUrl = env.SUPABASE_URL
+      const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
+      const tempPassword = `temp_${Date.now()}_${Math.random().toString(36).slice(2)}`
+      const res = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ email: normalizedEmail, password: tempPassword, email_confirm: true }),
+      })
+      if (!res.ok) {
+        throw new AppError(500, 'Could not create user account', 'USER_CREATION_FAILED')
+      }
+      const created = await res.json() as { id: string }
+      userId = created.id
     }
-
-    const userId = authUsers[0].id
 
     // Ensure public users record exists
     await db.query(
-      'INSERT INTO users (id, onboarding_completed, created_at, updated_at) VALUES ($1, false, NOW(), NOW()) ON CONFLICT (id) DO NOTHING',
+      'INSERT INTO users (id, email_verified, onboarding_completed, created_at, updated_at) VALUES ($1, false, false, NOW(), NOW()) ON CONFLICT (id) DO NOTHING',
       [userId],
     )
 
@@ -869,14 +906,25 @@ export async function businessPortalRoutes(app: FastifyInstance) {
         INSERT INTO business_clients (user_id, place_id, contact_name, contact_email, is_active)
         VALUES ($1, $2, $3, $4, true)
         ON CONFLICT (user_id, place_id) DO UPDATE SET contact_name = $3, contact_email = $4, is_active = true
-      `, [userId, pid, body.contactName, body.email])
+      `, [userId, pid, body.contactName, normalizedEmail])
 
-      // place_users may not exist yet if migration is pending
       await db.query(`
         INSERT INTO place_users (place_id, user_id, role)
         VALUES ($1, $2, $3)
         ON CONFLICT (place_id, user_id) DO UPDATE SET role = $3
       `, [pid, userId, body.role]).catch(() => {})
+    }
+
+    // Send invite email so they can set their password
+    try {
+      const { createInvite } = await import('../auth/auth-tokens.query')
+      const { sendInviteEmail } = await import('../../services/email/email.service')
+      const token = await createInvite(normalizedEmail, 'business', request.user.sub)
+      const setPasswordUrl = `${env.DASHBOARD_URL ?? 'http://localhost:3000'}/set-password?token=${token}`
+      await sendInviteEmail(normalizedEmail, setPasswordUrl)
+      app.log.info('[create-client] Invite email sent to %s', normalizedEmail)
+    } catch (err: any) {
+      app.log.error({ err: err.message }, '[create-client] Invite email FAILED for %s', normalizedEmail)
     }
 
     return reply.status(201).send({ created: true })
