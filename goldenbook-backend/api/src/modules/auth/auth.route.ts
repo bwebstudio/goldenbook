@@ -507,7 +507,8 @@ export async function authRoutes(app: FastifyInstance) {
   // ═══════════════════════════════════════════════════════════════════════════
 
   app.post('/auth/invite', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
-    // Only super_admin can invite
+    app.log.info('[auth/invite] Request received from %s (role: %s)', request.user.email, request.adminUser?.dashboardRole)
+
     if (request.adminUser?.dashboardRole !== 'super_admin') {
       throw new AppError(403, 'Only super admins can send invitations', 'FORBIDDEN')
     }
@@ -526,16 +527,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     const { email, role } = body.data
     const normalizedEmail = email.toLowerCase().trim()
+    app.log.info('[auth/invite] Creating invite for %s (role: %s)', normalizedEmail, role)
 
     // Check if email already has a Supabase account
     const existingId = await findSupabaseUserByEmail(normalizedEmail)
     if (existingId) {
-      // Check if they already have the role
       const { rows } = await db.query(
         'SELECT id FROM admin_users WHERE LOWER(email) = LOWER($1)',
         [normalizedEmail],
       )
       if (rows.length > 0) {
+        app.log.info('[auth/invite] Blocked — user already has dashboard access: %s', normalizedEmail)
         return reply.status(409).send({
           error: 'USER_EXISTS',
           message: 'This user already has dashboard access.',
@@ -543,11 +545,25 @@ export async function authRoutes(app: FastifyInstance) {
       }
     }
 
+    // Step 1: Create invite token
     const token = await createInvite(normalizedEmail, role, request.user.sub)
-    const setPasswordUrl = `${getDashboardUrl()}/set-password?token=${token}`
-    await sendInviteEmail(normalizedEmail, setPasswordUrl)
+    app.log.info('[auth/invite] Token created for %s', normalizedEmail)
 
-    app.log.info({ email: normalizedEmail, role }, '[auth/invite] Invitation sent')
+    // Step 2: Build invite URL
+    const setPasswordUrl = `${getDashboardUrl()}/set-password?token=${token}`
+    app.log.info('[auth/invite] Invite URL: %s', setPasswordUrl)
+
+    // Step 3: Send email — MUST succeed
+    try {
+      await sendInviteEmail(normalizedEmail, setPasswordUrl)
+      app.log.info('[auth/invite] Email sent successfully to %s', normalizedEmail)
+    } catch (err: any) {
+      app.log.error({ err: err.message }, '[auth/invite] EMAIL SEND FAILED for %s', normalizedEmail)
+      return reply.status(500).send({
+        error: 'EMAIL_FAILED',
+        message: 'Invite created but the email could not be sent. Please try resending.',
+      })
+    }
 
     return reply.status(201).send({
       status: 'invited',
@@ -594,7 +610,17 @@ export async function authRoutes(app: FastifyInstance) {
 
     const token = await createInvite(normalizedEmail, role, request.user.sub)
     const setPasswordUrl = `${getDashboardUrl()}/set-password?token=${token}`
-    await sendInviteEmail(normalizedEmail, setPasswordUrl)
+
+    try {
+      await sendInviteEmail(normalizedEmail, setPasswordUrl)
+      app.log.info('[auth/invite/resend] Email sent to %s', normalizedEmail)
+    } catch (err: any) {
+      app.log.error({ err: err.message }, '[auth/invite/resend] EMAIL SEND FAILED for %s', normalizedEmail)
+      return reply.status(500).send({
+        error: 'EMAIL_FAILED',
+        message: 'Could not send the invitation email. Please try again.',
+      })
+    }
 
     return reply.status(200).send({
       status: 'resent',

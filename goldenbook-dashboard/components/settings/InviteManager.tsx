@@ -47,8 +47,10 @@ export default function InviteManager() {
       setMessage({ type: "success", text: `Invitation sent to ${email}` });
       setEmail("");
       await loadInvites();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to send invitation.";
+    } catch (err: any) {
+      // ApiError has .data with the server response; plain Error has .message
+      const serverMsg = err?.data?.message;
+      const msg = typeof serverMsg === "string" ? serverMsg : (err?.message ?? "Failed to send invitation.");
       setMessage({ type: "error", text: msg });
     } finally {
       setSending(false);
@@ -66,8 +68,9 @@ export default function InviteManager() {
       });
       setMessage({ type: "success", text: `Invitation resent to ${invite.email}` });
       await loadInvites();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to resend invitation.";
+    } catch (err: any) {
+      const serverMsg = err?.data?.message;
+      const msg = typeof serverMsg === "string" ? serverMsg : (err?.message ?? "Failed to resend invitation.");
       setMessage({ type: "error", text: msg });
     } finally {
       setSending(false);
