@@ -97,7 +97,7 @@ export default function RegisterScreen() {
 
           <View style={styles.successIconWrap}>
             <View style={[styles.successIconRing, { backgroundColor: 'rgba(210,182,138,0.08)', borderColor: 'rgba(210,182,138,0.30)' }]}>
-              <Text style={styles.successIconChar}>✉</Text>
+              <Text style={styles.successIconChar}>{'✧'}</Text>
             </View>
           </View>
 

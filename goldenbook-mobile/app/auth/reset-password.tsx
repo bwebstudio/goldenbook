@@ -73,7 +73,7 @@ export default function ResetPasswordScreen() {
           {/* Icon */}
           <View style={styles.successIconWrap}>
             <View style={styles.successIconRing}>
-              <Text style={styles.successIconChar}>✉</Text>
+              <Text style={styles.successIconChar}>{'✧'}</Text>
             </View>
           </View>
 

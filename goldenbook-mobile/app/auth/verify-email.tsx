@@ -147,7 +147,7 @@ export default function VerifyEmailScreen() {
 
         <View style={styles.iconWrap}>
           <View style={styles.iconRing}>
-            <Text style={styles.iconChar}>✉</Text>
+            <Text style={styles.iconChar}>{'✧'}</Text>
           </View>
         </View>
         <Text style={styles.ornamentStar}>✦</Text>
