@@ -57,20 +57,27 @@ type ScoredPlace = UnifiedCandidate
 
 const SESSION_POOL_SIZE = 20
 const SESSION_POOL_TTL = 15 * 60 * 1000 // 15 minutes
+const MAX_PLACES_PER_PILL = 6   // curated cap: max 6 unique places per intent
+const RESULTS_PER_PAGE = 3      // show 3 at a time
+
+interface PillState {
+  /** All scored candidates for this pill (up to MAX_PLACES_PER_PILL) */
+  candidates: UnifiedCandidate[]
+  /** How many times this pill has been tapped */
+  tapCount: number
+}
 
 interface ConciergeSession {
   placeIds: Set<string>
   intentIds: Set<string>
   lastHeroId: string | null
   lastIntentId: string | null
-  /** Curated session pool — built once, reranked on intent changes */
   pool: UnifiedCandidate[] | null
   poolCity: string | null
   poolBuiltAt: number
-  /** Places shown as hero — penalized to prevent domination across intents */
   heroHistory: Set<string>
-  /** Cached results per intent — same intent tap returns same results */
-  intentResultCache: Map<string, UnifiedCandidate[]>
+  /** Per-pill state: scored candidates + tap counter, keyed by intent+adjustment */
+  pills: Map<string, PillState>
 }
 const sessionHistory = new Map<string, ConciergeSession>()
 
@@ -509,7 +516,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       poolCity: null,
       poolBuiltAt: 0,
       heroHistory: new Set<string>(),
-      intentResultCache: new Map<string, UnifiedCandidate[]>(),
+      pills: new Map<string, PillState>(),
     }
 
     // Hero rotation: detect intent change
@@ -575,21 +582,34 @@ export async function conciergeRoutes(app: FastifyInstance) {
       candidates = session.pool!
     }
 
-    // ── Resolve adjustment emotion early (needed for cache key) ────────
+    // ── Resolve adjustment emotion early (needed for pill key) ─────────
     const adjustmentEmotion = (now_context?.adjustment ?? detectedRefinement) as AdjustmentEmotion | null
 
-    // ── Same-intent cache: return stable results on repeated taps ─────
-    const cacheKey = `${resolvedIntent.id}:${adjustmentEmotion ?? 'none'}`
-    const cachedResults = session.intentResultCache.get(cacheKey)
-    if (cachedResults) {
-      // Same intent + same adjustment → return cached results directly
-      const recommendations = cachedResults.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
-      const localeFamily = locale.split('-')[0]
+    // ── Per-pill pagination: curated, finite, intentional ────────────────
+    //
+    // Each pill (intent+adjustment) gets max 6 unique places, shown 3 at a time.
+    // Tap 1 → results 1-3, Tap 2 → results 4-6, Tap 3+ → cycle back to 1-3.
+    //
+    const pillKey = `${resolvedIntent.id}:${adjustmentEmotion ?? 'none'}`
+    const existingPill = session.pills.get(pillKey)
+
+    if (existingPill) {
+      // Pill already scored — paginate within the cached candidates
+      existingPill.tapCount++
+      const page = ((existingPill.tapCount - 1) % 2) // 0 or 1 (two pages of 3)
+      const start = page * RESULTS_PER_PAGE
+      const pageResults = existingPill.candidates.slice(start, start + RESULTS_PER_PAGE)
+
+      // If this page is empty (fewer than 6 candidates), cycle to page 0
+      const results = pageResults.length > 0 ? pageResults : existingPill.candidates.slice(0, RESULTS_PER_PAGE)
+
+      session.pills.set(pillKey, existingPill)
+      sessionHistory.set(sessionKey, session)
+
+      const recommendations = results.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
       const responseText = recommendations.length > 0
         ? buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
-        : (localeFamily === 'pt' ? `Explore mais opções em ${city.name}.`
-           : localeFamily === 'es' ? `Explora más opciones en ${city.name}.`
-           : `Explore more options in ${city.name}.`)
+        : (locale.split('-')[0] === 'es' ? `Explora más opciones en ${city.name}.` : `Explore more in ${city.name}.`)
 
       const viableIntents = await getViableIntents(city.slug, 2)
       const fallbackIntents = getDynamicFallbackIntents(resolvedIntent.id, session.intentIds, timeOfDay, locale)
@@ -607,6 +627,8 @@ export async function conciergeRoutes(app: FastifyInstance) {
         responseText, recommendations, fallbackIntents,
       })
     }
+
+    // ── First tap on this pill: score pool and cache top 6 ──────────────
 
     // Get paid placement IDs for scoring
     let boostIds: Set<string> = new Set()
@@ -800,15 +822,20 @@ export async function conciergeRoutes(app: FastifyInstance) {
       resolved_intent: resolvedIntent.id,
     }, '[Concierge] adjustment fallback ladder')
 
-    // Update session history + hero tracking + intent cache
+    // ── Store pill state: top 6 candidates, show first 3 ──────────────
+    const pillCandidates = scored.slice(0, MAX_PLACES_PER_PILL)
+    session.pills.set(pillKey, { candidates: pillCandidates, tapCount: 1 })
+
+    // First tap shows results 1-3
+    scored = pillCandidates.slice(0, RESULTS_PER_PAGE)
+
+    // Update session history + hero tracking
     for (const p of scored) session.placeIds.add(p.id)
     session.intentIds.add(resolvedIntent.id)
     const heroId = scored[0]?.id ?? null
     session.lastHeroId = heroId
     if (heroId) session.heroHistory.add(heroId)
     session.lastIntentId = resolvedIntent.id
-    // Cache results for this intent+adjustment combo (same tap = same results)
-    session.intentResultCache.set(cacheKey, scored)
     sessionHistory.set(sessionKey, session)
 
     // Frequency capping: record exposures for cross-surface tracking
