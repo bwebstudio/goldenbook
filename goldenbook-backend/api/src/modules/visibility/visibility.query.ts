@@ -125,7 +125,35 @@ export async function getAllVisibilities(): Promise<VisibilityGlobalRow[]> {
   }
 }
 
-// ─── Query for discover: get active place IDs for a surface ──────────────────
+// ─── Query: active place IDs for a surface, filtered by city ─────────────────
+
+/**
+ * Get active paid placement IDs for a surface within a specific city.
+ * City is resolved via places → destinations join.
+ * Used for NOW and Concierge where placements must respect city boundaries.
+ */
+export async function getActiveVisibilityPlaceIdsByCity(
+  surface: string,
+  citySlug: string,
+  limit: number,
+): Promise<string[]> {
+  const { rows } = await db.query<{ place_id: string }>(`
+    SELECT pv.place_id
+    FROM place_visibility pv
+    JOIN places p ON p.id = pv.place_id AND p.status = 'published'
+    JOIN destinations d ON d.id = p.destination_id
+    WHERE pv.surface = $1
+      AND d.slug = lower($2)
+      AND pv.is_active = true
+      AND (pv.starts_at IS NULL OR pv.starts_at <= now())
+      AND (pv.ends_at IS NULL OR pv.ends_at >= now())
+    ORDER BY pv.priority DESC, pv.created_at ASC
+    LIMIT $3
+  `, [surface, citySlug, limit])
+  return rows.map(r => r.place_id)
+}
+
+// ─── Query for discover: get active place IDs for a surface (global) ────────
 
 export async function getActiveVisibilityPlaceIds(surface: string, limit: number): Promise<string[]> {
   const { rows } = await db.query<{ place_id: string }>(`

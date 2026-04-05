@@ -31,7 +31,8 @@ import {
   type OnboardingProfile,
   parseInterests,
 } from '../../shared/onboarding/onboarding.scoring'
-import { getActiveVisibilityPlaceIds } from '../visibility/visibility.query'
+import { getActiveVisibilityPlaceIdsByCity } from '../visibility/visibility.query'
+// Diversity: prevent repetitive place_types in results
 import { resolveWeather } from '../now/now.weather'
 import type { ScoredPlace } from './concierge.service'
 import { normalizeLocale } from '../../shared/i18n/locale'
@@ -435,10 +436,10 @@ export async function conciergeRoutes(app: FastifyInstance) {
       fetchLimit,
     )
 
-    // Get concierge boost IDs for priority bonus
+    // Get paid Concierge placements — filtered by city + active campaign dates
     let boostIds: Set<string> = new Set()
     try {
-      const ids = await getActiveVisibilityPlaceIds('concierge_boost', 20)
+      const ids = await getActiveVisibilityPlaceIdsByCity('concierge', city.slug, 20)
       boostIds = new Set(ids)
     } catch {}
 
@@ -468,6 +469,15 @@ export async function conciergeRoutes(app: FastifyInstance) {
       })
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
+
+    // ── Diversity pass: penalize adjacent same place_type ──────────────
+    for (let i = 1; i < rankedCandidates.length; i++) {
+      if (rankedCandidates[i].place.place_type === rankedCandidates[i - 1].place.place_type) {
+        rankedCandidates[i] = { ...rankedCandidates[i], score: rankedCandidates[i].score * 0.85 }
+      }
+    }
+    rankedCandidates.sort((a, b) => b.score - a.score)
+
     let scored = rankedCandidates
       .slice(0, limit)
       .map(({ place }) => place)
