@@ -372,57 +372,88 @@ export async function conciergeRoutes(app: FastifyInstance) {
     } else if (now_context?.inferred_moment) {
       // NOW → Concierge handoff: map moment to best-matching intent directly.
       // If an adjustment is provided, bias the intent toward that emotion.
-      const momentToIntent: Record<string, string> = {
-        coffee_break: 'coffee_and_work',
-        quick_lunch: 'long_lunch',
-        long_lunch: 'long_lunch',
-        sunset_drink: 'sunset_drinks',
-        dinner: 'romantic_dinner',
-        late_drinks: 'after_dinner_drinks',
-        evening_walk: 'hidden_gems',
-        shopping_stroll: 'design_shopping',
-        indoor_culture: 'gallery_afternoon',
-        treat_yourself: 'design_shopping',
-        rain_plan: 'gallery_afternoon',
-        relax_spa: 'hidden_gems',
+      // Map context tags (from NOW bestTag) to Concierge intents
+      const tagToIntent: Record<string, string> = {
+        // The 22 dashboard context tags → best-matching Concierge intent
+        'brunch':       'coffee_and_work',
+        'coffee':       'coffee_and_work',
+        'quick-stop':   'coffee_and_work',
+        'dinner':       'romantic_dinner',
+        'fine-dining':  'romantic_dinner',
+        'romantic':     'romantic_dinner',
+        'cocktails':    'cocktail_bars',
+        'late-night':   'after_dinner_drinks',
+        'wine':         'quiet_wine_bar',
+        'sunset':       'sunset_drinks',
+        'rooftop':      'sunset_drinks',
+        'terrace':      'sunset_drinks',
+        'viewpoint':    'sunset_drinks',
+        'live-music':   'late_night_jazz',
+        'culture':      'gallery_afternoon',
+        'shopping':     'design_shopping',
+        'wellness':     'hidden_gems',
+        'local-secret': 'hidden_gems',
+        'family':       'long_lunch',
+        'sunday':       'long_lunch',
+        'celebration':  'cocktail_bars',
+        'rainy-day':    'gallery_afternoon',
       }
 
-      // Adjustment overrides: shift the intent based on emotion preference
+      // Adjustment overrides: shift the intent based on emotion
       const adjustmentOverrides: Record<string, Record<string, string>> = {
         relax: {
-          coffee_break: 'quiet_wine_bar',
-          quick_lunch: 'coffee_and_work',
-          long_lunch: 'quiet_wine_bar',
-          dinner: 'quiet_wine_bar',
-          late_drinks: 'quiet_wine_bar',
-          shopping_stroll: 'gallery_afternoon',
-          indoor_culture: 'gallery_afternoon',
+          'cocktails':   'quiet_wine_bar',
+          'dinner':      'quiet_wine_bar',
+          'fine-dining': 'quiet_wine_bar',
+          'late-night':  'quiet_wine_bar',
+          'shopping':    'gallery_afternoon',
+          'coffee':      'coffee_and_work',
+          'live-music':  'gallery_afternoon',
+          'celebration': 'quiet_wine_bar',
         },
         energy: {
-          coffee_break: 'hidden_gems',
-          long_lunch: 'hidden_gems',
-          dinner: 'cocktail_bars',
-          late_drinks: 'cocktail_bars',
-          sunset_drink: 'cocktail_bars',
-          indoor_culture: 'hidden_gems',
-          shopping_stroll: 'hidden_gems',
+          'coffee':      'hidden_gems',
+          'wine':        'cocktail_bars',
+          'dinner':      'cocktail_bars',
+          'fine-dining': 'cocktail_bars',
+          'culture':     'hidden_gems',
+          'shopping':    'hidden_gems',
+          'wellness':    'hidden_gems',
+          'sunset':      'cocktail_bars',
         },
         treat: {
-          coffee_break: 'design_shopping',
-          long_lunch: 'romantic_dinner',
-          dinner: 'romantic_dinner',
-          quick_lunch: 'long_lunch',
-          shopping_stroll: 'design_shopping',
-          sunset_drink: 'sunset_drinks',
-          indoor_culture: 'gallery_afternoon',
-          late_drinks: 'late_night_jazz',
+          'coffee':      'design_shopping',
+          'dinner':      'romantic_dinner',
+          'cocktails':   'sunset_drinks',
+          'shopping':    'design_shopping',
+          'sunset':      'sunset_drinks',
+          'culture':     'gallery_afternoon',
+          'late-night':  'late_night_jazz',
+          'wine':        'romantic_dinner',
+        },
+        romantic: {
+          'coffee':      'quiet_wine_bar',
+          'dinner':      'romantic_dinner',
+          'cocktails':   'quiet_wine_bar',
+          'sunset':      'sunset_drinks',
+          'shopping':    'hidden_gems',
+          'culture':     'hidden_gems',
+          'late-night':  'quiet_wine_bar',
+        },
+        culture: {
+          'coffee':      'gallery_afternoon',
+          'dinner':      'hidden_gems',
+          'cocktails':   'hidden_gems',
+          'shopping':    'gallery_afternoon',
+          'sunset':      'hidden_gems',
+          'late-night':  'gallery_afternoon',
         },
       }
 
       const adj = now_context.adjustment
       const overrideMap = adj ? adjustmentOverrides[adj] : null
       const overrideId = overrideMap?.[now_context.inferred_moment]
-      const baseId = momentToIntent[now_context.inferred_moment]
+      const baseId = tagToIntent[now_context.inferred_moment]
       const mappedIntentId = overrideId ?? baseId
 
       resolvedIntent = mappedIntentId
