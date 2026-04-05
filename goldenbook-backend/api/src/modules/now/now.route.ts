@@ -41,7 +41,7 @@ import {
   getConciergeCity,
   getDefaultConciergeCity,
 } from '../concierge/concierge.query'
-import { getActiveVisibilityPlaceIds } from '../visibility/visibility.query'
+import { getActiveVisibilityPlaceIdsByCity } from '../visibility/visibility.query'
 import {
   type OnboardingProfile,
   parseInterests,
@@ -374,7 +374,7 @@ async function resolveNow(
 
   let paidPlaceIds = new Set<string>()
   try {
-    const ids = await getActiveVisibilityPlaceIds('now', 20)
+    const ids = await getActiveVisibilityPlaceIdsByCity('now', city.slug, 20)
     paidPlaceIds = new Set(ids)
   } catch {}
 
@@ -433,7 +433,7 @@ async function scorePlaceById(
 
   let paidPlaceIds = new Set<string>()
   try {
-    const ids = await getActiveVisibilityPlaceIds('now', 20)
+    const ids = await getActiveVisibilityPlaceIdsByCity('now', city.slug, 20)
     paidPlaceIds = new Set(ids)
   } catch {}
 
