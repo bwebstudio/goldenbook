@@ -184,8 +184,18 @@ export async function getNowCandidates(
       AND p.status = 'published'
       AND p.is_active = true
       AND p.is_temporarily_closed = false
-      -- Eligibility: place must have at least one context tag (curated in dashboard)
-      AND EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
+      -- Eligibility: place must have at least one context tag OR an active paid placement
+      AND (
+        EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
+        OR EXISTS (
+          SELECT 1 FROM place_visibility pv
+          WHERE pv.place_id = p.id
+            AND pv.surface = 'now'
+            AND pv.is_active = true
+            AND (pv.starts_at IS NULL OR pv.starts_at <= now())
+            AND (pv.ends_at IS NULL OR pv.ends_at >= now())
+        )
+      )
       -- NOW date window filter (if set)
       AND (p.now_start_at IS NULL OR p.now_start_at <= now())
       AND (p.now_end_at IS NULL OR p.now_end_at >= now())

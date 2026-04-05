@@ -20,9 +20,8 @@ import {
   TIME_TAG_BOOSTS,
   WEATHER_TAG_BOOSTS,
   type ContextTag,
-  type NowTimeOfDay,
-  type WeatherCondition,
 } from '../shared-scoring/context-tags'
+import type { NowTimeOfDay, WeatherCondition } from '../shared-scoring/types'
 
 // ─── Time of day ──────────────────────────────────────────────────────────────
 
@@ -447,13 +446,11 @@ export function getFallbackIntents(
   timeOfDay: TimeOfDay,
   locale = 'en',
 ): Array<{ id: string; title: string }> {
-  const bootstrapIds = BOOTSTRAP_INTENTS[timeOfDay].filter(
-    (id) => id !== excludeIntentId,
-  )
-
-  const result = bootstrapIds
-    .map((id) => getIntentById(id))
-    .filter((i): i is ConciergeIntent => i != null)
+  // Get time-appropriate intents from registry (replaces static BOOTSTRAP_INTENTS)
+  const result = INTENT_REGISTRY
+    .filter((i) => i.id !== excludeIntentId && i.preferredTimeOfDay.includes(timeOfDay))
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 2)
     .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
 
   if (result.length >= 2) return result.slice(0, 2)
@@ -481,25 +478,25 @@ export function getDynamicFallbackIntents(
   timeOfDay: TimeOfDay,
   locale = 'en',
 ): Array<{ id: string; title: string }> {
-  // Start with bootstrap intents for this time of day
-  const bootstrapIds = BOOTSTRAP_INTENTS[timeOfDay].filter(
-    (id) => id !== excludeIntentId && !previouslyUsed.has(id),
-  )
-
-  const result = bootstrapIds
-    .map((id) => getIntentById(id))
-    .filter((i): i is ConciergeIntent => i != null)
+  // Get time-appropriate intents from registry, excluding used ones
+  const result = INTENT_REGISTRY
+    .filter((i) =>
+      i.id !== excludeIntentId
+      && !previouslyUsed.has(i.id)
+      && i.preferredTimeOfDay.includes(timeOfDay),
+    )
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 2)
     .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
 
-  if (result.length >= 2) return result.slice(0, 2)
+  if (result.length >= 2) return result
 
-  // Fill from time-appropriate registry intents, excluding previously used
+  // Fill from any remaining intents
   const extras = INTENT_REGISTRY.filter(
     (i) =>
       i.id !== excludeIntentId
       && !previouslyUsed.has(i.id)
-      && !result.find((r) => r.id === i.id)
-      && i.preferredTimeOfDay.includes(timeOfDay),
+      && !result.find((r: { id: string }) => r.id === i.id),
   )
     .sort((a, b) => b.priority - a.priority)
     .slice(0, 2 - result.length)

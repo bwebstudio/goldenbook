@@ -43,6 +43,9 @@ import {
   type UnifiedCandidate,
 } from '../shared-scoring'
 
+// Backwards compat alias — helpers that used ScoredPlace now work with UnifiedCandidate
+type ScoredPlace = UnifiedCandidate
+
 // ─── Session history for anti-repetition ──────────────────────────────────────
 const sessionHistory = new Map<string, { placeIds: Set<string>; intentIds: Set<string> }>()
 
@@ -83,12 +86,14 @@ const recommendBodySchema = z.object({
   }).optional(),
 })
 
-type AdjustmentEmotion = 'relax' | 'energy' | 'treat'
+type AdjustmentEmotion = 'relax' | 'energy' | 'treat' | 'romantic' | 'culture'
 
 const EMOTION_INTENT_GROUPS: Record<AdjustmentEmotion, string[]> = {
   relax: ['quiet_wine_bar', 'gallery_afternoon', 'coffee_and_work', 'hidden_gems'],
   energy: ['cocktail_bars', 'sunset_drinks', 'late_night_jazz', 'after_dinner_drinks', 'hidden_gems'],
   treat: ['romantic_dinner', 'design_shopping', 'sunset_drinks', 'long_lunch', 'late_night_jazz'],
+  romantic: ['romantic_dinner', 'quiet_wine_bar', 'sunset_drinks', 'hidden_gems'],
+  culture: ['gallery_afternoon', 'hidden_gems', 'coffee_and_work'],
 }
 
 const ADJUSTMENT_SIGNAL_TAGS: Record<AdjustmentEmotion, string[]> = {
@@ -131,6 +136,14 @@ const ADJUSTMENT_SIGNAL_TAGS: Record<AdjustmentEmotion, string[]> = {
     'atmospheric',
     'refined',
     'golden-hour',
+  ],
+  romantic: [
+    'romantic', 'intimate', 'date', 'couple', 'candlelit', 'wine', 'sunset',
+    'fine-dining', 'atmospheric', 'elegant',
+  ],
+  culture: [
+    'gallery', 'art', 'museum', 'culture', 'contemporary', 'exhibition',
+    'design', 'architecture', 'heritage',
   ],
 }
 
@@ -455,7 +468,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
     } catch {}
 
     // ── Shared scoring context (same engine as NOW) ──────────────────
-    const adjustmentEmotion = now_context?.adjustment ?? detectedRefinement
+    const adjustmentEmotion = (now_context?.adjustment ?? detectedRefinement) as AdjustmentEmotion | null
     const refinementAdj = adjustmentEmotion ? getRefinementTagAdjustments(adjustmentEmotion) : null
 
     const scoringCtx: ScoringContext = {
@@ -574,9 +587,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
 
         scored = mergeUniquePlaces(combined, level3Matches, limit)
         levelUsed = 3
-        }
       }
-
     }
 
     // ── Smart fallback: if insufficient results, search related categories ──

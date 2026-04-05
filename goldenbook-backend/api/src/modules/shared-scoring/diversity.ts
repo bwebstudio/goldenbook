@@ -38,9 +38,12 @@ export function applyDiversityRules(sorted: ScoredCandidate[]): ScoredCandidate[
   const arr = sorted.map((r) => ({ ...r }))
 
   // Pass 1: apply penalties for adjacent same-category and same-tag
+  // Never penalize paid placements — they have contractual visibility guarantees
   for (let i = 1; i < arr.length; i++) {
     const prev = arr[i - 1]
     const curr = arr[i]
+
+    if (curr.isSponsored) continue // protect paid placements
 
     if (curr.place.place_type === prev.place.place_type) {
       curr.totalScore *= SAME_CATEGORY_PENALTY

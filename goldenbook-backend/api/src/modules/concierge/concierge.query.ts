@@ -247,7 +247,7 @@ export async function getFallbackPlaces(
   excludeIds: string[],
   limit: number,
   originalPlaceTypes?: string[],
-): Promise<ScoredPlace[]> {
+): Promise<UnifiedCandidate[]> {
   // Build expanded type list: original types + related types
   const typeSet = new Set<string>()
   if (originalPlaceTypes) {
@@ -271,7 +271,7 @@ export async function getFallbackPlaces(
   const excludeClause = excludeIds.length > 0 ? `AND p.id NOT IN (${excludeParams})` : ''
   const limitParam = `$${++idx}`
 
-  const { rows } = await db.query<ScoredPlace>(
+  const { rows } = await db.query<UnifiedCandidate>(
     `
     SELECT
       p.id, p.slug,

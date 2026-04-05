@@ -7,7 +7,7 @@
 //   4. Consistency: NOW and Concierge produce identical scores for same candidate
 
 import { describe, it, expect } from 'vitest'
-import { scoreCandidate } from '../scoring-engine'
+import { scoreCandidate, selectTopN } from '../scoring-engine'
 import { applyDiversityRules } from '../diversity'
 import type { UnifiedCandidate, ScoringContext } from '../types'
 import { DEFAULT_WEIGHTS } from '../types'
@@ -80,6 +80,90 @@ describe('Commercial scoring', () => {
     const result = scoreCandidate(lisbon, ctx)
     expect(result.isSponsored).toBe(false)
     expect(result.commercialScore).toBeLessThan(70) // no paid boost
+  })
+})
+
+// ─── Paid placement + tag interaction scenarios ─────────────────────────────
+
+describe('Paid placement vs context tags', () => {
+  it('1️⃣ paid with perfect tags → ranks high', () => {
+    const paid = makeCandidate({ context_tag_slugs: ['dinner', 'romantic', 'fine-dining'] })
+    const ctx = makeContext({ timeOfDay: 'evening', weather: 'sunny', paidPlaceIds: new Set([paid.id]) })
+
+    const result = scoreCandidate(paid, ctx)
+    expect(result.isSponsored).toBe(true)
+    expect(result.commercialScore).toBeGreaterThanOrEqual(70)
+    expect(result.contextScore).toBeGreaterThan(0)
+    expect(result.totalScore).toBeGreaterThan(30)
+  })
+
+  it('2️⃣ paid with weak tags → still appears (commercial carries it)', () => {
+    const paid = makeCandidate({ context_tag_slugs: ['shopping'] }) // weak for evening
+    const ctx = makeContext({ timeOfDay: 'evening', weather: 'sunny', paidPlaceIds: new Set([paid.id]) })
+
+    const result = scoreCandidate(paid, ctx)
+    expect(result.isSponsored).toBe(true)
+    expect(result.commercialScore).toBeGreaterThanOrEqual(70)
+    // Context is low but totalScore is still positive due to commercial
+    expect(result.totalScore).toBeGreaterThan(0)
+  })
+
+  it('3️⃣ paid with NO tags → still appears (commercial + quality carry it)', () => {
+    const paid = makeCandidate({ context_tag_slugs: [] })
+    const ctx = makeContext({ timeOfDay: 'evening', weather: 'sunny', paidPlaceIds: new Set([paid.id]) })
+
+    const result = scoreCandidate(paid, ctx)
+    expect(result.isSponsored).toBe(true)
+    expect(result.contextScore).toBe(0) // no tags = no context score
+    expect(result.commercialScore).toBeGreaterThanOrEqual(70)
+    expect(result.totalScore).toBeGreaterThan(0)
+  })
+
+  it('4️⃣ organic with excellent tags cannot displace paid from visibility floor', () => {
+    const paid = makeCandidate({ id: 'paid', context_tag_slugs: [] })
+    const organic = makeCandidate({ id: 'organic', context_tag_slugs: ['dinner', 'romantic', 'fine-dining', 'sunset'], popularity_score: 95 })
+
+    const ctx = makeContext({ timeOfDay: 'evening', weather: 'sunny', paidPlaceIds: new Set([paid.id]) })
+
+    const paidResult = scoreCandidate(paid, ctx)
+    const organicResult = scoreCandidate(organic, ctx)
+
+    // Organic may outscore paid in totalScore...
+    // (that's fine — the visibility floor in selectTopN guarantees paid appears)
+    expect(organicResult.contextScore).toBeGreaterThan(paidResult.contextScore)
+
+    // But selectTopN must include the paid placement
+    const ranked = [organicResult, paidResult].sort((a, b) => b.totalScore - a.totalScore)
+    const selected = selectTopN(ranked, 3)
+    const paidInResult = selected.some((r) => r.place.id === 'paid')
+    expect(paidInResult).toBe(true)
+  })
+
+  it('diversity rules never penalize paid placements', () => {
+    const paid = scoreCandidate(
+      makeCandidate({ id: 'paid', place_type: 'restaurant' }),
+      makeContext({ paidPlaceIds: new Set(['paid']) }),
+    )
+    const organic1 = scoreCandidate(
+      makeCandidate({ id: 'org1', place_type: 'restaurant' }),
+      makeContext(),
+    )
+    const organic2 = scoreCandidate(
+      makeCandidate({ id: 'org2', place_type: 'restaurant' }),
+      makeContext(),
+    )
+    const organic3 = scoreCandidate(
+      makeCandidate({ id: 'org3', place_type: 'bar', context_tag_slugs: ['cocktails'] }),
+      makeContext(),
+    )
+
+    // Place paid between two same-type organics
+    const sorted = [organic1, paid, organic2, organic3]
+    const diversified = applyDiversityRules(sorted)
+
+    // Paid placement should NOT have been penalized
+    const paidAfter = diversified.find((r) => r.place.id === 'paid')!
+    expect(paidAfter.totalScore).toBe(paid.totalScore)
   })
 })
 
