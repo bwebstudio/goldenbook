@@ -211,6 +211,65 @@ export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promi
   const surface = SURFACE_MAP[purchase.placement_type ?? ''] ?? purchase.placement_type ?? 'golden_picks'
   const priority = purchase.position ? (100 - purchase.position) : 10
 
+  // ── Per-place commercial rules (same as admin createVisibility) ────────
+  const DISCOVER_SURFACES = ['golden_picks', 'hidden_spots', 'new_on_goldenbook']
+  const ONE_PER_PLACE = ['now', 'search_priority', 'category_featured']
+  const activeCheck = `AND is_active = true AND (ends_at IS NULL OR ends_at >= now())`
+
+  // Discover exclusivity: max 1 Discover surface per place
+  if (DISCOVER_SURFACES.includes(surface)) {
+    const { rows: existing } = await db.query<{ surface: string }>(`
+      SELECT surface FROM place_visibility
+      WHERE place_id = $1 AND surface = ANY($2::text[]) ${activeCheck} LIMIT 1
+    `, [purchase.place_id, DISCOVER_SURFACES])
+    if (existing.length > 0) {
+      await decrementSlot(purchase.city!, placementToSurface(purchase.placement_type!))
+      await db.query(`UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`, [purchase.id])
+      console.error(`[fulfillment] DISCOVER_EXCLUSIVE: place ${purchase.place_id} already has ${existing[0].surface}`)
+      return 'inventory_conflict'
+    }
+  }
+
+  // Per-surface exclusivity: NOW, search, category = max 1 per place
+  if (ONE_PER_PLACE.includes(surface)) {
+    const { rows: existing } = await db.query<{ id: string }>(`
+      SELECT id FROM place_visibility
+      WHERE place_id = $1 AND surface = $2 ${activeCheck} LIMIT 1
+    `, [purchase.place_id, surface])
+    if (existing.length > 0) {
+      await decrementSlot(purchase.city!, placementToSurface(purchase.placement_type!))
+      await db.query(`UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`, [purchase.id])
+      console.error(`[fulfillment] SURFACE_EXCLUSIVE: place ${purchase.place_id} already has ${surface}`)
+      return 'inventory_conflict'
+    }
+  }
+
+  // Concierge + Discover anti-domination
+  if (surface === 'concierge') {
+    const { rows: hasDiscover } = await db.query<{ surface: string }>(`
+      SELECT surface FROM place_visibility
+      WHERE place_id = $1 AND surface = ANY($2::text[]) ${activeCheck} LIMIT 1
+    `, [purchase.place_id, DISCOVER_SURFACES])
+    if (hasDiscover.length > 0) {
+      await decrementSlot(purchase.city!, placementToSurface(purchase.placement_type!))
+      await db.query(`UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`, [purchase.id])
+      console.error(`[fulfillment] ANTI_DOMINATION: place ${purchase.place_id} has Discover + Concierge`)
+      return 'inventory_conflict'
+    }
+  }
+  if (DISCOVER_SURFACES.includes(surface)) {
+    const { rows: hasConcierge } = await db.query<{ id: string }>(`
+      SELECT id FROM place_visibility
+      WHERE place_id = $1 AND surface = 'concierge' ${activeCheck} LIMIT 1
+    `, [purchase.place_id])
+    if (hasConcierge.length > 0) {
+      await decrementSlot(purchase.city!, placementToSurface(purchase.placement_type!))
+      await db.query(`UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`, [purchase.id])
+      console.error(`[fulfillment] ANTI_DOMINATION: place ${purchase.place_id} has Concierge + Discover`)
+      return 'inventory_conflict'
+    }
+  }
+
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO place_visibility (
        place_id, surface, visibility_type, priority,
