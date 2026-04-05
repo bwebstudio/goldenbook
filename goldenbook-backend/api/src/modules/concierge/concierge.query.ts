@@ -335,3 +335,76 @@ export async function getFallbackPlaces(
 
   return rows
 }
+
+/**
+ * Fetch specific places by IDs as UnifiedCandidate.
+ * Used to inject paid placements that may not match the current intent filter.
+ */
+export async function getPlacesByIds(
+  placeIds: string[],
+  locale: string,
+  timeWindow?: string,
+): Promise<UnifiedCandidate[]> {
+  if (placeIds.length === 0) return []
+
+  const placeholders = placeIds.map((_, i) => `$${i + 2}`).join(', ')
+  const twIdx = placeIds.length + 2
+
+  const { rows } = await db.query<UnifiedCandidate>(`
+    SELECT
+      p.id, p.slug,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_fb.name,''), p.name) AS name,
+      d.slug AS city_slug,
+      COALESCE(NULLIF(dt.name,''), NULLIF(dt_fb.name,''), d.name) AS city_name,
+      p.place_type,
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
+      COALESCE(NULLIF(pt.editorial_summary,''), NULLIF(pt_fb.editorial_summary,''), p.editorial_summary) AS editorial_summary,
+      p.featured,
+      ps.popularity_score,
+      hero_img.bucket AS hero_bucket,
+      hero_img.path AS hero_path,
+      p.created_at,
+      p.latitude,
+      p.longitude,
+      NULL::real AS distance_meters,
+      COALESCE(
+        (SELECT array_agg(DISTINCT c.slug) FROM place_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.place_id = p.id),
+        ARRAY[]::text[]
+      ) AS category_slugs,
+      COALESCE(
+        (SELECT array_agg(nct.slug) FROM place_now_tags pnt JOIN now_context_tags nct ON nct.id = pnt.tag_id WHERE pnt.place_id = p.id),
+        ARRAY[]::text[]
+      ) AS context_tag_slugs,
+      COALESCE(
+        (SELECT MAX(pnt.weight) FROM place_now_tags pnt WHERE pnt.place_id = p.id),
+        1.0
+      ) AS context_tag_max_weight,
+      COALESCE(p.now_enabled, false) AS now_enabled,
+      COALESCE(p.now_priority, 0) AS now_priority,
+      COALESCE(p.now_featured, false) AS now_featured,
+      CASE
+        WHEN NOT EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id) THEN true
+        WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${twIdx}) THEN true
+        ELSE false
+      END AS now_time_window_match
+    FROM places p
+    JOIN destinations d ON d.id = p.destination_id
+    LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $1
+    LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+    LEFT JOIN destination_translations dt ON dt.destination_id = d.id AND dt.locale = $1
+    LEFT JOIN destination_translations dt_fb ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+    LEFT JOIN LATERAL (
+      SELECT ma.bucket, ma.path
+      FROM place_images pi JOIN media_assets ma ON ma.id = pi.asset_id
+      WHERE pi.place_id = p.id AND pi.image_role IN ('hero', 'cover')
+      ORDER BY (pi.image_role = 'hero') DESC, pi.is_primary DESC
+      LIMIT 1
+    ) hero_img ON true
+    LEFT JOIN place_stats ps ON ps.place_id = p.id
+    WHERE p.id IN (${placeholders})
+      AND p.status = 'published'
+      AND p.is_active = true
+  `, [locale, ...placeIds, timeWindow ?? 'evening'])
+
+  return rows
+}

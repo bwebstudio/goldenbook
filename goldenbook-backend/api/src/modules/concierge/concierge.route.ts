@@ -12,6 +12,7 @@ import {
   getConciergeRecommendations,
   getDefaultConciergeCity,
   getFallbackPlaces,
+  getPlacesByIds,
   getViableIntents,
 } from './concierge.query'
 import {
@@ -467,6 +468,18 @@ export async function conciergeRoutes(app: FastifyInstance) {
       boostIds = new Set(ids)
     } catch {}
 
+    // ── Inject paid placements that may not match intent filter ──────────
+    // Paid placements bypass intent-based SQL filtering (eligibility guarantee).
+    // They get an intent mismatch penalty in scoring but remain in the pool.
+    if (boostIds.size > 0) {
+      const candidateIds = new Set(candidates.map((c) => c.id))
+      const missingPaidIds = [...boostIds].filter((id) => !candidateIds.has(id))
+      if (missingPaidIds.length > 0) {
+        const paidPlaces = await getPlacesByIds(missingPaidIds, locale, nowTimeOfDay)
+        candidates.push(...paidPlaces)
+      }
+    }
+
     // ── Shared scoring context (same engine as NOW) ──────────────────
     const adjustmentEmotion = (now_context?.adjustment ?? detectedRefinement) as AdjustmentEmotion | null
     const refinementAdj = adjustmentEmotion ? getRefinementTagAdjustments(adjustmentEmotion) : null
@@ -492,9 +505,13 @@ export async function conciergeRoutes(app: FastifyInstance) {
       .map((place) => {
         const result = scoreCandidate(place, scoringCtx)
 
-        // Concierge-specific: intent place_type match bonus
+        // Concierge-specific: intent place_type match bonus / mismatch penalty
         if (resolvedIntent.placeTypes.includes(place.place_type)) {
           result.totalScore += 5
+        } else if (result.isSponsored) {
+          // Paid placement doesn't match intent — apply mismatch penalty
+          // Still visible via visibility floor, but ranks below matching organics
+          result.totalScore -= 10
         }
 
         // Anti-repetition penalty (soft, not hard exclude)
