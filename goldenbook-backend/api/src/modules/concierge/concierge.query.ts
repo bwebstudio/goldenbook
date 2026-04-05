@@ -124,12 +124,15 @@ export async function getConciergeRecommendations(
   `
 
   // Time window match for current time
-  const timeWindowParam = intentStartIdx + allIntents.length
+  // Params so far: $1=city, $2=locale, $3..N=placeTypes, $N+1..M=allIntents
+  // Next available: $M+1 = timeWindow, $M+2 = fetchLimit
+  const timeWindowIdx = intentStartIdx + allIntents.length
+  const limitIdx = timeWindowIdx + 1
   const timeWindowMatchExpr = `
     CASE
       WHEN NOT EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id)
         THEN true
-      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${timeWindowParam + 1})
+      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${timeWindowIdx})
         THEN true
       ELSE false
     END
@@ -197,9 +200,9 @@ export async function getConciergeRecommendations(
       p.featured DESC,
       ps.popularity_score DESC NULLS LAST,
       p.created_at DESC
-    LIMIT $${timeWindowParam + 2}
+    LIMIT $${limitIdx}
     `,
-    [citySlug, locale, ...intent.placeTypes, ...allIntents, fetchLimit, timeWindow ?? 'evening', fetchLimit],
+    [citySlug, locale, ...intent.placeTypes, ...allIntents, timeWindow ?? 'evening', fetchLimit],
   )
 
   return rows
