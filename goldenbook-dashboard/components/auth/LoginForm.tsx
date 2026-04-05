@@ -2,6 +2,7 @@
 
 import { fetchCurrentUser } from "@/lib/api/auth";
 import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
+import PasswordInput from "@/components/auth/PasswordInput";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
@@ -110,16 +111,12 @@ export default function LoginForm() {
             Forgot password?
           </a>
         </div>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
-          name="password"
           value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="••••••••"
+          onChange={setPassword}
           autoComplete="current-password"
           disabled={isLoading}
-          className="w-full rounded-xl border border-border bg-surface px-5 py-4 text-lg text-text placeholder:text-[#B0AAA3] focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition disabled:opacity-60"
         />
       </div>
 

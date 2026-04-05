@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import PasswordInput from "@/components/auth/PasswordInput";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
@@ -137,15 +138,13 @@ export default function SetPasswordForm() {
         <label htmlFor="password" className="text-base font-semibold text-text">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           placeholder="Min. 8 characters"
           autoComplete="new-password"
           disabled={isLoading}
-          className="w-full rounded-xl border border-border bg-surface px-5 py-4 text-lg text-text placeholder:text-[#B0AAA3] focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition disabled:opacity-60"
         />
       </div>
 
@@ -153,15 +152,13 @@ export default function SetPasswordForm() {
         <label htmlFor="confirm" className="text-base font-semibold text-text">
           Confirm password
         </label>
-        <input
+        <PasswordInput
           id="confirm"
-          type="password"
           value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          onChange={setConfirm}
           placeholder="Repeat password"
           autoComplete="new-password"
           disabled={isLoading}
-          className="w-full rounded-xl border border-border bg-surface px-5 py-4 text-lg text-text placeholder:text-[#B0AAA3] focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition disabled:opacity-60"
         />
         {confirm.length > 0 && !passwordsMatch && (
           <p className="text-xs text-[#9D4B3E]">Passwords do not match</p>

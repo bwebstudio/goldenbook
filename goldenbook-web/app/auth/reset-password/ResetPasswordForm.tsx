@@ -12,6 +12,7 @@ export default function ResetPasswordForm() {
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -79,25 +80,30 @@ export default function ResetPasswordForm() {
       <P>Choose a new password for your account.</P>
       <form onSubmit={handleSubmit} style={{ marginTop: 24, textAlign: 'left' }}>
         <label style={labelStyle}>New password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Min. 8 characters"
-          autoComplete="new-password"
-          disabled={loading}
-          style={inputStyle}
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showPass ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min. 8 characters"
+            autoComplete="new-password"
+            disabled={loading}
+            style={{ ...inputStyle, paddingRight: 44 }}
+          />
+          <button type="button" onClick={() => setShowPass(v => !v)} style={eyeStyle}>{showPass ? 'Hide' : 'Show'}</button>
+        </div>
         <label style={{ ...labelStyle, marginTop: 16 }}>Confirm password</label>
-        <input
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          placeholder="Repeat password"
-          autoComplete="new-password"
-          disabled={loading}
-          style={inputStyle}
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type={showPass ? 'text' : 'password'}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Repeat password"
+            autoComplete="new-password"
+            disabled={loading}
+            style={{ ...inputStyle, paddingRight: 44 }}
+          />
+        </div>
         {confirm.length > 0 && !passwordsMatch && (
           <p style={{ fontSize: 12, color: '#EF4444', margin: '6px 0 0' }}>Passwords do not match</p>
         )}
@@ -185,3 +191,4 @@ function Sub({ children }: { children: React.ReactNode }) {
 
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: '#555', marginBottom: 6 }
 const inputStyle: React.CSSProperties = { display: 'block', width: '100%', padding: '12px 16px', fontSize: 15, border: '1.5px solid #DDD', borderRadius: 10, outline: 'none', boxSizing: 'border-box', fontFamily: "'Inter', sans-serif" }
+const eyeStyle: React.CSSProperties = { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#999', fontFamily: "'Inter', sans-serif" }
