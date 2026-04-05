@@ -1,6 +1,9 @@
 import type { ConciergeIntent, TimeOfDay } from './concierge.intents'
 import { getIntentLabels } from './concierge.intents'
-import type { ScoredPlace } from './concierge.service'
+import type { UnifiedCandidate } from '../shared-scoring/types'
+
+/** Accepts UnifiedCandidate (shared scoring) or any object with the same base fields */
+type ScoredPlace = Pick<UnifiedCandidate, 'id' | 'slug' | 'name' | 'city_name' | 'place_type' | 'short_description' | 'editorial_summary' | 'featured' | 'hero_bucket' | 'hero_path'>
 
 // ─── DTO contracts ────────────────────────────────────────────────────────────
 

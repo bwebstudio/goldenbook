@@ -23,7 +23,6 @@ import {
   getDefaultIntent,
   getTimeOfDay,
   resolveIntentFromQuery,
-  scoreConciergePlace,
   detectRefinementFromText,
   getRefinementTagAdjustments,
 } from './concierge.service'
@@ -32,10 +31,17 @@ import {
   parseInterests,
 } from '../../shared/onboarding/onboarding.scoring'
 import { getActiveVisibilityPlaceIdsByCity } from '../visibility/visibility.query'
-// Diversity: prevent repetitive place_types in results
 import { resolveWeather } from '../now/now.weather'
-import type { ScoredPlace } from './concierge.service'
 import { normalizeLocale } from '../../shared/i18n/locale'
+// Shared scoring engine (same as NOW)
+import {
+  scoreCandidate,
+  applyDiversityRules,
+  getNowTimeOfDay,
+  type ScoringContext,
+  type ScoredCandidate,
+  type UnifiedCandidate,
+} from '../shared-scoring'
 
 // ─── Session history for anti-repetition ──────────────────────────────────────
 const sessionHistory = new Map<string, { placeIds: Set<string>; intentIds: Set<string> }>()
@@ -429,11 +435,16 @@ export async function conciergeRoutes(app: FastifyInstance) {
 
     // Fetch candidate places from DB — fetch more than needed for scoring
     const fetchLimit = Math.max(limit * 3, 12)
+    const nowTimeOfDay = getNowTimeOfDay()
+    const weatherResult = await resolveWeather(undefined, undefined, city.slug)
+    const weather = weatherResult?.condition
+
     const candidates = await getConciergeRecommendations(
       city.slug,
       resolvedIntent,
       locale,
       fetchLimit,
+      nowTimeOfDay,
     )
 
     // Get paid Concierge placements — filtered by city + active campaign dates
@@ -443,99 +454,106 @@ export async function conciergeRoutes(app: FastifyInstance) {
       boostIds = new Set(ids)
     } catch {}
 
-    // ── Apply refinement or adjustment tag weighting ──────────────────
+    // ── Shared scoring context (same engine as NOW) ──────────────────
     const adjustmentEmotion = now_context?.adjustment ?? detectedRefinement
     const refinementAdj = adjustmentEmotion ? getRefinementTagAdjustments(adjustmentEmotion) : null
 
-    // Score candidates — with context tag refinement adjustments
-    const rankedCandidates = candidates
-      .map((place) => {
-        let score = scoreConciergePlace(place, resolvedIntent, profile, timeOfDay)
-          + (boostIds.has(place.id) ? 25 : 0)
-          - (previouslyShown.placeIds.has(place.id) ? 15 : 0)
+    const scoringCtx: ScoringContext = {
+      timeOfDay: nowTimeOfDay,
+      weather,
+      paidPlaceIds: boostIds,
+      excludeIds: new Set(),  // don't hard-exclude, use penalty instead
+      weights: {
+        commercial: 0.15,
+        context:    0.30,
+        editorial:  0.15,
+        quality:    0.25,
+        proximity:  0.15,
+      },
+      surface: 'concierge',
+      intentTags: [...resolvedIntent.tags, ...resolvedIntent.categorySlugs],
+    }
 
-        // Apply refinement tag adjustments if present
+    // Score all candidates with the shared engine + Concierge-specific adjustments
+    let scoredCandidates: ScoredCandidate[] = candidates
+      .map((place) => {
+        const result = scoreCandidate(place, scoringCtx)
+
+        // Concierge-specific: intent place_type match bonus
+        if (resolvedIntent.placeTypes.includes(place.place_type)) {
+          result.totalScore += 5
+        }
+
+        // Anti-repetition penalty (soft, not hard exclude)
+        if (previouslyShown.placeIds.has(place.id)) {
+          result.totalScore -= 15
+        }
+
+        // Refinement tag adjustments (additive on top of shared scoring)
         if (refinementAdj && place.context_tag_slugs?.length) {
           const placeTags = new Set(place.context_tag_slugs)
           for (const boostTag of refinementAdj.boost) {
-            if (placeTags.has(boostTag)) score += 8
+            if (placeTags.has(boostTag)) result.totalScore += 8
           }
           for (const reduceTag of refinementAdj.reduce) {
-            if (placeTags.has(reduceTag)) score -= 6
+            if (placeTags.has(reduceTag)) result.totalScore -= 6
           }
         }
 
-        return { place, score }
+        return result
       })
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score)
+      .filter((r) => r.totalScore > 0)
+      .sort((a, b) => b.totalScore - a.totalScore)
 
-    // ── Diversity pass: penalize adjacent same place_type ──────────────
-    for (let i = 1; i < rankedCandidates.length; i++) {
-      if (rankedCandidates[i].place.place_type === rankedCandidates[i - 1].place.place_type) {
-        rankedCandidates[i] = { ...rankedCandidates[i], score: rankedCandidates[i].score * 0.85 }
-      }
-    }
-    rankedCandidates.sort((a, b) => b.score - a.score)
+    // Apply shared diversity rules (same as NOW)
+    scoredCandidates = applyDiversityRules(scoredCandidates)
 
-    let scored = rankedCandidates
-      .slice(0, limit)
-      .map(({ place }) => place)
+    // Extract places for the response
+    let scored = scoredCandidates.slice(0, limit).map((r) => r.place)
     let levelUsed = adjustmentEmotion ? 1 : 0
 
-    if (adjustmentEmotion) {
-      const strictMatches = rankedCandidates
-        .slice(0, fetchLimit)
-        .map(({ place }) => place)
+    if (adjustmentEmotion && scored.length < limit) {
+      // Level 2+3 fallback: fetch from related intents using shared scoring
+      const emotionIntents = getEmotionIntentGroup(adjustmentEmotion, resolvedIntent)
+      const level2Buckets = await Promise.all(
+        emotionIntents
+          .filter((intent) => intent.id !== resolvedIntent.id)
+          .map(async (intent) => {
+            const candidatesForIntent = await getConciergeRecommendations(
+              city.slug, intent, locale, fetchLimit, nowTimeOfDay,
+            )
+            const intentCtx: ScoringContext = {
+              ...scoringCtx,
+              intentTags: [...intent.tags, ...intent.categorySlugs],
+            }
+            return candidatesForIntent
+              .map((place) => scoreCandidate(place, intentCtx))
+              .filter((r) => r.totalScore > 0)
+              .sort((a, b) => b.totalScore - a.totalScore)
+              .map((r) => r.place)
+          }),
+      )
 
-      let combinedResults = strictMatches.slice(0, limit)
+      const level2Matches = dedupePlaces(level2Buckets.flat())
+      const combined = mergeUniquePlaces(scored, level2Matches, limit)
 
-      if (combinedResults.length < limit) {
-        const emotionIntents = getEmotionIntentGroup(adjustmentEmotion, resolvedIntent)
-        const level2Buckets = await Promise.all(
-          emotionIntents
-            .filter((intent) => intent.id !== resolvedIntent.id)
-            .map(async (intent) => {
-              const candidatesForIntent = await getConciergeRecommendations(
-                city.slug,
-                intent,
-                locale,
-                fetchLimit,
-              )
-
-              return candidatesForIntent
-                .map((place) => ({
-                  place,
-                  score: scoreConciergePlace(place, intent, profile, timeOfDay)
-                    + (boostIds.has(place.id) ? 25 : 0)
-                    - (previouslyShown.placeIds.has(place.id) ? 15 : 0),
-                }))
-                .filter(({ score }) => score > 0)
-                .sort((a, b) => b.score - a.score)
-                .map(({ place }) => place)
-            }),
+      if (combined.length >= limit) {
+        scored = combined
+        levelUsed = 2
+      } else {
+        const fallbackPlaceTypes = [...new Set(emotionIntents.flatMap((intent) => intent.placeTypes))]
+        const level3Matches = sortPlacesByEmotionPriority(
+          await getFallbackPlaces(
+            city.slug, locale,
+            [...previouslyShown.placeIds, ...combined.map((p) => p.id)],
+            Math.max(limit * 2, 6),
+            fallbackPlaceTypes,
+          ),
+          adjustmentEmotion,
         )
 
-        const level2Matches = dedupePlaces(level2Buckets.flat())
-        combinedResults = mergeUniquePlaces(combinedResults, level2Matches, limit)
-
-        if (combinedResults.length >= limit) {
-          levelUsed = 2
-        } else {
-          const fallbackPlaceTypes = [...new Set(emotionIntents.flatMap((intent) => intent.placeTypes))]
-          const level3Matches = sortPlacesByEmotionPriority(
-            await getFallbackPlaces(
-              city.slug,
-              locale,
-              [...previouslyShown.placeIds, ...combinedResults.map((place) => place.id)],
-              Math.max(limit * 2, 6),
-              fallbackPlaceTypes,
-            ),
-            adjustmentEmotion,
-          )
-
-          combinedResults = mergeUniquePlaces(combinedResults, level3Matches, limit)
-          levelUsed = 3
+        scored = mergeUniquePlaces(combined, level3Matches, limit)
+        levelUsed = 3
         }
       }
 

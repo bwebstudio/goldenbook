@@ -1,6 +1,6 @@
 import { db } from '../../db/postgres'
 import type { ConciergeIntent } from './concierge.intents'
-import type { ScoredPlace } from './concierge.service'
+import type { UnifiedCandidate } from '../shared-scoring/types'
 
 // ─── City lookup ──────────────────────────────────────────────────────────────
 
@@ -75,7 +75,8 @@ export async function getConciergeRecommendations(
   intent: ConciergeIntent,
   locale: string,
   fetchLimit: number,
-): Promise<ScoredPlace[]> {
+  timeWindow?: string,
+): Promise<UnifiedCandidate[]> {
   if (intent.placeTypes.length === 0) return []
 
   // Build parameterised IN clause for placeTypes
@@ -101,24 +102,47 @@ export async function getConciergeRecommendations(
     )
   `
 
-  // Time window slugs (editor-defined time relevance)
-  const timeWindowsExpr = `
+  // Max tag weight for this place
+  const contextTagMaxWeightExpr = `
     COALESCE(
-      (SELECT array_agg(tw.time_window)
-       FROM place_now_time_windows tw
-       WHERE tw.place_id = p.id),
+      (SELECT MAX(pnt.weight)
+       FROM place_now_tags pnt
+       WHERE pnt.place_id = p.id),
+      1.0
+    )
+  `
+
+  // Category slugs aggregation
+  const categorySlugsExpr = `
+    COALESCE(
+      (SELECT array_agg(DISTINCT c.slug)
+       FROM place_categories pc
+       JOIN categories c ON c.id = pc.category_id
+       WHERE pc.place_id = p.id),
       ARRAY[]::text[]
     )
   `
 
-  const { rows } = await db.query<ScoredPlace>(
+  // Time window match for current time
+  const timeWindowParam = intentStartIdx + allIntents.length
+  const timeWindowMatchExpr = `
+    CASE
+      WHEN NOT EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id)
+        THEN true
+      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${timeWindowParam + 1})
+        THEN true
+      ELSE false
+    END
+  `
+
+  const { rows } = await db.query<UnifiedCandidate>(
     `
     SELECT
       p.id,
       p.slug,
-      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                     AS name,
-      d.slug                                                                                   AS city_slug,
-      COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)                                     AS city_name,
+      COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)     AS name,
+      d.slug                                                                                    AS city_slug,
+      COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)     AS city_name,
       p.place_type,
       COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
       COALESCE(NULLIF(pt.editorial_summary,''), NULLIF(pt_lang.editorial_summary,''), NULLIF(pt_fb.editorial_summary,''), p.editorial_summary) AS editorial_summary,
@@ -127,8 +151,16 @@ export async function getConciergeRecommendations(
       hero_img.bucket                                                            AS hero_bucket,
       hero_img.path                                                              AS hero_path,
       p.created_at,
+      p.latitude,
+      p.longitude,
+      NULL::real AS distance_meters,
+      (${categorySlugsExpr}) AS category_slugs,
       (${contextTagsExpr}) AS context_tag_slugs,
-      (${timeWindowsExpr}) AS time_window_slugs
+      (${contextTagMaxWeightExpr}) AS context_tag_max_weight,
+      COALESCE(p.now_enabled, false) AS now_enabled,
+      COALESCE(p.now_priority, 0) AS now_priority,
+      COALESCE(p.now_featured, false) AS now_featured,
+      (${timeWindowMatchExpr}) AS now_time_window_match
     FROM places p
     JOIN destinations d ON d.id = p.destination_id
     LEFT JOIN destination_translations dt
@@ -165,9 +197,9 @@ export async function getConciergeRecommendations(
       p.featured DESC,
       ps.popularity_score DESC NULLS LAST,
       p.created_at DESC
-    LIMIT $${intentStartIdx + allIntents.length}
+    LIMIT $${timeWindowParam + 2}
     `,
-    [citySlug, locale, ...intent.placeTypes, ...allIntents, fetchLimit],
+    [citySlug, locale, ...intent.placeTypes, ...allIntents, fetchLimit, timeWindow ?? 'evening', fetchLimit],
   )
 
   return rows
