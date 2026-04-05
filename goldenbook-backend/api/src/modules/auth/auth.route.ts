@@ -67,7 +67,7 @@ setInterval(() => {
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getDashboardUrl(): string {
-  return env.DASHBOARD_URL ?? 'http://localhost:3001'
+  return env.DASHBOARD_URL
 }
 
 function getAppUrl(): string {

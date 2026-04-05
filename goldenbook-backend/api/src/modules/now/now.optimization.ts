@@ -91,7 +91,7 @@ export async function runAutoOptimization(
 
   // If CTR is generally high, slightly boost editorial (quality is working)
   if (globalCTR > HIGH_CTR_THRESHOLD) {
-    delta.editorial = MAX_DELTA * 0.3
+    delta.base_quality = MAX_DELTA * 0.3
   }
 
   // Only save if there's a meaningful delta

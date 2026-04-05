@@ -43,16 +43,16 @@ const INTEREST_SEGMENT_MAP: Record<string, UserSegment> = {
 export const SEGMENT_WEIGHT_OVERRIDES: Record<UserSegment, Partial<NowWeights>> = {
   foodie: {
     moment:    0.25,  // boost: restaurants/cafes
-    editorial: 0.18,  // quality matters more for food
+    base_quality: 0.18,  // quality matters more for food
     proximity: 0.25,  // slightly less distance-dependent
   },
   culture: {
     moment:    0.25,  // boost: indoor_culture, museums
-    editorial: 0.20,  // editorial quality is paramount
+    base_quality: 0.20,  // quality is paramount
     weather:   0.12,  // weather matters more (indoor vs outdoor)
   },
   luxury: {
-    editorial: 0.22,  // quality/curation is key
+    base_quality: 0.22,  // quality/curation is key
     commercial: 0.08, // more receptive to premium places
     proximity: 0.25,  // willing to travel further
   },

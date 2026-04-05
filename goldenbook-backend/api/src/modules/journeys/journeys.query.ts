@@ -75,7 +75,7 @@ export interface StartJourneyInput {
  * so there is always at most one active journey per user per route.
  */
 export async function startJourney(input: StartJourneyInput): Promise<JourneyRow & { stops: JourneyStopRow[] }> {
-  const client = await (db as any).connect()
+  const client = await db.connect()
 
   try {
     await client.query('BEGIN')
@@ -131,7 +131,7 @@ export async function updateStopStatus(
   placeExternalId: string,
   status: JourneyStopRow['status'],
 ): Promise<JourneyStopRow | null> {
-  const client = await (db as any).connect()
+  const client = await db.connect()
 
   try {
     await client.query('BEGIN')
