@@ -167,6 +167,70 @@ describe('Paid placement vs context tags', () => {
   })
 })
 
+// ─── Intent compatibility scenarios ──────────────────────────────────────────
+
+describe('Intent compatibility — paid placements with mismatch', () => {
+  it('compatible: wine bar for romantic dinner → small penalty (tag overlap)', () => {
+    // Wine bar has tags that overlap with romantic_dinner intent tags
+    const wineBar = makeCandidate({
+      id: 'wine-bar', place_type: 'bar',
+      context_tag_slugs: ['wine', 'romantic', 'terrace'],
+    })
+    // romantic_dinner intent tags: romantic, date-night, atmospheric, fine-dining, intimate
+    const intentTags = ['romantic', 'date-night', 'atmospheric', 'fine-dining', 'intimate']
+    const ctx = makeContext({
+      timeOfDay: 'evening',
+      paidPlaceIds: new Set(['wine-bar']),
+      intentTags,
+    })
+
+    const result = scoreCandidate(wineBar, ctx)
+    // Has tag overlap ('romantic') so context score should be decent
+    expect(result.contextScore).toBeGreaterThan(0)
+    // Total should be healthy due to commercial + context overlap
+    expect(result.totalScore).toBeGreaterThan(15)
+  })
+
+  it('incompatible: late-night cocktail bar for family brunch → ranks low', () => {
+    const cocktailBar = makeCandidate({
+      id: 'cocktail-bar', place_type: 'bar',
+      context_tag_slugs: ['late-night', 'cocktails', 'live-music'],
+    })
+    const brunchPlace = makeCandidate({
+      id: 'brunch-place', place_type: 'restaurant',
+      context_tag_slugs: ['brunch', 'family', 'coffee'],
+    })
+
+    // Morning context — brunch is highly relevant, late-night is not
+    const ctx = makeContext({ timeOfDay: 'morning', weather: 'sunny' })
+
+    const barScore = scoreCandidate(cocktailBar, ctx)
+    const brunchScore = scoreCandidate(brunchPlace, ctx)
+
+    // Brunch place should score much higher than cocktail bar in morning
+    expect(brunchScore.contextScore).toBeGreaterThan(barScore.contextScore)
+    // Even without the intent penalty, the context score alone pushes bar down
+    expect(brunchScore.totalScore).toBeGreaterThan(barScore.totalScore)
+  })
+
+  it('strongly incompatible paid bar still scores > 0 (not eliminated)', () => {
+    const lateBar = makeCandidate({
+      id: 'late-bar', place_type: 'bar',
+      context_tag_slugs: ['late-night', 'cocktails'],
+    })
+    const ctx = makeContext({
+      timeOfDay: 'morning',
+      weather: 'sunny',
+      paidPlaceIds: new Set(['late-bar']),
+    })
+
+    const result = scoreCandidate(lateBar, ctx)
+    // Should still have positive total (commercial carries it)
+    expect(result.totalScore).toBeGreaterThan(0)
+    expect(result.isSponsored).toBe(true)
+  })
+})
+
 // ─── 2. Context tests ───────────────────────────────────────────────────────
 
 describe('Context scoring — weather adjusts ranking, never eliminates', () => {

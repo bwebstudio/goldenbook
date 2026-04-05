@@ -505,13 +505,28 @@ export async function conciergeRoutes(app: FastifyInstance) {
       .map((place) => {
         const result = scoreCandidate(place, scoringCtx)
 
-        // Concierge-specific: intent place_type match bonus / mismatch penalty
-        if (resolvedIntent.placeTypes.includes(place.place_type)) {
+        // Concierge-specific: intent compatibility scoring
+        const intentMatch = resolvedIntent.placeTypes.includes(place.place_type)
+        if (intentMatch) {
           result.totalScore += 5
         } else if (result.isSponsored) {
-          // Paid placement doesn't match intent — apply mismatch penalty
-          // Still visible via visibility floor, but ranks below matching organics
-          result.totalScore -= 10
+          // Paid placement doesn't match intent place_type.
+          // Measure how contextually close it is using tag overlap.
+          const intentTagSet = new Set([...resolvedIntent.tags, ...resolvedIntent.categorySlugs]
+            .map(t => t.toLowerCase().replace(/[^a-z0-9]/g, '-')))
+          const placeTags = place.context_tag_slugs ?? []
+          const tagOverlap = placeTags.filter(t => intentTagSet.has(t)).length
+
+          if (tagOverlap >= 2) {
+            // Loosely related (e.g. wine bar for romantic dinner) — small penalty
+            result.totalScore -= 5
+          } else if (tagOverlap === 1) {
+            // Weakly related — moderate penalty
+            result.totalScore -= 12
+          } else {
+            // Strongly incompatible (e.g. late-night bar for family brunch) — heavy penalty
+            result.totalScore -= 20
+          }
         }
 
         // Anti-repetition penalty (soft, not hard exclude)
@@ -539,13 +554,16 @@ export async function conciergeRoutes(app: FastifyInstance) {
     scoredCandidates = applyDiversityRules(scoredCandidates)
 
     // Paid placement visibility floor: guarantee paid appears within top results
+    // Only inject if the paid placement has a reasonable score (not absurdly incompatible)
     const topSponsored = scoredCandidates.find((r) => r.isSponsored)
-    if (topSponsored) {
+    if (topSponsored && topSponsored.totalScore > 5) {
       const topSlice = scoredCandidates.slice(0, limit)
       if (!topSlice.some((r) => r.place.id === topSponsored.place.id)) {
-        // Paid placement fell outside visible results — inject it at position 1 (after #1 organic)
-        scoredCandidates = [scoredCandidates[0], topSponsored, ...scoredCandidates.filter((r) =>
-          r.place.id !== topSponsored.place.id && r.place.id !== scoredCandidates[0]?.place.id,
+        // Paid placement fell outside visible results — inject at last position in top results
+        scoredCandidates = [...scoredCandidates.slice(0, limit - 1).filter((r) =>
+          r.place.id !== topSponsored.place.id,
+        ), topSponsored, ...scoredCandidates.slice(limit - 1).filter((r) =>
+          r.place.id !== topSponsored.place.id,
         )]
       }
     }
