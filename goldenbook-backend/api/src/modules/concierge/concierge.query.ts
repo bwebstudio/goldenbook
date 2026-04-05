@@ -20,7 +20,7 @@ export async function getConciergeCity(
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN destination_translations dt_fb
            ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
-    WHERE d.slug = $1
+    WHERE d.slug = lower($1)
       AND d.is_active = true
     LIMIT 1
     `,
@@ -153,7 +153,7 @@ export async function getConciergeRecommendations(
       LIMIT  1
     ) hero_img ON true
     LEFT JOIN place_stats ps ON ps.place_id = p.id
-    WHERE d.slug = $1
+    WHERE d.slug = lower($1)
       AND p.status = 'published'
       AND p.is_active = true
       AND p.is_temporarily_closed = false
@@ -182,7 +182,7 @@ export async function getViableIntents(citySlug: string, minPlaces = 2): Promise
     FROM places p
     JOIN destinations d ON d.id = p.destination_id
     WHERE p.status = 'published' AND p.is_active = true
-      AND d.slug = $1
+      AND d.slug = lower($1)
       AND p.intents != ARRAY[]::text[]
     GROUP BY unnest(p.intents)
     HAVING COUNT(DISTINCT p.id) >= $2
@@ -287,7 +287,7 @@ export async function getFallbackPlaces(
         AND created_at >= now() - '30 days'::interval
       GROUP BY place_id
     ) tracking ON tracking.place_id = p.id
-    WHERE d.slug = $1
+    WHERE d.slug = lower($1)
       AND p.status = 'published' AND p.is_active = true AND p.is_temporarily_closed = false
       AND p.place_type IN (${typeParams})
       ${excludeClause}

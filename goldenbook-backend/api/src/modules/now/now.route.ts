@@ -16,12 +16,27 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../../db/postgres'
-import { getNowTimeOfDay, type NowTimeOfDay, type WeatherCondition, getAllowedMoments, filterMomentsForTime } from './now.moments'
-import { getMomentLabel } from './now.moments'
 import { resolveWeather } from './now.weather'
-import { rankNowCandidates, type NowScoreResult } from './now.scoring'
 import { getNowCandidates } from './now.query'
-import { buildNowExplanation, buildNowTitle, buildNowSubtitle, buildReasonTags, buildContextSummary } from './now.explanation'
+// Shared scoring engine (replaces now.moments + now.scoring)
+import {
+  type NowTimeOfDay,
+  type WeatherCondition,
+  type ScoredCandidate,
+  type ScoringContext,
+  type ScoringWeights,
+  getNowTimeOfDay,
+  getTagLabel,
+  rankCandidates,
+  scoreCandidate,
+  selectTopN,
+  applyDiversityRules,
+  buildTitle,
+  buildSubtitle,
+  buildExplanation,
+  buildReasonTags,
+  buildContextSummary,
+} from '../shared-scoring'
 import {
   getConciergeCity,
   getDefaultConciergeCity,
@@ -34,7 +49,7 @@ import {
 import { normalizeLocale } from '../../shared/i18n/locale'
 
 // New systems
-import { type NowWeights, resolveWeights } from './now.weights'
+import { resolveWeights } from './now.weights'
 import { trackImpression, trackClick } from './now.tracking'
 import { resolveExperiment } from './now.experiments'
 import { resolveSegment, getSegmentWeightOverrides, type UserSegment } from './now.segments'
@@ -43,8 +58,18 @@ import { runAutoOptimization } from './now.optimization'
 
 // ─── Session history for refresh (anti-repetition) ───────────────────────────
 
+// ─── Business rule: exactly 3 options per time slot ─────────────────────────
+// Slots are sold commercially — exceeding 3 breaks the business model.
+const MAX_OPTIONS_PER_SLOT = 3
+
 interface NowSession {
   shownPlaceIds: Set<string>
+  /** Ordered list of place IDs shown in the current slot (max 3). Used for cycling. */
+  slotHistory: string[]
+  /** Current time-of-day slot these history entries belong to */
+  slotTimeOfDay: NowTimeOfDay | null
+  /** City these history entries belong to */
+  slotCity: string | null
   lastContext: {
     timeOfDay: NowTimeOfDay
     weather?: WeatherCondition
@@ -69,11 +94,28 @@ setInterval(() => {
 function getSession(sessionId: string): NowSession {
   let session = nowSessions.get(sessionId)
   if (!session) {
-    session = { shownPlaceIds: new Set(), lastContext: null, updatedAt: Date.now() }
+    session = {
+      shownPlaceIds: new Set(),
+      slotHistory: [],
+      slotTimeOfDay: null,
+      slotCity: null,
+      lastContext: null,
+      updatedAt: Date.now(),
+    }
     nowSessions.set(sessionId, session)
   }
   session.updatedAt = Date.now()
   return session
+}
+
+/** Reset slot history when the time window or city changes */
+function ensureSlotContext(session: NowSession, timeOfDay: NowTimeOfDay, citySlug: string): void {
+  if (session.slotTimeOfDay !== timeOfDay || session.slotCity !== citySlug) {
+    session.slotHistory = []
+    session.shownPlaceIds.clear()
+    session.slotTimeOfDay = timeOfDay
+    session.slotCity = citySlug
+  }
 }
 
 // ─── City-level place cooldown (6 hours) ─────────────────────────────────────
@@ -90,7 +132,7 @@ async function getCooldownPlaceIds(citySlug: string): Promise<Set<string>> {
   try {
     const { rows } = await db.query<{ place_id: string }>(
       `SELECT DISTINCT place_id::text FROM now_impressions
-       WHERE city = $1 AND created_at > now() - ($2 || ' hours')::interval`,
+       WHERE city = lower($1) AND created_at > now() - ($2 || ' hours')::interval`,
       [citySlug, COOLDOWN_HOURS],
     )
     return new Set(rows.map((r) => r.place_id))
@@ -166,15 +208,15 @@ interface NowRecommendationDTO {
   }
   /** Debug info — only present when ?debug=true */
   _debug?: {
-    weights_used: NowWeights
+    weights_used: ScoringWeights
     score_breakdown: Record<string, unknown>
     total_score: number
     segment: string
     experiment_variant: string | null
     candidates_count: number
     time_window: NowTimeOfDay
-    allowed_moments: string[]
-    filtered_out_moments: string[]
+    context_tags: string[]
+    best_tag: string | null
   }
 }
 
@@ -184,7 +226,7 @@ async function resolveEffectiveWeights(
   sessionId: string,
   citySlug: string,
   segment: UserSegment,
-): Promise<{ weights: NowWeights; experimentVariant: string | null }> {
+): Promise<{ weights: ScoringWeights; experimentVariant: string | null }> {
   // 1. Check A/B experiment
   const experiment = await resolveExperiment(sessionId, citySlug)
   if (experiment?.weights) {
@@ -205,7 +247,7 @@ async function resolveEffectiveWeights(
     const sum = Object.values(merged).reduce((s, v) => s + v, 0)
     const weights = Object.fromEntries(
       Object.entries(merged).map(([k, v]) => [k, Math.round((v / sum) * 1000) / 1000]),
-    ) as unknown as NowWeights
+    ) as unknown as ScoringWeights
     return {
       weights,
       experimentVariant: experiment ? `${experiment.experimentId}:${experiment.variant}` : null,
@@ -266,16 +308,16 @@ function formatCurrentTime(citySlug?: string): string {
 }
 
 function buildNowDTO(
-  result: NowScoreResult,
+  result: ScoredCandidate,
   timeOfDay: NowTimeOfDay,
   weather: WeatherCondition | undefined,
   locale: string,
   citySlug?: string,
   cityName?: string,
 ): NowRecommendationDTO {
-  const { place, bestMoment, isSponsored } = result
+  const { place, bestTag, isSponsored } = result
   const city = cityName ?? place.city_name
-  const explanation = buildNowExplanation(bestMoment, timeOfDay, weather, place.distance_meters, locale)
+  const explanation = buildExplanation(bestTag, timeOfDay, weather, place.distance_meters, locale)
   return {
     place: {
       id: place.id,
@@ -288,17 +330,18 @@ function buildNowDTO(
       distance: place.distance_meters ? Math.round(place.distance_meters) : null,
     },
     isSponsored,
-    title: buildNowTitle(bestMoment, timeOfDay, city, locale),
-    subtitle: buildNowSubtitle(bestMoment, timeOfDay, locale),
+    title: buildTitle(bestTag, timeOfDay, city, locale),
+    subtitle: buildSubtitle(bestTag, timeOfDay, locale),
     explanation,
     context: {
       time_of_day: timeOfDay,
       current_time: formatCurrentTime(citySlug),
       weather: weather ?? null,
       weather_icon: weatherToIcon(weather),
-      moment: bestMoment,
-      moment_label: bestMoment ? getMomentLabel(bestMoment, locale) : null,
-      reason_tags: buildReasonTags(bestMoment, timeOfDay, weather, place.distance_meters),
+      // Backwards compat: 'moment' maps from bestTag, 'tag' is the new field
+      moment: bestTag,
+      moment_label: bestTag ? getTagLabel(bestTag, locale) : null,
+      reason_tags: buildReasonTags(bestTag, timeOfDay, weather, place.distance_meters),
     },
   }
 }
@@ -309,12 +352,12 @@ async function resolveNow(
   lat: number | undefined,
   lon: number | undefined,
   excludeIds: Set<string>,
-  weights: NowWeights,
+  weights: ScoringWeights,
 ): Promise<{
   city: { slug: string; name: string }
   timeOfDay: NowTimeOfDay
   weather: WeatherCondition | undefined
-  ranked: NowScoreResult[]
+  ranked: ScoredCandidate[]
 }> {
   const timeOfDay = getNowTimeOfDay()
 
@@ -342,11 +385,68 @@ async function resolveNow(
   const cooldownIds = await getCooldownPlaceIds(city.slug)
   const allExcludeIds = new Set([...excludeIds, ...cooldownIds])
 
-  const ranked = rankNowCandidates(
-    candidates, timeOfDay, weather, paidPlaceIds, allExcludeIds, weights,
-  )
+  const ctx: ScoringContext = {
+    timeOfDay, weather, paidPlaceIds, excludeIds: allExcludeIds, weights, surface: 'now',
+  }
+
+  // Score → diversity → select top 3
+  let scored = rankCandidates(candidates, ctx)
+  scored = applyDiversityRules(scored)
+  let ranked = selectTopN(scored, 3)
+
+  // Safety net: if cooldown excluded ALL candidates, retry without cooldown.
+  if (ranked.length === 0 && cooldownIds.size > 0) {
+    const retryCtx: ScoringContext = {
+      timeOfDay, weather, paidPlaceIds, excludeIds, weights, surface: 'now',
+    }
+    let retryScored = rankCandidates(candidates, retryCtx)
+    retryScored = applyDiversityRules(retryScored)
+    ranked = selectTopN(retryScored, 3)
+  }
 
   return { city, timeOfDay, weather, ranked }
+}
+
+/**
+ * Score a specific place by ID from the candidate pool (no top-3 random selection).
+ * Used for cycling — we know exactly which place we want.
+ */
+async function scorePlaceById(
+  placeId: string,
+  cityParam: string | undefined,
+  locale: string,
+  lat: number | undefined,
+  lon: number | undefined,
+  weights: ScoringWeights,
+): Promise<{ result: ScoredCandidate; weather: WeatherCondition | undefined; timeOfDay: NowTimeOfDay; city: { slug: string; name: string } } | null> {
+  const timeOfDay = getNowTimeOfDay()
+
+  let city: { slug: string; name: string }
+  if (cityParam) {
+    city = (await getConciergeCity(cityParam, locale)) ?? (await getDefaultConciergeCity(locale))
+  } else {
+    city = await getDefaultConciergeCity(locale)
+  }
+
+  const weatherResult = await resolveWeather(lat, lon, city.slug)
+  const weather = weatherResult?.condition
+
+  let paidPlaceIds = new Set<string>()
+  try {
+    const ids = await getActiveVisibilityPlaceIds('now', 20)
+    paidPlaceIds = new Set(ids)
+  } catch {}
+
+  const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
+  const target = candidates.find((c) => c.id === placeId)
+  if (!target) return null
+
+  const ctx: ScoringContext = {
+    timeOfDay, weather, paidPlaceIds, excludeIds: new Set(), weights, surface: 'now',
+  }
+  const result = scoreCandidate(target, ctx)
+
+  return { result, weather, timeOfDay, city }
 }
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
@@ -377,7 +477,11 @@ export async function nowRoutes(app: FastifyInstance) {
     // Resolve city first (needed for experiment lookup)
     let city: { slug: string; name: string }
     if (cityParam) {
-      city = (await getConciergeCity(cityParam, locale)) ?? (await getDefaultConciergeCity(locale))
+      const resolved = await getConciergeCity(cityParam, locale)
+      if (!resolved) {
+        request.log.warn({ requestedCity: cityParam }, '[NOW] City slug not found in destinations — falling back to default')
+      }
+      city = resolved ?? (await getDefaultConciergeCity(locale))
     } else {
       city = await getDefaultConciergeCity(locale)
     }
@@ -387,13 +491,37 @@ export async function nowRoutes(app: FastifyInstance) {
       sessionId, city.slug, segment,
     )
 
-    const { timeOfDay, weather, ranked } = await resolveNow(
+    const timeOfDay = getNowTimeOfDay()
+
+    // Reset slot history if time window or city changed
+    ensureSlotContext(session, timeOfDay, city.slug)
+
+    const { weather, ranked } = await resolveNow(
       cityParam, locale, lat, lon, session.shownPlaceIds, weights,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
 
     if (ranked.length === 0) {
+      // ── Diagnostic logging: why are there zero candidates? ──
+      const diagCandidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
+      const cooldownIds = await getCooldownPlaceIds(city.slug)
+      const placeTypeCounts: Record<string, number> = {}
+      for (const c of diagCandidates) {
+        placeTypeCounts[c.place_type] = (placeTypeCounts[c.place_type] ?? 0) + 1
+      }
+      const taggedCandidates = diagCandidates.filter((c) => c.context_tag_slugs.length > 0)
+      request.log.warn({
+        resolvedCity: city.slug,
+        requestedCity: cityParam,
+        timeOfDay,
+        totalCandidates: diagCandidates.length,
+        placeTypeCounts,
+        withContextTags: taggedCandidates.length,
+        cooldownExcluded: cooldownIds.size,
+        sessionExcluded: session.shownPlaceIds.size,
+      }, '[NOW] Zero ranked candidates — diagnostic breakdown')
+
       const localeFamily = locale.split('-')[0]
       return reply.send({
         place: null,
@@ -416,7 +544,9 @@ export async function nowRoutes(app: FastifyInstance) {
 
     const top = ranked[0]
     session.shownPlaceIds.add(top.place.id)
-
+    if (!session.slotHistory.includes(top.place.id)) {
+      session.slotHistory.push(top.place.id)
+    }
 
     // Track impression (fire-and-forget)
     trackImpression({
@@ -427,7 +557,7 @@ export async function nowRoutes(app: FastifyInstance) {
       context: {
         time_of_day: timeOfDay,
         weather: weather ?? null,
-        moment: top.bestMoment,
+        moment: top.bestTag,
         segment,
         experiment_variant: experimentVariant,
       },
@@ -438,7 +568,6 @@ export async function nowRoutes(app: FastifyInstance) {
 
     // Attach debug info if requested
     if (isDebug) {
-      const placeFilter = filterMomentsForTime(top.place.place_type, timeOfDay)
       dto._debug = {
         weights_used: weights,
         score_breakdown: top.breakdown as unknown as Record<string, unknown>,
@@ -447,8 +576,8 @@ export async function nowRoutes(app: FastifyInstance) {
         experiment_variant: experimentVariant,
         candidates_count: ranked.length,
         time_window: timeOfDay,
-        allowed_moments: getAllowedMoments(timeOfDay),
-        filtered_out_moments: placeFilter.filtered,
+        context_tags: top.place.context_tag_slugs,
+        best_tag: top.bestTag,
       }
     }
 
@@ -480,61 +609,101 @@ export async function nowRoutes(app: FastifyInstance) {
       city = await getDefaultConciergeCity(locale)
     }
 
+    const timeOfDay = getNowTimeOfDay()
+
+    // Reset slot history if time window or city changed
+    ensureSlotContext(session, timeOfDay, city.slug)
+
     const { weights, experimentVariant } = await resolveEffectiveWeights(
       sessionId, city.slug, segment,
     )
 
-    const { timeOfDay, weather, ranked } = await resolveNow(
+    // ── If we already have MAX_OPTIONS_PER_SLOT in history, cycle through them ──
+    if (session.slotHistory.length >= MAX_OPTIONS_PER_SLOT) {
+      const lastShownId = [...session.shownPlaceIds].pop()
+      const lastIndex = lastShownId ? session.slotHistory.indexOf(lastShownId) : -1
+      const nextIndex = (lastIndex + 1) % session.slotHistory.length
+      const nextPlaceId = session.slotHistory[nextIndex]
+
+      // Score the specific place directly (no random top-3 selection)
+      const scored = await scorePlaceById(nextPlaceId, cityParam, locale, lat, lon, weights)
+
+      if (scored) {
+        session.shownPlaceIds.clear()
+        session.shownPlaceIds.add(nextPlaceId)
+
+        trackImpression({
+          sessionId, userId, placeId: nextPlaceId, city: city.slug,
+          context: { time_of_day: timeOfDay, weather: scored.weather ?? null, moment: scored.result.bestTag, segment, experiment_variant: experimentVariant },
+          weightsUsed: weights,
+        })
+
+        return reply.send(buildNowDTO(scored.result, timeOfDay, scored.weather, locale, city.slug, city.name))
+      }
+      // Place no longer valid (time window changed, unpublished, etc.) — fall through
+    }
+
+    // ── Normal flow: show next unseen option (up to MAX_OPTIONS_PER_SLOT) ──
+    const { weather, ranked } = await resolveNow(
       cityParam, locale, lat, lon, session.shownPlaceIds, weights,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
 
     if (ranked.length === 0) {
-      session.shownPlaceIds.clear()
-      const retry = await resolveNow(cityParam, locale, lat, lon, session.shownPlaceIds, weights)
+      // All candidates exhausted but haven't filled 3 slots — cycle what we have
+      if (session.slotHistory.length > 0) {
+        const lastShownId = [...session.shownPlaceIds].pop()
+        const lastIndex = lastShownId ? session.slotHistory.indexOf(lastShownId) : -1
+        const nextIndex = (lastIndex + 1) % session.slotHistory.length
+        const nextPlaceId = session.slotHistory[nextIndex]
 
-      if (retry.ranked.length === 0) {
-        const localeFamily = locale.split('-')[0]
-        return reply.send({
-          place: null,
-          explanation: localeFamily === 'pt'
-            ? 'Sem mais opções por agora. Experimente o Concierge!'
-            : localeFamily === 'es'
-              ? 'No hay más opciones por ahora. Prueba el Concierge.'
-              : 'No more options right now. Try the Concierge!',
-          context: {
-            time_of_day: timeOfDay,
-            current_time: formatCurrentTime(city.slug),
-            weather: weather ?? null,
-            weather_icon: weatherToIcon(weather),
-            moment: null,
-            moment_label: null,
-            reason_tags: [],
-          },
-        })
+        const scored = await scorePlaceById(nextPlaceId, cityParam, locale, lat, lon, weights)
+
+        if (scored) {
+          session.shownPlaceIds.clear()
+          session.shownPlaceIds.add(nextPlaceId)
+
+          trackImpression({
+            sessionId, userId, placeId: nextPlaceId, city: city.slug,
+            context: { time_of_day: timeOfDay, weather: scored.weather ?? null, moment: scored.result.bestTag, segment, experiment_variant: experimentVariant },
+            weightsUsed: weights,
+          })
+
+          return reply.send(buildNowDTO(scored.result, timeOfDay, scored.weather, locale, city.slug, city.name))
+        }
       }
 
-      const top = retry.ranked[0]
-      session.shownPlaceIds.add(top.place.id)
-
-
-      trackImpression({
-        sessionId, userId, placeId: top.place.id, city: city.slug,
-        context: { time_of_day: retry.timeOfDay, weather: retry.weather ?? null, moment: top.bestMoment, segment, experiment_variant: experimentVariant },
-        weightsUsed: weights,
+      // Truly no candidates at all
+      const localeFamily = locale.split('-')[0]
+      return reply.send({
+        place: null,
+        explanation: localeFamily === 'pt'
+          ? 'Sem mais opções por agora. Experimente o Concierge!'
+          : localeFamily === 'es'
+            ? 'No hay más opciones por ahora. Prueba el Concierge.'
+            : 'No more options right now. Try the Concierge!',
+        context: {
+          time_of_day: timeOfDay,
+          current_time: formatCurrentTime(city.slug),
+          weather: weather ?? null,
+          weather_icon: weatherToIcon(weather),
+          moment: null,
+          moment_label: null,
+          reason_tags: [],
+        },
       })
-
-      return reply.send(buildNowDTO(top, retry.timeOfDay, retry.weather, locale, city.slug, city.name))
     }
 
     const top = ranked[0]
     session.shownPlaceIds.add(top.place.id)
-
+    if (!session.slotHistory.includes(top.place.id)) {
+      session.slotHistory.push(top.place.id)
+    }
 
     trackImpression({
       sessionId, userId, placeId: top.place.id, city: city.slug,
-      context: { time_of_day: timeOfDay, weather: weather ?? null, moment: top.bestMoment, segment, experiment_variant: experimentVariant },
+      context: { time_of_day: timeOfDay, weather: weather ?? null, moment: top.bestTag, segment, experiment_variant: experimentVariant },
       weightsUsed: weights,
     })
 
@@ -572,7 +741,7 @@ export async function nowRoutes(app: FastifyInstance) {
     )
 
     const alternatives = ranked.slice(0, limit)
-    const inferredMoment = alternatives.length > 0 ? alternatives[0].bestMoment : null
+    const inferredMoment = alternatives.length > 0 ? alternatives[0].bestTag : null
 
     // Track concierge opened from NOW (fire-and-forget)
     trackImpression({
@@ -598,7 +767,7 @@ export async function nowRoutes(app: FastifyInstance) {
         weather: weather ?? null,
         weather_icon: weatherToIcon(weather),
         moment: inferredMoment,
-        moment_label: inferredMoment ? getMomentLabel(inferredMoment, locale) : null,
+        moment_label: inferredMoment ? getTagLabel(inferredMoment, locale) : null,
       },
       context_summary: buildContextSummary(inferredMoment, timeOfDay, locale),
       recommendations: alternatives.map((r) => ({

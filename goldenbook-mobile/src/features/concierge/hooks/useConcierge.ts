@@ -149,7 +149,7 @@ export function useConcierge() {
 
     try {
       const recData = await conciergeApi.recommend({
-        city: nowCtx.city ?? bootstrapData.city.slug ?? city,
+        city: bootstrapData.city.slug ?? city,
         limit: 5,
         locale,
         interests: profile.interests,

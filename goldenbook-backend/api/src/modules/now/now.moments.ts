@@ -260,6 +260,7 @@ const WEATHER_MOMENT_BOOSTS: Record<WeatherCondition, Partial<Record<MomentTag, 
     sunset_drink:    0.3,
     evening_walk:    0.3,
     shopping_stroll: 0.2,
+    rain_plan:      -0.8,   // suppress rain plan when it's sunny
   },
   cloudy: {
     indoor_culture:  0.1,
@@ -275,6 +276,7 @@ const WEATHER_MOMENT_BOOSTS: Record<WeatherCondition, Partial<Record<MomentTag, 
     coffee_break:    0.2,
     sunset_drink:    0.2,
     late_drinks:     0.2,
+    rain_plan:      -0.8,   // suppress rain plan when it's hot
   },
   cold: {
     coffee_break:    0.3,

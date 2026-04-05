@@ -201,15 +201,14 @@ export interface ScoredPlace {
 /**
  * Score a place for a Concierge intent.
  *
- * Hard filtering (place_type) happens at the DB query level — a spa can
- * never enter the candidate pool for a "cocktail bar" intent.
+ * Uses the shared scoring engine with Concierge-specific intent overlap.
+ * Intent tags are passed to the engine for context score boosting.
+ * The shared engine handles: commercial + context + editorial + quality + proximity.
  *
- * This function applies soft scoring among already-compatible candidates:
+ * Additionally applies Concierge-specific scoring for:
  *   1. place_type match bonus
  *   2. text content tag matching
- *   3. context tag matching (editor-defined relevance metadata from place_now_tags)
- *   4. time window boost (editor-defined from place_now_time_windows)
- *   5. shared ranking model (business, quality, onboarding)
+ *   3. shared ranking model (business, quality, onboarding)
  */
 export function scoreConciergePlace(
   place: ScoredPlace,
@@ -222,7 +221,7 @@ export function scoreConciergePlace(
   // 1. Place type match (hard-filtered at query level, but still a scoring signal)
   if (intent.placeTypes.includes(place.place_type)) baseScore += 12
 
-  // 2. Text content tag matching (existing behavior)
+  // 2. Text content tag matching
   const textContent = [place.short_description, place.editorial_summary]
     .filter(Boolean)
     .join(' ')
@@ -233,8 +232,6 @@ export function scoreConciergePlace(
   }
 
   // 3. Context tag matching (editor-defined relevance metadata)
-  // Maps intent tags/categorySlugs to context tag slugs for soft boost.
-  // e.g. intent tags ['cocktails', 'speakeasy'] match context tag 'cocktails'
   if (place.context_tag_slugs?.length) {
     const contextSet = new Set(place.context_tag_slugs)
     for (const tag of intent.tags) {
@@ -246,11 +243,8 @@ export function scoreConciergePlace(
     }
   }
 
-  // 4. Time window boost (editor-defined from place_now_time_windows)
-  // If the place has time windows configured and the current time matches, boost.
-  // Empty time_window_slugs = relevant all day (no penalty, no boost).
+  // 4. Time window boost
   if (timeOfDay && place.time_window_slugs?.length) {
-    // Map Concierge's 3 time-of-day values to the 5 NOW time windows
     const windowsForTime: Record<TimeOfDay, string[]> = {
       morning:   ['morning', 'midday'],
       afternoon: ['midday', 'afternoon'],
@@ -259,7 +253,7 @@ export function scoreConciergePlace(
     const relevantWindows = windowsForTime[timeOfDay]
     const hasMatch = place.time_window_slugs.some((tw) => relevantWindows.includes(tw))
     if (hasMatch) {
-      baseScore += 5 // boost for matching the current moment
+      baseScore += 5
     }
   }
 

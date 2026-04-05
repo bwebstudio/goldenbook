@@ -31,8 +31,8 @@ export interface NowScoredPlace {
   now_enabled: boolean
   now_priority: number
   now_featured: boolean
-  now_tag_slugs: string[]
-  now_tag_max_weight: number
+  context_tag_slugs: string[]
+  context_tag_max_weight: number
   now_time_window_match: boolean
 }
 
@@ -153,8 +153,8 @@ export async function getNowCandidates(
       COALESCE(p.now_enabled, false) AS now_enabled,
       COALESCE(p.now_priority, 0) AS now_priority,
       COALESCE(p.now_featured, false) AS now_featured,
-      (${nowTagsExpr}) AS now_tag_slugs,
-      (${nowTagMaxWeightExpr}) AS now_tag_max_weight,
+      (${nowTagsExpr}) AS context_tag_slugs,
+      (${nowTagMaxWeightExpr}) AS context_tag_max_weight,
       (${timeWindowMatchExpr}) AS now_time_window_match
     FROM places p
     JOIN destinations d ON d.id = p.destination_id
@@ -180,12 +180,12 @@ export async function getNowCandidates(
       LIMIT 1
     ) hero_img ON true
     LEFT JOIN place_stats ps ON ps.place_id = p.id
-    WHERE d.slug = $1
+    WHERE d.slug = lower($1)
       AND p.status = 'published'
       AND p.is_active = true
       AND p.is_temporarily_closed = false
-      -- Only include place types that have moment mappings
-      AND p.place_type IN ('restaurant', 'cafe', 'bar', 'shop', 'hotel', 'museum', 'activity', 'landmark', 'venue', 'beach')
+      -- Eligibility: place must have at least one context tag (curated in dashboard)
+      AND EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
       -- NOW date window filter (if set)
       AND (p.now_start_at IS NULL OR p.now_start_at <= now())
       AND (p.now_end_at IS NULL OR p.now_end_at >= now())

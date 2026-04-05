@@ -235,7 +235,11 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // Resolve city: param → DB → first available city → dev fallback (Lisbon)
     let city: { slug: string; name: string }
     if (cityParam) {
-      city = (await getConciergeCity(cityParam, locale)) ?? (await getDefaultConciergeCity(locale))
+      const resolved = await getConciergeCity(cityParam, locale)
+      if (!resolved) {
+        request.log.warn({ requestedCity: cityParam }, '[Concierge] City slug not found in destinations — falling back to default')
+      }
+      city = resolved ?? (await getDefaultConciergeCity(locale))
     } else {
       city = await getDefaultConciergeCity(locale)
     }
@@ -315,7 +319,11 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // Resolve city
     let city: { slug: string; name: string }
     if (cityParam) {
-      city = (await getConciergeCity(cityParam, locale)) ?? (await getDefaultConciergeCity(locale))
+      const resolved = await getConciergeCity(cityParam, locale)
+      if (!resolved) {
+        request.log.warn({ requestedCity: cityParam }, '[Concierge] City slug not found in destinations — falling back to default')
+      }
+      city = resolved ?? (await getDefaultConciergeCity(locale))
     } else {
       city = await getDefaultConciergeCity(locale)
     }

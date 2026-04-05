@@ -12,42 +12,16 @@
 // Weights are cached in-memory for 5 minutes to avoid DB pressure.
 
 import { db } from '../../db/postgres'
+import { type ScoringWeights, DEFAULT_WEIGHTS, WEIGHT_KEYS } from '../shared-scoring/types'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface NowWeights {
-  proximity:     number
-  moment:        number
-  time:          number
-  weather:       number
-  base_quality:  number  // was editorial — now auto-computed: saves + images + freshness
-  user:          number
-  commercial:    number
-  now_tags:      number
-}
-
-/**
- * Rebalanced defaults.
- * base_quality replaces editorial — calculated from saves, image completeness, freshness.
- * No manual editorial boosts, no ratings, no manual curation flags.
- */
-export const DEFAULT_WEIGHTS: NowWeights = {
-  proximity:     0.10,
-  moment:        0.15,
-  time:          0.10,
-  weather:       0.08,
-  base_quality:  0.22,
-  user:          0.10,
-  commercial:    0.05,
-  now_tags:      0.20,
-}
-
-const WEIGHT_KEYS = Object.keys(DEFAULT_WEIGHTS) as (keyof NowWeights)[]
+// Re-export the shared types so existing consumers don't break
+export type { ScoringWeights as NowWeights }
+export { DEFAULT_WEIGHTS }
 
 // ─── Cache ───────────────────────────────────────────────────────────────────
 
 interface CacheEntry {
-  weights: NowWeights
+  weights: ScoringWeights
   fetchedAt: number
 }
 
@@ -68,7 +42,7 @@ function cacheKey(city: string | null, segment: string | null): string {
 export async function resolveWeights(
   city?: string | null,
   segment?: string | null,
-): Promise<NowWeights> {
+): Promise<ScoringWeights> {
   const key = cacheKey(city ?? null, segment ?? null)
 
   const cached = weightCache.get(key)
@@ -93,19 +67,19 @@ export async function resolveWeights(
     return normalized
   } catch {
     // DB failure → hardcoded fallback
-    return DEFAULT_WEIGHTS
+    return { ...DEFAULT_WEIGHTS }
   }
 }
 
 /**
  * Fetch best-matching base weights from scoring_weights table.
- * Priority: city+segment > city > segment > global
+ * Handles both old 8-key and new 5-key formats for backwards compatibility.
  */
 async function fetchBaseWeights(
   city?: string | null,
   segment?: string | null,
-): Promise<NowWeights> {
-  const { rows } = await db.query<{ weights: NowWeights }>(`
+): Promise<ScoringWeights> {
+  const { rows } = await db.query<{ weights: Record<string, number> }>(`
     SELECT weights FROM scoring_weights
     WHERE is_active = true
       AND (city = $1 OR city IS NULL)
@@ -117,7 +91,7 @@ async function fetchBaseWeights(
   `, [city ?? null, segment ?? null])
 
   if (rows.length === 0) return { ...DEFAULT_WEIGHTS }
-  return validateWeights(rows[0].weights)
+  return migrateWeights(rows[0].weights)
 }
 
 /**
@@ -126,8 +100,8 @@ async function fetchBaseWeights(
 async function fetchLatestAdjustment(
   city?: string | null,
   segment?: string | null,
-): Promise<Partial<NowWeights> | null> {
-  const { rows } = await db.query<{ delta_weights: Partial<NowWeights> }>(`
+): Promise<Partial<ScoringWeights> | null> {
+  const { rows } = await db.query<{ delta_weights: Partial<ScoringWeights> }>(`
     SELECT delta_weights FROM scoring_weight_adjustments
     WHERE (city = $1 OR city IS NULL)
       AND (segment = $2 OR segment IS NULL)
@@ -140,9 +114,30 @@ async function fetchLatestAdjustment(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function validateWeights(raw: any): NowWeights {
+/**
+ * Migrate old 8-key weights to new 5-key format.
+ * If already in new format, returns as-is.
+ */
+function migrateWeights(raw: Record<string, number>): ScoringWeights {
+  if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_WEIGHTS }
+
+  // New format: has 'context' key
+  if (typeof raw.context === 'number') {
+    return validateWeights(raw)
+  }
+
+  // Old format: has 'moment', 'time', 'weather', 'now_tags' keys — convert
+  return {
+    commercial: (raw.commercial ?? 0.05) + (raw.now_tags ?? 0.20),
+    context:    (raw.moment ?? 0.15) + (raw.time ?? 0.10) + (raw.weather ?? 0.08),
+    editorial:  0.15,
+    quality:    raw.base_quality ?? 0.22,
+    proximity:  raw.proximity ?? 0.10,
+  }
+}
+
+function validateWeights(raw: Record<string, number>): ScoringWeights {
   const result = { ...DEFAULT_WEIGHTS }
-  if (typeof raw !== 'object' || raw === null) return result
   for (const key of WEIGHT_KEYS) {
     if (typeof raw[key] === 'number' && raw[key] >= 0 && raw[key] <= 1) {
       result[key] = raw[key]
@@ -151,19 +146,18 @@ function validateWeights(raw: any): NowWeights {
   return result
 }
 
-function applyDelta(base: NowWeights, delta: Partial<NowWeights> | null): NowWeights {
+function applyDelta(base: ScoringWeights, delta: Partial<ScoringWeights> | null): ScoringWeights {
   if (!delta) return base
   const result = { ...base }
   for (const key of WEIGHT_KEYS) {
     if (typeof delta[key] === 'number') {
-      // Clamp individual weights to [0.01, 0.80]
       result[key] = Math.max(0.01, Math.min(0.80, result[key] + delta[key]))
     }
   }
   return result
 }
 
-export function normalizeWeights(w: NowWeights): NowWeights {
+export function normalizeWeights(w: ScoringWeights): ScoringWeights {
   const sum = WEIGHT_KEYS.reduce((s, k) => s + w[k], 0)
   if (sum === 0) return { ...DEFAULT_WEIGHTS }
   const result = { ...w }

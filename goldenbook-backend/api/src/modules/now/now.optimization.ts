@@ -12,7 +12,8 @@
 // Designed to run as a daily scheduled job.
 
 import { db } from '../../db/postgres'
-import { DEFAULT_WEIGHTS, type NowWeights, normalizeWeights, clearWeightCache } from './now.weights'
+import { DEFAULT_WEIGHTS, normalizeWeights, clearWeightCache } from './now.weights'
+import type { ScoringWeights } from '../shared-scoring/types'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ const HIGH_CTR_THRESHOLD = 0.08   // > 8% CTR = overperforming
 export async function runAutoOptimization(
   city?: string | null,
   days = 7,
-): Promise<Partial<NowWeights> | null> {
+): Promise<Partial<ScoringWeights> | null> {
   const cityFilter = city ? 'AND i.city = $2' : ''
   const params: unknown[] = [days]
   if (city) params.push(city)
@@ -67,31 +68,30 @@ export async function runAutoOptimization(
   const globalClicks = parseInt(globalRow?.clicks ?? '0', 10)
   const globalCTR = globalImpressions > 0 ? globalClicks / globalImpressions : 0
 
-  // Compute CTR by moment factor
-  const momentCTR = await getFactorCTR('moment', city, days)
+  // Compute CTR by context factor (tag, time_of_day, weather)
+  const tagCTR = await getFactorCTR('tag', city, days)
   const timeCTR = await getFactorCTR('time_of_day', city, days)
   const weatherCTR = await getFactorCTR('weather', city, days)
 
   // Compute deltas based on factor performance
-  const delta: Partial<NowWeights> = {}
+  const delta: Partial<ScoringWeights> = {}
 
-  // Moment weight: the most important contextual signal
-  delta.moment = computeDelta(momentCTR, globalCTR)
-
-  // Time weight
-  delta.time = computeDelta(timeCTR, globalCTR)
-
-  // Weather weight
-  delta.weather = computeDelta(weatherCTR, globalCTR)
+  // Context weight: combines tag + time + weather signals
+  const contextDelta = (
+    computeDelta(tagCTR, globalCTR) +
+    computeDelta(timeCTR, globalCTR) * 0.5 +
+    computeDelta(weatherCTR, globalCTR) * 0.3
+  )
+  if (Math.abs(contextDelta) > 0.001) delta.context = contextDelta
 
   // If CTR is generally low, boost proximity (closer places = more clicks)
   if (globalCTR < LOW_CTR_THRESHOLD) {
-    delta.proximity = MAX_DELTA * 0.5 // small positive bump
+    delta.proximity = MAX_DELTA * 0.5
   }
 
-  // If CTR is generally high, slightly boost editorial (quality is working)
+  // If CTR is generally high, slightly boost quality (quality is working)
   if (globalCTR > HIGH_CTR_THRESHOLD) {
-    delta.base_quality = MAX_DELTA * 0.3
+    delta.quality = MAX_DELTA * 0.3
   }
 
   // Only save if there's a meaningful delta

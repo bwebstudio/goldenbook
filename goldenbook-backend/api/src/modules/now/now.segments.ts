@@ -12,7 +12,7 @@
 
 import { db } from '../../db/postgres'
 import type { OnboardingProfile } from '../../shared/ranking/place.ranking'
-import type { NowWeights } from './now.weights'
+import type { ScoringWeights } from '../shared-scoring/types'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,32 +40,30 @@ const INTEREST_SEGMENT_MAP: Record<string, UserSegment> = {
 // These are PARTIAL overrides applied on top of base weights.
 // They shift emphasis, not replace the entire configuration.
 
-export const SEGMENT_WEIGHT_OVERRIDES: Record<UserSegment, Partial<NowWeights>> = {
+export const SEGMENT_WEIGHT_OVERRIDES: Record<UserSegment, Partial<ScoringWeights>> = {
   foodie: {
-    moment:    0.25,  // boost: restaurants/cafes
-    base_quality: 0.18,  // quality matters more for food
-    proximity: 0.25,  // slightly less distance-dependent
+    context:   0.35,  // boost: restaurant/cafe context tags
+    quality:   0.22,  // quality matters more for food
+    proximity: 0.20,
   },
   culture: {
-    moment:    0.25,  // boost: indoor_culture, museums
-    base_quality: 0.20,  // quality is paramount
-    weather:   0.12,  // weather matters more (indoor vs outdoor)
+    context:   0.35,  // boost: culture-related tags
+    quality:   0.25,  // quality is paramount
+    editorial: 0.18,  // editorial curation valued
   },
   luxury: {
-    base_quality: 0.22,  // quality/curation is key
-    commercial: 0.08, // more receptive to premium places
-    proximity: 0.25,  // willing to travel further
+    quality:    0.28,  // quality/curation is key
+    commercial: 0.18, // more receptive to premium places
+    editorial:  0.18,
   },
   nightlife: {
-    moment:    0.28,  // time-dependent (evening/night emphasis)
-    time:      0.15,  // time of day is very important
-    proximity: 0.22,  // closer is better for nightlife
+    context:   0.38,  // time-dependent (evening/night emphasis)
+    proximity: 0.18,  // closer is better for nightlife
   },
   explorer: {
     // Neutral — uses default weights
-    // Slight bump to moment variety
-    moment:    0.22,
-    weather:   0.12,
+    context:   0.32,
+    editorial: 0.18,
   },
 }
 
@@ -118,7 +116,7 @@ export async function resolveSegment(
 /**
  * Get segment-specific weight overrides, or null if the segment uses defaults.
  */
-export function getSegmentWeightOverrides(segment: UserSegment): Partial<NowWeights> | null {
+export function getSegmentWeightOverrides(segment: UserSegment): Partial<ScoringWeights> | null {
   const overrides = SEGMENT_WEIGHT_OVERRIDES[segment]
   if (!overrides || Object.keys(overrides).length === 0) return null
   return overrides

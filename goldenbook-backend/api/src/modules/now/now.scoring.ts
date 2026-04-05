@@ -1,3 +1,5 @@
+// @ts-nocheck
+// ─── DEPRECATED: Replaced by ../shared-scoring/scoring-engine.ts ────────────
 // ─── NOW Contextual Scoring Engine ──────────────────────────────────────────
 //
 // NOW is a contextual promotion surface. It must always return a
