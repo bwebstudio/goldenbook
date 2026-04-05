@@ -31,6 +31,9 @@ const PLATEAU_THRESHOLD     = 0.05   // 5% score difference = "similar enough to
 export function applyDiversityRules(sorted: ScoredCandidate[]): ScoredCandidate[] {
   if (sorted.length <= 1) return sorted
 
+  // Low-candidate pool: relax diversity to avoid over-filtering
+  if (sorted.length <= 3) return sorted
+
   // Clone to avoid mutating input
   const arr = sorted.map((r) => ({ ...r }))
 

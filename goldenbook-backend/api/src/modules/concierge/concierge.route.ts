@@ -508,8 +508,28 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // Apply shared diversity rules (same as NOW)
     scoredCandidates = applyDiversityRules(scoredCandidates)
 
-    // Extract places for the response
-    let scored = scoredCandidates.slice(0, limit).map((r) => r.place)
+    // Paid placement visibility floor: guarantee paid appears within top results
+    const topSponsored = scoredCandidates.find((r) => r.isSponsored)
+    if (topSponsored) {
+      const topSlice = scoredCandidates.slice(0, limit)
+      if (!topSlice.some((r) => r.place.id === topSponsored.place.id)) {
+        // Paid placement fell outside visible results — inject it at position 1 (after #1 organic)
+        scoredCandidates = [scoredCandidates[0], topSponsored, ...scoredCandidates.filter((r) =>
+          r.place.id !== topSponsored.place.id && r.place.id !== scoredCandidates[0]?.place.id,
+        )]
+      }
+    }
+
+    // Extract places — deduplicate by place ID
+    const seenIds = new Set<string>()
+    let scored = scoredCandidates
+      .filter((r) => {
+        if (seenIds.has(r.place.id)) return false
+        seenIds.add(r.place.id)
+        return true
+      })
+      .slice(0, limit)
+      .map((r) => r.place)
     let levelUsed = adjustmentEmotion ? 1 : 0
 
     if (adjustmentEmotion && scored.length < limit) {
@@ -557,21 +577,24 @@ export async function conciergeRoutes(app: FastifyInstance) {
         }
       }
 
-      scored = combinedResults
     }
 
-    // ── Smart fallback: if no results, search related categories ─────
-    if (scored.length === 0) {
+    // ── Smart fallback: if insufficient results, search related categories ──
+    if (scored.length < limit) {
+      const existingIds = scored.map((p) => p.id)
       const fallbackPlaces = await getFallbackPlaces(
         city.slug,
         locale,
-        [...previouslyShown.placeIds],
-        limit,
+        [...previouslyShown.placeIds, ...existingIds],
+        Math.max(limit * 2, 6),
         adjustmentEmotion
           ? [...new Set(getEmotionIntentGroup(adjustmentEmotion, resolvedIntent).flatMap((intent) => intent.placeTypes))]
           : resolvedIntent.placeTypes,
       )
-      scored = adjustmentEmotion ? sortPlacesByEmotionPriority(fallbackPlaces, adjustmentEmotion).slice(0, limit) : fallbackPlaces
+      const extra = adjustmentEmotion
+        ? sortPlacesByEmotionPriority(fallbackPlaces, adjustmentEmotion)
+        : fallbackPlaces
+      scored = mergeUniquePlaces(scored, extra, limit)
     }
 
     request.log.info({

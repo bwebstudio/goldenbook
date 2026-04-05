@@ -220,7 +220,7 @@ describe('NOW and Concierge consistency', () => {
 // ─── 5. Diversity tests ─────────────────────────────────────────────────────
 
 describe('Diversity rules', () => {
-  it('penalizes adjacent same place_type', () => {
+  it('penalizes adjacent same place_type (pool > 3)', () => {
     const r1 = scoreCandidate(
       makeCandidate({ id: 'a', place_type: 'restaurant' }),
       makeContext(),
@@ -233,14 +233,26 @@ describe('Diversity rules', () => {
       makeCandidate({ id: 'c', place_type: 'bar', context_tag_slugs: ['cocktails'] }),
       makeContext(),
     )
+    const r4 = scoreCandidate(
+      makeCandidate({ id: 'd', place_type: 'cafe', context_tag_slugs: ['coffee'] }),
+      makeContext(),
+    )
 
-    const sorted = [r1, r2, r3] // two restaurants adjacent, then a bar
+    const sorted = [r1, r2, r3, r4] // needs >3 to trigger diversity
     const diversified = applyDiversityRules(sorted)
 
-    // The second restaurant should have been penalized
-    // Result could be: r1, r3, r2 (bar moved up) or r1, r2(penalized), r3
-    // Either way, r2 should have lower score after diversity
     const r2After = diversified.find((r) => r.place.id === 'b')!
     expect(r2After.totalScore).toBeLessThan(r2.totalScore)
+  })
+
+  it('skips diversity penalties when pool is small (<=3)', () => {
+    const r1 = scoreCandidate(makeCandidate({ id: 'a', place_type: 'restaurant' }), makeContext())
+    const r2 = scoreCandidate(makeCandidate({ id: 'b', place_type: 'restaurant' }), makeContext())
+
+    const diversified = applyDiversityRules([r1, r2])
+
+    // With only 2 candidates, diversity should be skipped (no penalty)
+    const r2After = diversified.find((r) => r.place.id === 'b')!
+    expect(r2After.totalScore).toBe(r2.totalScore)
   })
 })

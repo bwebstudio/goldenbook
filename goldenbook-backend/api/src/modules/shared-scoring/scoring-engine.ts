@@ -232,40 +232,66 @@ export function rankCandidates(
 }
 
 /**
- * Select top N candidates with max 1 sponsored per selection.
- * Uses weighted random for variety among top candidates.
+ * Select top N candidates with paid placement visibility guarantee.
+ *
+ * Rules:
+ *   - Valid paid placements are guaranteed a slot (contractual obligation)
+ *   - Max 1 sponsored per selection
+ *   - Remaining slots filled from organic via weighted random
+ *   - No duplicate place IDs in results
  */
 export function selectTopN(
   ranked: ScoredCandidate[],
   count: number,
 ): ScoredCandidate[] {
   if (ranked.length === 0) return []
-  if (ranked.length <= count) return ranked.slice()
+  if (ranked.length <= count) return deduplicateResults(ranked)
 
-  const sponsored = ranked.filter((r) => r.isSponsored)
-  const organic = ranked.filter((r) => !r.isSponsored)
   const selected: ScoredCandidate[] = []
+  const usedIds = new Set<string>()
 
-  // At most 1 sponsored
-  if (sponsored.length > 0) {
-    selected.push(sponsored[0])
+  // 1. Visibility floor: guarantee paid placement appears (max 1)
+  const topSponsored = ranked.find((r) => r.isSponsored && !usedIds.has(r.place.id))
+  if (topSponsored) {
+    selected.push(topSponsored)
+    usedIds.add(topSponsored.place.id)
   }
 
-  // Fill remaining from organic via weighted random
+  // 2. Fill remaining from organic via weighted random
+  const organic = ranked.filter((r) => !r.isSponsored && !usedIds.has(r.place.id))
   const remaining = count - selected.length
   const picked = weightedRandomPick(organic, remaining)
-  selected.push(...picked)
+  for (const p of picked) {
+    if (!usedIds.has(p.place.id)) {
+      selected.push(p)
+      usedIds.add(p.place.id)
+    }
+  }
 
-  // If still short, fill from whatever is left
+  // 3. If still short, fill from whatever is left (no duplicates)
   if (selected.length < count) {
-    const selectedIds = new Set(selected.map((r) => r.place.id))
     for (const r of ranked) {
       if (selected.length >= count) break
-      if (!selectedIds.has(r.place.id)) selected.push(r)
+      if (!usedIds.has(r.place.id)) {
+        selected.push(r)
+        usedIds.add(r.place.id)
+      }
     }
   }
 
   return selected
+}
+
+/**
+ * Ensure no duplicate place IDs in a result set.
+ */
+function deduplicateResults(results: ScoredCandidate[]): ScoredCandidate[] {
+  const seen = new Set<string>()
+  return results.filter((r) => {
+    if (seen.has(r.place.id)) return false
+    seen.add(r.place.id)
+    return true
+  })
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
