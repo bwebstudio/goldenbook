@@ -27,12 +27,92 @@ export async function getVisibilitiesForPlace(placeId: string): Promise<Visibili
   return rows
 }
 
+// ─── Inventory limits per surface per city ──────────────────────────────────
+
+const SURFACE_MAX_SLOTS: Record<string, number> = {
+  golden_picks:      5,
+  now:               4,  // 1 per time window × 4 windows
+  hidden_spots:      1,
+  new_on_goldenbook: 2,
+  search_priority:   3,
+  category_featured: 3,  // per category
+  concierge:         1,
+}
+
+const MAX_ACTIVE_CAMPAIGNS_PER_PLACE = 3
+
+/**
+ * Create a visibility placement with full commercial validation:
+ *   1. No overlapping campaign for same place + surface + time slot
+ *   2. Max campaigns per place (3 globally)
+ *   3. Slot inventory limits per surface per city
+ */
 export async function createVisibility(data: {
   placeId: string; surface: string; visibilityType: string;
   priority: number; startsAt: string | null; endsAt: string | null;
   notes: string | null; source?: string; placementSlot?: string | null;
   scopeType?: string | null; scopeId?: string | null;
 }): Promise<VisibilityRow> {
+  // ── Validation 1: Duplicate/overlap prevention ────────────────────────
+  const slotClause = data.placementSlot
+    ? `AND placement_slot = $4`
+    : `AND placement_slot IS NULL`
+  const overlapParams: unknown[] = [data.placeId, data.surface, data.startsAt ?? '1970-01-01']
+  if (data.placementSlot) overlapParams.push(data.placementSlot)
+
+  const { rows: overlapping } = await db.query<{ id: string }>(`
+    SELECT id FROM place_visibility
+    WHERE place_id = $1 AND surface = $2 AND is_active = true
+      ${slotClause}
+      AND (starts_at IS NULL OR starts_at <= COALESCE($${data.placementSlot ? 5 : 4}::timestamptz, '9999-12-31'))
+      AND (ends_at IS NULL OR ends_at >= $3::timestamptz)
+    LIMIT 1
+  `, [...overlapParams, data.endsAt ?? '9999-12-31'])
+
+  if (overlapping.length > 0) {
+    throw new Error(`DUPLICATE_PLACEMENT: Place already has an active ${data.surface} placement for this period/slot`)
+  }
+
+  // ── Validation 2: Max 3 active campaigns per place ────────────────────
+  const { rows: [countRow] } = await db.query<{ cnt: string }>(`
+    SELECT COUNT(*)::text AS cnt FROM place_visibility
+    WHERE place_id = $1 AND is_active = true
+      AND (ends_at IS NULL OR ends_at >= now())
+  `, [data.placeId])
+
+  if (parseInt(countRow?.cnt ?? '0', 10) >= MAX_ACTIVE_CAMPAIGNS_PER_PLACE) {
+    throw new Error(`MAX_CAMPAIGNS: Place already has ${MAX_ACTIVE_CAMPAIGNS_PER_PLACE} active campaigns`)
+  }
+
+  // ── Validation 3: City slot inventory (if sponsored) ──────────────────
+  if (data.visibilityType === 'sponsored') {
+    const maxSlots = SURFACE_MAX_SLOTS[data.surface]
+    if (maxSlots != null) {
+      // Get city from place → destination
+      const { rows: [place] } = await db.query<{ city_slug: string }>(`
+        SELECT d.slug AS city_slug FROM places p
+        JOIN destinations d ON d.id = p.destination_id
+        WHERE p.id = $1
+      `, [data.placeId])
+
+      if (place) {
+        const { rows: [slotCount] } = await db.query<{ cnt: string }>(`
+          SELECT COUNT(*)::text AS cnt FROM place_visibility pv
+          JOIN places p ON p.id = pv.place_id
+          JOIN destinations d ON d.id = p.destination_id
+          WHERE d.slug = $1 AND pv.surface = $2
+            AND pv.is_active = true AND pv.visibility_type = 'sponsored'
+            AND (pv.ends_at IS NULL OR pv.ends_at >= now())
+        `, [place.city_slug, data.surface])
+
+        if (parseInt(slotCount?.cnt ?? '0', 10) >= maxSlots) {
+          throw new Error(`INVENTORY_FULL: ${data.surface} has no available slots in ${place.city_slug}`)
+        }
+      }
+    }
+  }
+
+  // ── Insert ────────────────────────────────────────────────────────────
   const { rows } = await db.query<VisibilityRow>(`
     INSERT INTO place_visibility (place_id, surface, visibility_type, priority, starts_at, ends_at, notes, source, placement_slot, scope_type, scope_id)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)

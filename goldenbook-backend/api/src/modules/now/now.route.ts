@@ -35,6 +35,7 @@ import {
   buildSubtitle,
   buildExplanation,
   buildReasonTags,
+  recordExposure,
   buildContextSummary,
 } from '../shared-scoring'
 import {
@@ -563,6 +564,9 @@ export async function nowRoutes(app: FastifyInstance) {
       },
       weightsUsed: weights,
     })
+
+    // Frequency capping: record exposure
+    recordExposure(sessionId, top.place.id)
 
     const dto = buildNowDTO(top, timeOfDay, weather, locale, city.slug, city.name)
 

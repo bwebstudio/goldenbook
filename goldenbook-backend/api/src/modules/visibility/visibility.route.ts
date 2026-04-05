@@ -47,8 +47,15 @@ export async function visibilityRoutes(app: FastifyInstance) {
       scopeType: z.enum(scopeTypes).nullable().default(null),
       scopeId: z.string().nullable().default(null),
     }).parse(request.body)
-    const row = await createVisibility({ placeId: id, ...body })
-    return reply.status(201).send(row)
+    try {
+      const row = await createVisibility({ placeId: id, ...body })
+      return reply.status(201).send(row)
+    } catch (err: any) {
+      if (err.message?.startsWith('DUPLICATE_PLACEMENT:') || err.message?.startsWith('MAX_CAMPAIGNS:') || err.message?.startsWith('INVENTORY_FULL:')) {
+        throw new AppError(409, err.message, 'INVENTORY_CONFLICT')
+      }
+      throw err
+    }
   })
 
   app.put('/admin/visibility/:visId', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {

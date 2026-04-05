@@ -39,6 +39,8 @@ import {
   scoreCandidate,
   applyDiversityRules,
   getNowTimeOfDay,
+  isOverExposed,
+  recordExposures,
   type ScoringContext,
   type ScoredCandidate,
   type UnifiedCandidate,
@@ -581,6 +583,12 @@ export async function conciergeRoutes(app: FastifyInstance) {
           result.totalScore -= 15
         }
 
+        // Frequency capping: penalize over-exposed places (max 2 per session)
+        // Paid placements are exempt from capping
+        if (!result.isSponsored && isOverExposed(sessionId, place.id)) {
+          result.totalScore -= 20
+        }
+
         // Hero rotation: penalize previous hero when intent changes
         // This only affects hero selection — the place stays in the list
         if (previousHeroId && place.id === previousHeroId && !result.isSponsored) {
@@ -709,6 +717,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
     previouslyShown.lastHeroId = scored[0]?.id ?? null
     previouslyShown.lastIntentId = resolvedIntent.id
     sessionHistory.set(sessionKey, previouslyShown)
+
+    // Frequency capping: record exposures for cross-surface tracking
+    recordExposures(sessionId, scored.map((p) => p.id))
 
     const localeFamily = locale.split('-')[0]
     const recommendations = scored.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
