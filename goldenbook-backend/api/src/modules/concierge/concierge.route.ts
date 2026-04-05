@@ -47,8 +47,15 @@ import {
 // Backwards compat alias — helpers that used ScoredPlace now work with UnifiedCandidate
 type ScoredPlace = UnifiedCandidate
 
-// ─── Session history for anti-repetition ──────────────────────────────────────
-const sessionHistory = new Map<string, { placeIds: Set<string>; intentIds: Set<string> }>()
+// ─── Session history for anti-repetition + hero rotation ────────────────────
+interface ConciergeSession {
+  placeIds: Set<string>
+  intentIds: Set<string>
+  /** Track last hero per intent to enable rotation on intent change */
+  lastHeroId: string | null
+  lastIntentId: string | null
+}
+const sessionHistory = new Map<string, ConciergeSession>()
 
 // Cleanup stale sessions every 10 minutes
 setInterval(() => {
@@ -476,7 +483,16 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // ── Anti-repetition: track shown places per session ──────────────────
     const sessionId = (request.headers['x-session-id'] as string) ?? ''
     const sessionKey = `concierge:${sessionId}`
-    const previouslyShown = sessionHistory.get(sessionKey) ?? { placeIds: new Set<string>(), intentIds: new Set<string>() }
+    const previouslyShown: ConciergeSession = sessionHistory.get(sessionKey) ?? {
+      placeIds: new Set<string>(),
+      intentIds: new Set<string>(),
+      lastHeroId: null,
+      lastIntentId: null,
+    }
+
+    // Hero rotation: detect intent change
+    const intentChanged = previouslyShown.lastIntentId != null && previouslyShown.lastIntentId !== resolvedIntent.id
+    const previousHeroId = intentChanged ? previouslyShown.lastHeroId : null
 
     // Fetch candidate places from DB — fetch more than needed for scoring
     const fetchLimit = Math.max(limit * 3, 12)
@@ -563,6 +579,12 @@ export async function conciergeRoutes(app: FastifyInstance) {
         // Anti-repetition penalty (soft, not hard exclude)
         if (previouslyShown.placeIds.has(place.id)) {
           result.totalScore -= 15
+        }
+
+        // Hero rotation: penalize previous hero when intent changes
+        // This only affects hero selection — the place stays in the list
+        if (previousHeroId && place.id === previousHeroId && !result.isSponsored) {
+          result.totalScore -= 12
         }
 
         // Refinement tag adjustments (additive on top of shared scoring)
@@ -681,9 +703,11 @@ export async function conciergeRoutes(app: FastifyInstance) {
       resolved_intent: resolvedIntent.id,
     }, '[Concierge] adjustment fallback ladder')
 
-    // Update session history
+    // Update session history + hero tracking
     for (const p of scored) previouslyShown.placeIds.add(p.id)
     previouslyShown.intentIds.add(resolvedIntent.id)
+    previouslyShown.lastHeroId = scored[0]?.id ?? null
+    previouslyShown.lastIntentId = resolvedIntent.id
     sessionHistory.set(sessionKey, previouslyShown)
 
     const localeFamily = locale.split('-')[0]
