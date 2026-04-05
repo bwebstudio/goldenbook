@@ -67,8 +67,10 @@ interface ConciergeSession {
   pool: UnifiedCandidate[] | null
   poolCity: string | null
   poolBuiltAt: number
-  /** Places shown as hero — strongly penalized to prevent domination */
+  /** Places shown as hero — penalized to prevent domination across intents */
   heroHistory: Set<string>
+  /** Cached results per intent — same intent tap returns same results */
+  intentResultCache: Map<string, UnifiedCandidate[]>
 }
 const sessionHistory = new Map<string, ConciergeSession>()
 
@@ -507,6 +509,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       poolCity: null,
       poolBuiltAt: 0,
       heroHistory: new Set<string>(),
+      intentResultCache: new Map<string, UnifiedCandidate[]>(),
     }
 
     // Hero rotation: detect intent change
@@ -572,6 +575,39 @@ export async function conciergeRoutes(app: FastifyInstance) {
       candidates = session.pool!
     }
 
+    // ── Resolve adjustment emotion early (needed for cache key) ────────
+    const adjustmentEmotion = (now_context?.adjustment ?? detectedRefinement) as AdjustmentEmotion | null
+
+    // ── Same-intent cache: return stable results on repeated taps ─────
+    const cacheKey = `${resolvedIntent.id}:${adjustmentEmotion ?? 'none'}`
+    const cachedResults = session.intentResultCache.get(cacheKey)
+    if (cachedResults) {
+      // Same intent + same adjustment → return cached results directly
+      const recommendations = cachedResults.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
+      const localeFamily = locale.split('-')[0]
+      const responseText = recommendations.length > 0
+        ? buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
+        : (localeFamily === 'pt' ? `Explore mais opções em ${city.name}.`
+           : localeFamily === 'es' ? `Explora más opciones en ${city.name}.`
+           : `Explore more options in ${city.name}.`)
+
+      const viableIntents = await getViableIntents(city.slug, 2)
+      const fallbackIntents = getDynamicFallbackIntents(resolvedIntent.id, session.intentIds, timeOfDay, locale)
+        .filter((fi) => {
+          const intent = getIntentById(fi.id)
+          if (!intent) return false
+          return (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
+            || (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
+        }).slice(0, 2)
+
+      const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
+      return reply.send({
+        city, timeOfDay,
+        resolvedIntent: { id: resolvedIntent.id, title: resolvedIntentTitle },
+        responseText, recommendations, fallbackIntents,
+      })
+    }
+
     // Get paid placement IDs for scoring
     let boostIds: Set<string> = new Set()
     try {
@@ -580,7 +616,6 @@ export async function conciergeRoutes(app: FastifyInstance) {
     } catch {}
 
     // ── Shared scoring context (same engine as NOW) ──────────────────
-    const adjustmentEmotion = (now_context?.adjustment ?? detectedRefinement) as AdjustmentEmotion | null
     const refinementAdj = adjustmentEmotion ? getRefinementTagAdjustments(adjustmentEmotion) : null
 
     const scoringCtx: ScoringContext = {
@@ -765,13 +800,15 @@ export async function conciergeRoutes(app: FastifyInstance) {
       resolved_intent: resolvedIntent.id,
     }, '[Concierge] adjustment fallback ladder')
 
-    // Update session history + hero tracking
+    // Update session history + hero tracking + intent cache
     for (const p of scored) session.placeIds.add(p.id)
     session.intentIds.add(resolvedIntent.id)
     const heroId = scored[0]?.id ?? null
     session.lastHeroId = heroId
     if (heroId) session.heroHistory.add(heroId)
     session.lastIntentId = resolvedIntent.id
+    // Cache results for this intent+adjustment combo (same tap = same results)
+    session.intentResultCache.set(cacheKey, scored)
     sessionHistory.set(sessionKey, session)
 
     // Frequency capping: record exposures for cross-surface tracking
