@@ -365,7 +365,96 @@ describe('NOW and Concierge consistency', () => {
   })
 })
 
-// ─── 5. Diversity tests ─────────────────────────────────────────────────────
+// ─── 5. Diversity + Visibility Floor interaction ────────────────────────────
+
+describe('Diversity + paid placement injection interaction', () => {
+  it('morning brunch: café, restaurant, then paid bar — diverse types preserved', () => {
+    const ctx = makeContext({ timeOfDay: 'morning', weather: 'sunny' })
+    const paidCtx = makeContext({
+      timeOfDay: 'morning', weather: 'sunny',
+      paidPlaceIds: new Set(['paid-bar']),
+    })
+
+    // Score organics (high context for morning)
+    const cafe = scoreCandidate(
+      makeCandidate({ id: 'cafe-1', place_type: 'cafe', context_tag_slugs: ['brunch', 'coffee'], popularity_score: 70 }),
+      ctx,
+    )
+    const restaurant = scoreCandidate(
+      makeCandidate({ id: 'rest-1', place_type: 'restaurant', context_tag_slugs: ['brunch', 'family'], popularity_score: 60 }),
+      ctx,
+    )
+    // Paid bar (low context for morning, but commercial carries it)
+    const paidBar = scoreCandidate(
+      makeCandidate({ id: 'paid-bar', place_type: 'bar', context_tag_slugs: ['cocktails', 'late-night'] }),
+      paidCtx,
+    )
+
+    // Organic brunch places should outscore the paid bar in context
+    expect(cafe.contextScore).toBeGreaterThan(paidBar.contextScore)
+    expect(restaurant.contextScore).toBeGreaterThan(paidBar.contextScore)
+
+    // Simulate the Concierge pipeline: score → diversity → visibility floor → dedup
+    const sorted = [cafe, restaurant, paidBar].sort((a, b) => b.totalScore - a.totalScore)
+    const diversified = applyDiversityRules(sorted) // ≤3, so diversity is skipped (relaxed)
+
+    // Verify no duplicates
+    const ids = diversified.map((r) => r.place.id)
+    expect(new Set(ids).size).toBe(ids.length) // no duplicates
+
+    // Verify all 3 different place_types present
+    const types = diversified.map((r) => r.place.place_type)
+    expect(new Set(types).size).toBe(3) // cafe, restaurant, bar — all different
+
+    // Verify paid bar is last (lowest context score)
+    const barIdx = diversified.findIndex((r) => r.place.id === 'paid-bar')
+    expect(barIdx).toBe(2) // position 3 (index 2)
+  })
+
+  it('paid injection does not create duplicates', () => {
+    const ctx = makeContext({ paidPlaceIds: new Set(['cafe-1']) })
+
+    const cafe = scoreCandidate(
+      makeCandidate({ id: 'cafe-1', place_type: 'cafe', context_tag_slugs: ['coffee'] }),
+      ctx,
+    )
+    const rest = scoreCandidate(
+      makeCandidate({ id: 'rest-1', place_type: 'restaurant', context_tag_slugs: ['dinner'] }),
+      makeContext(),
+    )
+
+    // Simulate: cafe already in results, then selectTopN tries to add it again
+    const ranked = [rest, cafe]
+    const selected = selectTopN(ranked, 3)
+
+    // No duplicate IDs
+    const ids = selected.map((r) => r.place.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('with 5+ candidates, diversity penalizes adjacent same-type but not paid', () => {
+    const ctx = makeContext({ paidPlaceIds: new Set(['paid-rest']) })
+
+    const rest1 = scoreCandidate(makeCandidate({ id: 'r1', place_type: 'restaurant', context_tag_slugs: ['dinner'], popularity_score: 80 }), makeContext())
+    const paidRest = scoreCandidate(makeCandidate({ id: 'paid-rest', place_type: 'restaurant', context_tag_slugs: ['dinner'] }), ctx)
+    const rest2 = scoreCandidate(makeCandidate({ id: 'r2', place_type: 'restaurant', context_tag_slugs: ['dinner'], popularity_score: 40 }), makeContext())
+    const bar = scoreCandidate(makeCandidate({ id: 'b1', place_type: 'bar', context_tag_slugs: ['cocktails'] }), makeContext())
+    const cafe = scoreCandidate(makeCandidate({ id: 'c1', place_type: 'cafe', context_tag_slugs: ['coffee'] }), makeContext())
+
+    const sorted = [rest1, paidRest, rest2, bar, cafe]
+    const diversified = applyDiversityRules(sorted)
+
+    // Paid restaurant should NOT be penalized
+    const paidAfter = diversified.find((r) => r.place.id === 'paid-rest')!
+    expect(paidAfter.totalScore).toBe(paidRest.totalScore)
+
+    // But organic rest2 (adjacent same type after paid) SHOULD be penalized
+    const rest2After = diversified.find((r) => r.place.id === 'r2')!
+    expect(rest2After.totalScore).toBeLessThan(rest2.totalScore)
+  })
+})
+
+// ─── 6. Basic diversity tests ────────────────────────────────────────────────
 
 describe('Diversity rules', () => {
   it('penalizes adjacent same place_type (pool > 3)', () => {
