@@ -195,6 +195,11 @@ export async function getConciergeRecommendations(
       AND p.place_type IN (${typeParams})
       -- Exclude service-type businesses (not visitable experiences)
       AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%law firm%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%consultancy%'
       ${intentFilter}
     ORDER BY
       -- Places with matching primary intents first
@@ -221,6 +226,9 @@ export async function getViableIntents(citySlug: string, minPlaces = 2): Promise
     WHERE p.status = 'published' AND p.is_active = true
       AND d.slug = lower($1)
       AND p.intents != ARRAY[]::text[]
+      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
     GROUP BY unnest(p.intents)
     HAVING COUNT(DISTINCT p.id) >= $2
   `, [citySlug, minPlaces]).catch(() => ({ rows: [] as { intent: string; count: string }[] }))
@@ -328,6 +336,9 @@ export async function getFallbackPlaces(
       AND p.status = 'published' AND p.is_active = true AND p.is_temporarily_closed = false
       AND p.place_type IN (${typeParams})
       AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
       ${excludeClause}
     ORDER BY
       p.featured DESC,
@@ -410,6 +421,10 @@ export async function getPlacesByIds(
     WHERE p.id IN (${placeholders})
       AND p.status = 'published'
       AND p.is_active = true
+      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
   `, [locale, ...placeIds, timeWindow ?? 'evening'])
 
   return rows

@@ -196,6 +196,11 @@ export async function getNowCandidates(
             AND (pv.ends_at IS NULL OR pv.ends_at >= now())
         )
       )
+      -- Exclude service businesses (misclassified as activity/other)
+      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
       -- NOW date window filter (if set)
       AND (p.now_start_at IS NULL OR p.now_start_at <= now())
       AND (p.now_end_at IS NULL OR p.now_end_at >= now())
