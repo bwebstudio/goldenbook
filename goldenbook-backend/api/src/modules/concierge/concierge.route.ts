@@ -49,13 +49,26 @@ import {
 // Backwards compat alias — helpers that used ScoredPlace now work with UnifiedCandidate
 type ScoredPlace = UnifiedCandidate
 
-// ─── Session history for anti-repetition + hero rotation ────────────────────
+// ─── Session pool for curated Concierge experience ──────────────────────────
+//
+// Instead of querying the full DB on every intent tap, the Concierge builds
+// a session pool of ~20 candidates on first request. Subsequent intent changes
+// rerank within this pool, keeping the experience curated and consistent.
+
+const SESSION_POOL_SIZE = 20
+const SESSION_POOL_TTL = 15 * 60 * 1000 // 15 minutes
+
 interface ConciergeSession {
   placeIds: Set<string>
   intentIds: Set<string>
-  /** Track last hero per intent to enable rotation on intent change */
   lastHeroId: string | null
   lastIntentId: string | null
+  /** Curated session pool — built once, reranked on intent changes */
+  pool: UnifiedCandidate[] | null
+  poolCity: string | null
+  poolBuiltAt: number
+  /** Places shown as hero — strongly penalized to prevent domination */
+  heroHistory: Set<string>
 }
 const sessionHistory = new Map<string, ConciergeSession>()
 
@@ -485,49 +498,86 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // ── Anti-repetition: track shown places per session ──────────────────
     const sessionId = (request.headers['x-session-id'] as string) ?? ''
     const sessionKey = `concierge:${sessionId}`
-    const previouslyShown: ConciergeSession = sessionHistory.get(sessionKey) ?? {
+    const session: ConciergeSession = sessionHistory.get(sessionKey) ?? {
       placeIds: new Set<string>(),
       intentIds: new Set<string>(),
       lastHeroId: null,
       lastIntentId: null,
+      pool: null,
+      poolCity: null,
+      poolBuiltAt: 0,
+      heroHistory: new Set<string>(),
     }
 
     // Hero rotation: detect intent change
-    const intentChanged = previouslyShown.lastIntentId != null && previouslyShown.lastIntentId !== resolvedIntent.id
-    const previousHeroId = intentChanged ? previouslyShown.lastHeroId : null
+    const intentChanged = session.lastIntentId != null && session.lastIntentId !== resolvedIntent.id
+    const previousHeroId = intentChanged ? session.lastHeroId : null
 
-    // Fetch candidate places from DB — fetch more than needed for scoring
-    const fetchLimit = Math.max(limit * 3, 12)
     const nowTimeOfDay = getNowTimeOfDay()
     const weatherResult = await resolveWeather(undefined, undefined, city.slug)
     const weather = weatherResult?.condition
 
-    const candidates = await getConciergeRecommendations(
-      city.slug,
-      resolvedIntent,
-      locale,
-      fetchLimit,
-      nowTimeOfDay,
-    )
+    // ── Build or reuse session pool ─────────────────────────────────────
+    const poolExpired = Date.now() - session.poolBuiltAt > SESSION_POOL_TTL
+    const poolCityChanged = session.poolCity !== city.slug
+    const needsPool = !session.pool || poolExpired || poolCityChanged
 
-    // Get paid Concierge placements — filtered by city + active campaign dates
+    let candidates: UnifiedCandidate[]
+
+    if (needsPool) {
+      // Build fresh pool: fetch a broad set of candidates across multiple intents
+      const poolIntents = [resolvedIntent]
+
+      // Add time-appropriate intents to broaden the pool
+      const { INTENT_REGISTRY } = await import('./concierge.intents')
+      const timeIntents = INTENT_REGISTRY
+        .filter((i) => i.preferredTimeOfDay.includes(timeOfDay) && i.id !== resolvedIntent.id)
+        .sort((a, b) => b.priority - a.priority)
+        .slice(0, 3)
+      poolIntents.push(...timeIntents)
+
+      // Fetch candidates from multiple intents and deduplicate
+      const allCandidates: UnifiedCandidate[] = []
+      const seenPoolIds = new Set<string>()
+      for (const intent of poolIntents) {
+        const batch = await getConciergeRecommendations(city.slug, intent, locale, SESSION_POOL_SIZE, nowTimeOfDay)
+        for (const c of batch) {
+          if (!seenPoolIds.has(c.id)) {
+            seenPoolIds.add(c.id)
+            allCandidates.push(c)
+          }
+        }
+      }
+
+      // Inject paid placements into the pool
+      let boostIds: Set<string> = new Set()
+      try {
+        const ids = await getActiveVisibilityPlaceIdsByCity('concierge', city.slug, 20)
+        boostIds = new Set(ids)
+      } catch {}
+
+      if (boostIds.size > 0) {
+        const missingPaidIds = [...boostIds].filter((id) => !seenPoolIds.has(id))
+        if (missingPaidIds.length > 0) {
+          const paidPlaces = await getPlacesByIds(missingPaidIds, locale, nowTimeOfDay)
+          allCandidates.push(...paidPlaces)
+        }
+      }
+
+      session.pool = allCandidates
+      session.poolCity = city.slug
+      session.poolBuiltAt = Date.now()
+      candidates = allCandidates
+    } else {
+      candidates = session.pool!
+    }
+
+    // Get paid placement IDs for scoring
     let boostIds: Set<string> = new Set()
     try {
       const ids = await getActiveVisibilityPlaceIdsByCity('concierge', city.slug, 20)
       boostIds = new Set(ids)
     } catch {}
-
-    // ── Inject paid placements that may not match intent filter ──────────
-    // Paid placements bypass intent-based SQL filtering (eligibility guarantee).
-    // They get an intent mismatch penalty in scoring but remain in the pool.
-    if (boostIds.size > 0) {
-      const candidateIds = new Set(candidates.map((c) => c.id))
-      const missingPaidIds = [...boostIds].filter((id) => !candidateIds.has(id))
-      if (missingPaidIds.length > 0) {
-        const paidPlaces = await getPlacesByIds(missingPaidIds, locale, nowTimeOfDay)
-        candidates.push(...paidPlaces)
-      }
-    }
 
     // ── Shared scoring context (same engine as NOW) ──────────────────
     const adjustmentEmotion = (now_context?.adjustment ?? detectedRefinement) as AdjustmentEmotion | null
@@ -578,21 +628,24 @@ export async function conciergeRoutes(app: FastifyInstance) {
           }
         }
 
-        // Anti-repetition penalty (soft, not hard exclude)
-        if (previouslyShown.placeIds.has(place.id)) {
-          result.totalScore -= 15
-        }
-
-        // Frequency capping: penalize over-exposed places (max 2 per session)
-        // Paid placements are exempt from capping
-        if (!result.isSponsored && isOverExposed(sessionId, place.id)) {
+        // Anti-repetition: strong penalty for already-shown places
+        if (session.placeIds.has(place.id)) {
           result.totalScore -= 20
         }
 
-        // Hero rotation: penalize previous hero when intent changes
-        // This only affects hero selection — the place stays in the list
+        // Hero domination prevention: places that were hero get heavy penalty
+        if (!result.isSponsored && session.heroHistory.has(place.id)) {
+          result.totalScore -= 18
+        }
+
+        // Hero rotation: extra penalty for the immediately previous hero
         if (previousHeroId && place.id === previousHeroId && !result.isSponsored) {
           result.totalScore -= 12
+        }
+
+        // Frequency capping: penalize over-exposed places
+        if (!result.isSponsored && isOverExposed(sessionId, place.id)) {
+          result.totalScore -= 20
         }
 
         // Refinement tag adjustments (additive on top of shared scoring)
@@ -642,7 +695,8 @@ export async function conciergeRoutes(app: FastifyInstance) {
     let levelUsed = adjustmentEmotion ? 1 : 0
 
     if (adjustmentEmotion && scored.length < limit) {
-      // Level 2+3 fallback: fetch from related intents using shared scoring
+      // Level 2+3 fallback: expand pool with related intent candidates
+      const fetchLimit = SESSION_POOL_SIZE
       const emotionIntents = getEmotionIntentGroup(adjustmentEmotion, resolvedIntent)
       const level2Buckets = await Promise.all(
         emotionIntents
@@ -674,7 +728,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
         const level3Matches = sortPlacesByEmotionPriority(
           await getFallbackPlaces(
             city.slug, locale,
-            [...previouslyShown.placeIds, ...combined.map((p) => p.id)],
+            [...session.placeIds, ...combined.map((p) => p.id)],
             Math.max(limit * 2, 6),
             fallbackPlaceTypes,
           ),
@@ -692,7 +746,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       const fallbackPlaces = await getFallbackPlaces(
         city.slug,
         locale,
-        [...previouslyShown.placeIds, ...existingIds],
+        [...session.placeIds, ...existingIds],
         Math.max(limit * 2, 6),
         adjustmentEmotion
           ? [...new Set(getEmotionIntentGroup(adjustmentEmotion, resolvedIntent).flatMap((intent) => intent.placeTypes))]
@@ -712,11 +766,13 @@ export async function conciergeRoutes(app: FastifyInstance) {
     }, '[Concierge] adjustment fallback ladder')
 
     // Update session history + hero tracking
-    for (const p of scored) previouslyShown.placeIds.add(p.id)
-    previouslyShown.intentIds.add(resolvedIntent.id)
-    previouslyShown.lastHeroId = scored[0]?.id ?? null
-    previouslyShown.lastIntentId = resolvedIntent.id
-    sessionHistory.set(sessionKey, previouslyShown)
+    for (const p of scored) session.placeIds.add(p.id)
+    session.intentIds.add(resolvedIntent.id)
+    const heroId = scored[0]?.id ?? null
+    session.lastHeroId = heroId
+    if (heroId) session.heroHistory.add(heroId)
+    session.lastIntentId = resolvedIntent.id
+    sessionHistory.set(sessionKey, session)
 
     // Frequency capping: record exposures for cross-surface tracking
     recordExposures(sessionId, scored.map((p) => p.id))
@@ -746,7 +802,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
     const viableIntents = await getViableIntents(city.slug, 2)
     const allFallbackIntents = getDynamicFallbackIntents(
       resolvedIntent.id,
-      previouslyShown.intentIds,
+      session.intentIds,
       timeOfDay,
       locale,
     )
