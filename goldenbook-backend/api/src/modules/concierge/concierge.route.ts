@@ -24,12 +24,15 @@ import {
   getTimeOfDay,
   resolveIntentFromQuery,
   scoreConciergePlace,
+  detectRefinementFromText,
+  getRefinementTagAdjustments,
 } from './concierge.service'
 import {
   type OnboardingProfile,
   parseInterests,
 } from '../../shared/onboarding/onboarding.scoring'
 import { getActiveVisibilityPlaceIds } from '../visibility/visibility.query'
+import { resolveWeather } from '../now/now.weather'
 import type { ScoredPlace } from './concierge.service'
 import { normalizeLocale } from '../../shared/i18n/locale'
 
@@ -249,8 +252,12 @@ export async function conciergeRoutes(app: FastifyInstance) {
       style:     style ?? undefined,
     }
 
+    // Resolve weather for context-aware intent selection
+    const weatherResult = await resolveWeather(undefined, undefined, city.slug)
+    const weather = weatherResult?.condition ?? null
+
     const greeting = buildGreeting(timeOfDay, city.name, locale)
-    const allIntents = getBootstrapIntents(timeOfDay, profile)
+    const allIntents = getBootstrapIntents(timeOfDay, profile, weather)
 
     // Filter bootstrap intents to only those with viable places in this city
     const viable = await getViableIntents(city.slug, 2)
@@ -328,7 +335,14 @@ export async function conciergeRoutes(app: FastifyInstance) {
       city = await getDefaultConciergeCity(locale)
     }
 
-    // Resolve intent: explicit id → keyword resolution → NOW moment hint → time-based default
+    // ── Detect refinement from text queries ──────────────────────────────
+    // "algo más relajado", "something quieter" etc. → adjusts tag weights
+    let detectedRefinement: string | null = null
+    if (query && !intentParam) {
+      detectedRefinement = detectRefinementFromText(query)
+    }
+
+    // Resolve intent: explicit id → refinement → keyword resolution → NOW → default
     let resolvedIntent: ReturnType<typeof getIntentById> | undefined
     if (intentParam) {
       resolvedIntent = getIntentById(intentParam) ?? resolveIntentFromQuery(query ?? '', timeOfDay)
@@ -428,18 +442,32 @@ export async function conciergeRoutes(app: FastifyInstance) {
       boostIds = new Set(ids)
     } catch {}
 
-    // Score candidates — boosted places get +25, previously shown get -15
+    // ── Apply refinement or adjustment tag weighting ──────────────────
+    const adjustmentEmotion = now_context?.adjustment ?? detectedRefinement
+    const refinementAdj = adjustmentEmotion ? getRefinementTagAdjustments(adjustmentEmotion) : null
+
+    // Score candidates — with context tag refinement adjustments
     const rankedCandidates = candidates
-      .map((place) => ({
-        place,
-        score: scoreConciergePlace(place, resolvedIntent, profile, timeOfDay)
+      .map((place) => {
+        let score = scoreConciergePlace(place, resolvedIntent, profile, timeOfDay)
           + (boostIds.has(place.id) ? 25 : 0)
-          - (previouslyShown.placeIds.has(place.id) ? 15 : 0),
-      }))
+          - (previouslyShown.placeIds.has(place.id) ? 15 : 0)
+
+        // Apply refinement tag adjustments if present
+        if (refinementAdj && place.context_tag_slugs?.length) {
+          const placeTags = new Set(place.context_tag_slugs)
+          for (const boostTag of refinementAdj.boost) {
+            if (placeTags.has(boostTag)) score += 8
+          }
+          for (const reduceTag of refinementAdj.reduce) {
+            if (placeTags.has(reduceTag)) score -= 6
+          }
+        }
+
+        return { place, score }
+      })
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
-
-    const adjustmentEmotion = now_context?.adjustment
     let scored = rankedCandidates
       .slice(0, limit)
       .map(({ place }) => place)

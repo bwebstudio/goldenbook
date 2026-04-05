@@ -16,6 +16,13 @@ import {
   scoreIntentForProfile,
   scoreFinalPlace,
 } from '../../shared/ranking/place.ranking'
+import {
+  TIME_TAG_BOOSTS,
+  WEATHER_TAG_BOOSTS,
+  type ContextTag,
+  type NowTimeOfDay,
+  type WeatherCondition,
+} from '../shared-scoring/context-tags'
 
 // ─── Time of day ──────────────────────────────────────────────────────────────
 
@@ -54,41 +61,147 @@ export function buildGreeting(timeOfDay: TimeOfDay, cityName: string, locale = '
   return map[timeOfDay](cityName)
 }
 
-// ─── Bootstrap intents ────────────────────────────────────────────────────────
+// ─── Bootstrap intents (context-aware) ────────────────────────────────────────
+//
+// Instead of hardcoded lists, bootstrap intents are derived from the current
+// context: time of day + weather + optional profile. This ensures the Concierge
+// always starts with suggestions that make sense for the moment.
 
-const BOOTSTRAP_INTENTS: Record<TimeOfDay, string[]> = {
-  morning: ['coffee_and_work', 'hidden_gems', 'gallery_afternoon'],
-  afternoon: ['long_lunch', 'gallery_afternoon', 'design_shopping'],
-  evening: ['romantic_dinner', 'cocktail_bars', 'late_night_jazz'],
+/** Map Concierge TimeOfDay (3 values) to shared NowTimeOfDay (5 values) */
+function toNowTimeOfDay(tod: TimeOfDay): NowTimeOfDay {
+  if (tod === 'morning') return 'morning'
+  if (tod === 'afternoon') return 'afternoon'
+  return 'evening'
+}
+
+/**
+ * Score an intent against the current context using the shared tag boost maps.
+ * Intents with tags that match high-boost context tags score higher.
+ */
+function scoreIntentForContext(
+  intent: ConciergeIntent,
+  timeOfDay: TimeOfDay,
+  weather?: string | null,
+): number {
+  const nowTod = toNowTimeOfDay(timeOfDay)
+  const timeBoosts = TIME_TAG_BOOSTS[nowTod] ?? {}
+  const weatherBoosts = weather ? (WEATHER_TAG_BOOSTS[weather as WeatherCondition] ?? {}) : {}
+
+  let contextScore = 0
+
+  // Score intent tags against current context boosts
+  for (const tag of intent.tags) {
+    const normalized = tag.toLowerCase().replace(/[^a-z0-9]/g, '-') as ContextTag
+    const timeBoost = timeBoosts[normalized] ?? 0
+    const weatherBoost = weatherBoosts[normalized] ?? 0
+    contextScore += timeBoost + weatherBoost
+  }
+
+  // Also check categorySlugs
+  for (const slug of intent.categorySlugs) {
+    const normalized = slug.toLowerCase() as ContextTag
+    const timeBoost = timeBoosts[normalized] ?? 0
+    contextScore += timeBoost * 0.5
+  }
+
+  return contextScore
 }
 
 export function getBootstrapIntents(
   timeOfDay: TimeOfDay,
   profile?: OnboardingProfile,
+  weather?: string | null,
 ): ConciergeIntent[] {
-  // No profile — return the curated static selection unchanged
-  if (!hasProfile(profile)) {
-    return BOOTSTRAP_INTENTS[timeOfDay]
-      .map((id) => getIntentById(id))
-      .filter((i): i is ConciergeIntent => i != null)
-  }
-
-  // Profile present — score all time-appropriate intents and pick top 3.
-  // priority * 0.1 is a tie-breaker (mirrors resolveIntentFromQuery).
+  // Score ALL intents matching this time of day against the full context
   const candidates = INTENT_REGISTRY.filter((i) =>
     i.preferredTimeOfDay.includes(timeOfDay),
   )
 
-  return candidates
-    .map((intent) => ({
-      intent,
-      score:
-        scoreIntentForProfile(intent.tags, intent.keywords, profile!) +
-        intent.priority * 0.1,
-    }))
+  const scored = candidates.map((intent) => {
+    let score = scoreIntentForContext(intent, timeOfDay, weather)
+
+    // Profile alignment bonus
+    if (hasProfile(profile)) {
+      score += scoreIntentForProfile(intent.tags, intent.keywords, profile!) * 0.5
+    }
+
+    // Priority tie-breaker
+    score += intent.priority * 0.1
+
+    return { intent, score }
+  })
+
+  return scored
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
     .map(({ intent }) => intent)
+}
+
+// ─── Refinement system ──────────────────────────────────────────────────────
+//
+// When the user sends messages like "algo más relajado" or "something quieter",
+// these map to tag weight adjustments instead of resetting the recommendation.
+
+export type RefinementMode = 'relax' | 'energy' | 'treat' | 'romantic' | 'culture' | null
+
+/** Tags to boost/reduce for each refinement mode */
+const REFINEMENT_TAG_ADJUSTMENTS: Record<string, { boost: ContextTag[]; reduce: ContextTag[] }> = {
+  relax: {
+    boost: ['wine', 'terrace', 'romantic', 'coffee', 'viewpoint', 'wellness'],
+    reduce: ['live-music', 'celebration', 'late-night', 'cocktails'],
+  },
+  energy: {
+    boost: ['cocktails', 'live-music', 'late-night', 'celebration', 'rooftop'],
+    reduce: ['coffee', 'wellness', 'wine', 'viewpoint'],
+  },
+  treat: {
+    boost: ['fine-dining', 'romantic', 'rooftop', 'wine', 'sunset', 'wellness'],
+    reduce: ['quick-stop', 'coffee', 'shopping'],
+  },
+  romantic: {
+    boost: ['romantic', 'fine-dining', 'wine', 'sunset', 'terrace', 'viewpoint'],
+    reduce: ['family', 'shopping', 'quick-stop', 'live-music'],
+  },
+  culture: {
+    boost: ['culture', 'local-secret', 'viewpoint', 'wine'],
+    reduce: ['shopping', 'cocktails', 'late-night'],
+  },
+}
+
+export function getRefinementTagAdjustments(mode: string): { boost: string[]; reduce: string[] } | null {
+  return REFINEMENT_TAG_ADJUSTMENTS[mode] ?? null
+}
+
+/** Detect refinement mode from user text input (multi-language) */
+const REFINEMENT_KEYWORDS: Record<string, string[]> = {
+  relax: [
+    'relajado', 'relax', 'relaxed', 'tranquilo', 'quieter', 'quiet', 'calm', 'calmo',
+    'chill', 'peaceful', 'sereno', 'suave', 'más tranquilo', 'mais calmo',
+  ],
+  energy: [
+    'energía', 'energy', 'animado', 'lively', 'fun', 'divertido', 'festivo',
+    'fiesta', 'party', 'upbeat', 'vibrant', 'vibrante', 'emocionante',
+  ],
+  treat: [
+    'capricho', 'treat', 'lujo', 'luxury', 'special', 'especial', 'premium',
+    'mimo', 'indulge', 'elegante', 'elegant', 'exclusivo', 'exclusive',
+  ],
+  romantic: [
+    'romántico', 'romantic', 'pareja', 'couple', 'date', 'cita', 'íntimo', 'intimate',
+  ],
+  culture: [
+    'cultura', 'culture', 'cultural', 'arte', 'art', 'museo', 'museum', 'galería', 'gallery',
+  ],
+}
+
+export function detectRefinementFromText(text: string): RefinementMode {
+  const normalized = text.toLowerCase().replace(/[^\w\s]/g, ' ').trim()
+  for (const [mode, keywords] of Object.entries(REFINEMENT_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (normalized.includes(kw)) return mode as RefinementMode
+    }
+  }
+  return null
 }
 
 // ─── Intent resolution ────────────────────────────────────────────────────────
