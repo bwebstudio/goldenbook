@@ -2,7 +2,8 @@
 
 import { FormEvent, useState } from "react";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const _raw = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const API_BASE_URL = _raw.startsWith("http") ? _raw : `https://${_raw}`;
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");

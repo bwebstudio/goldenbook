@@ -4,7 +4,16 @@
 
 import { AUTH_COOKIE_NAMES, getBrowserAccessToken } from "@/lib/api/auth";
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+function resolveBaseUrl(): string {
+  let url = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  // Ensure protocol is present — missing https:// causes ERR_INVALID_URL
+  if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+  return url;
+}
+
+const BASE_URL = resolveBaseUrl();
 
 // ─── Logout guard ───────────────────────────────────────────────────────────
 // When set to true, ALL outbound API requests are blocked immediately.
