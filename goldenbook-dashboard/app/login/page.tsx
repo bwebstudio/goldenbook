@@ -16,8 +16,9 @@ export default async function LoginPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-border px-10 py-12">
           {/* Logo / Title */}
           <div className="mb-10 text-center">
-            <h1 className="text-3xl font-bold text-text mb-1">
-              Golden<span className="text-gold">book</span>
+            <h1 className="text-3xl font-bold mb-1">
+              <span className="text-gold">Goldenbook</span>{" "}
+              <span className="text-text">GO</span>
             </h1>
             <p className="text-base text-muted mt-3">
               Sign in to access the dashboard

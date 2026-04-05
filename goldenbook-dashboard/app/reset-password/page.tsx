@@ -8,7 +8,8 @@ export default function ResetPasswordPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-border px-10 py-12">
           <div className="mb-10 text-center">
             <h1 className="text-3xl font-bold text-text mb-1">
-              Golden<span className="text-gold">book</span>
+              <span className="text-gold">Goldenbook</span>{" "}
+              <span className="text-text">GO</span>
             </h1>
             <p className="text-base text-muted mt-3">
               Set your new password
