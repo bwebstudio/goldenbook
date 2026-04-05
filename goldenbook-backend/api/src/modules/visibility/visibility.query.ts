@@ -27,25 +27,34 @@ export async function getVisibilitiesForPlace(placeId: string): Promise<Visibili
   return rows
 }
 
-// ─── Inventory limits per surface per city ──────────────────────────────────
+// ─── Commercial Inventory Rules ─────────────────────────────────────────────
+//
+// These rules protect editorial integrity and prevent establishment domination.
+// Each surface has strict per-place and per-city limits.
 
-const SURFACE_MAX_SLOTS: Record<string, number> = {
+/** Surfaces that belong to the Discover experience (mutually exclusive per place) */
+const DISCOVER_SURFACES = new Set(['golden_picks', 'hidden_spots', 'new_on_goldenbook'])
+
+/** Max sponsored slots per surface per city */
+const CITY_SURFACE_LIMITS: Record<string, number> = {
   golden_picks:      5,
   now:               4,  // 1 per time window × 4 windows
   hidden_spots:      1,
   new_on_goldenbook: 2,
   search_priority:   3,
-  category_featured: 3,  // per category
+  category_featured: 3,  // per category per city
   concierge:         1,
 }
 
-const MAX_ACTIVE_CAMPAIGNS_PER_PLACE = 3
-
 /**
- * Create a visibility placement with full commercial validation:
+ * Create a visibility placement with full commercial validation.
+ *
+ * Rules enforced:
  *   1. No overlapping campaign for same place + surface + time slot
- *   2. Max campaigns per place (3 globally)
- *   3. Slot inventory limits per surface per city
+ *   2. Discover exclusivity: max 1 Discover surface per place
+ *   3. Per-surface exclusivity: max 1 NOW/Search/Category per place
+ *   4. Concierge + Discover anti-domination
+ *   5. City slot inventory limits
  */
 export async function createVisibility(data: {
   placeId: string; surface: string; visibilityType: string;
@@ -53,7 +62,9 @@ export async function createVisibility(data: {
   notes: string | null; source?: string; placementSlot?: string | null;
   scopeType?: string | null; scopeId?: string | null;
 }): Promise<VisibilityRow> {
-  // ── Validation 1: Duplicate/overlap prevention ────────────────────────
+  const activeFilter = `AND is_active = true AND (ends_at IS NULL OR ends_at >= now())`
+
+  // ── Rule 1: No duplicate/overlap for same place + surface + slot ──────
   const slotClause = data.placementSlot
     ? `AND placement_slot = $4`
     : `AND placement_slot IS NULL`
@@ -62,7 +73,7 @@ export async function createVisibility(data: {
 
   const { rows: overlapping } = await db.query<{ id: string }>(`
     SELECT id FROM place_visibility
-    WHERE place_id = $1 AND surface = $2 AND is_active = true
+    WHERE place_id = $1 AND surface = $2 ${activeFilter}
       ${slotClause}
       AND (starts_at IS NULL OR starts_at <= COALESCE($${data.placementSlot ? 5 : 4}::timestamptz, '9999-12-31'))
       AND (ends_at IS NULL OR ends_at >= $3::timestamptz)
@@ -73,22 +84,66 @@ export async function createVisibility(data: {
     throw new Error(`DUPLICATE_PLACEMENT: Place already has an active ${data.surface} placement for this period/slot`)
   }
 
-  // ── Validation 2: Max 3 active campaigns per place ────────────────────
-  const { rows: [countRow] } = await db.query<{ cnt: string }>(`
-    SELECT COUNT(*)::text AS cnt FROM place_visibility
-    WHERE place_id = $1 AND is_active = true
-      AND (ends_at IS NULL OR ends_at >= now())
-  `, [data.placeId])
+  // ── Rule 2: Discover exclusivity — max 1 Discover surface per place ───
+  if (DISCOVER_SURFACES.has(data.surface)) {
+    const discoverList = [...DISCOVER_SURFACES].map((_, i) => `$${i + 2}`).join(', ')
+    const { rows: existingDiscover } = await db.query<{ surface: string }>(`
+      SELECT surface FROM place_visibility
+      WHERE place_id = $1 AND surface IN (${discoverList}) ${activeFilter}
+      LIMIT 1
+    `, [data.placeId, ...DISCOVER_SURFACES])
 
-  if (parseInt(countRow?.cnt ?? '0', 10) >= MAX_ACTIVE_CAMPAIGNS_PER_PLACE) {
-    throw new Error(`MAX_CAMPAIGNS: Place already has ${MAX_ACTIVE_CAMPAIGNS_PER_PLACE} active campaigns`)
+    if (existingDiscover.length > 0) {
+      throw new Error(`DISCOVER_EXCLUSIVE: Place already has an active Discover placement (${existingDiscover[0].surface}). Only 1 Discover surface allowed per place.`)
+    }
   }
 
-  // ── Validation 3: City slot inventory (if sponsored) ──────────────────
+  // ── Rule 3: Per-surface exclusivity — max 1 per place for these ───────
+  // NOW: max 1 campaign per place (cannot buy multiple time windows)
+  // Search Priority: max 1 per place
+  // Category Highlight: max 1 per place
+  const ONE_PER_PLACE_SURFACES = new Set(['now', 'search_priority', 'category_featured'])
+  if (ONE_PER_PLACE_SURFACES.has(data.surface)) {
+    const { rows: existingSurface } = await db.query<{ id: string }>(`
+      SELECT id FROM place_visibility
+      WHERE place_id = $1 AND surface = $2 ${activeFilter}
+      LIMIT 1
+    `, [data.placeId, data.surface])
+
+    if (existingSurface.length > 0) {
+      throw new Error(`SURFACE_EXCLUSIVE: Place already has an active ${data.surface} campaign. Max 1 per place.`)
+    }
+  }
+
+  // ── Rule 4: Concierge + Discover anti-domination ──────────────────────
+  if (data.surface === 'concierge') {
+    const discoverList = [...DISCOVER_SURFACES].map((_, i) => `$${i + 2}`).join(', ')
+    const { rows: hasDiscover } = await db.query<{ surface: string }>(`
+      SELECT surface FROM place_visibility
+      WHERE place_id = $1 AND surface IN (${discoverList}) ${activeFilter}
+      LIMIT 1
+    `, [data.placeId, ...DISCOVER_SURFACES])
+
+    if (hasDiscover.length > 0) {
+      throw new Error(`ANTI_DOMINATION: Place already has a Discover placement (${hasDiscover[0].surface}). Cannot add Concierge sponsorship — prevents single-establishment domination.`)
+    }
+  }
+  if (DISCOVER_SURFACES.has(data.surface)) {
+    const { rows: hasConcierge } = await db.query<{ id: string }>(`
+      SELECT id FROM place_visibility
+      WHERE place_id = $1 AND surface = 'concierge' ${activeFilter}
+      LIMIT 1
+    `, [data.placeId])
+
+    if (hasConcierge.length > 0) {
+      throw new Error(`ANTI_DOMINATION: Place already has a Concierge sponsorship. Cannot add Discover placement — prevents single-establishment domination.`)
+    }
+  }
+
+  // ── Rule 5: City slot inventory limits (sponsored only) ───────────────
   if (data.visibilityType === 'sponsored') {
-    const maxSlots = SURFACE_MAX_SLOTS[data.surface]
+    const maxSlots = CITY_SURFACE_LIMITS[data.surface]
     if (maxSlots != null) {
-      // Get city from place → destination
       const { rows: [place] } = await db.query<{ city_slug: string }>(`
         SELECT d.slug AS city_slug FROM places p
         JOIN destinations d ON d.id = p.destination_id
@@ -106,7 +161,7 @@ export async function createVisibility(data: {
         `, [place.city_slug, data.surface])
 
         if (parseInt(slotCount?.cnt ?? '0', 10) >= maxSlots) {
-          throw new Error(`INVENTORY_FULL: ${data.surface} has no available slots in ${place.city_slug}`)
+          throw new Error(`INVENTORY_FULL: ${data.surface} has no available sponsored slots in ${place.city_slug} (max ${maxSlots})`)
         }
       }
     }

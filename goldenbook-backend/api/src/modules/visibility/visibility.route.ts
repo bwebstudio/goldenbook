@@ -51,7 +51,8 @@ export async function visibilityRoutes(app: FastifyInstance) {
       const row = await createVisibility({ placeId: id, ...body })
       return reply.status(201).send(row)
     } catch (err: any) {
-      if (err.message?.startsWith('DUPLICATE_PLACEMENT:') || err.message?.startsWith('MAX_CAMPAIGNS:') || err.message?.startsWith('INVENTORY_FULL:')) {
+      const inventoryErrors = ['DUPLICATE_PLACEMENT:', 'DISCOVER_EXCLUSIVE:', 'SURFACE_EXCLUSIVE:', 'ANTI_DOMINATION:', 'INVENTORY_FULL:']
+      if (inventoryErrors.some(prefix => err.message?.startsWith(prefix))) {
         throw new AppError(409, err.message, 'INVENTORY_CONFLICT')
       }
       throw err
