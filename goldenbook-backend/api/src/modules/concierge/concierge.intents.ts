@@ -199,6 +199,21 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     keywords: ['shop', 'shopping', 'boutique', 'fashion', 'design', 'concept store', 'buy'],
     priority: 4,
   },
+  {
+    id: 'relaxed_walk',
+    title: 'Relaxed walk',
+    subtitle: 'Beautiful stops along the way',
+    icon: 'directions_walk',
+    labels: ['Perfect for strolling'],
+    placeTypes: ['cafe', 'bar', 'museum', 'activity', 'landmark', 'venue', 'shop'],
+    editorialIntents: ['explore_city', 'scenic_views', 'hidden_gem_restaurant'],
+    fallbackIntents: ['nature', 'relaxing', 'coffee_shop'],
+    categorySlugs: ['viewpoint', 'terrace', 'cafe', 'culture', 'garden'],
+    tags: ['viewpoint', 'terrace', 'coffee', 'local-secret', 'culture', 'sunset', 'wine', 'quiet', 'garden', 'scenic'],
+    preferredTimeOfDay: ['morning', 'afternoon', 'evening'],
+    keywords: ['walk', 'stroll', 'paseo', 'tranquilo', 'quiet walk', 'relax walk', 'caminar', 'passear', 'descobrir'],
+    priority: 7,
+  },
 ]
 
 // Fast lookup by id
@@ -276,6 +291,11 @@ const INTENT_LABELS_I18N: Record<string, Partial<Record<string, IntentLabels>>> 
     en: { title: 'Design shopping',       subtitle: 'Curated boutiques and independent stores', labels: ['Curated selection'] },
     pt: { title: 'Compras de design',     subtitle: 'Boutiques e lojas independentes',       labels: ['Seleção curada'] },
     es: { title: 'Compras de diseño',     subtitle: 'Boutiques y tiendas independientes',     labels: ['Selección curada'] },
+  },
+  relaxed_walk: {
+    en: { title: 'Relaxed walk',          subtitle: 'Beautiful stops along the way',          labels: ['Perfect for strolling'] },
+    pt: { title: 'Passeio tranquilo',     subtitle: 'Paragens bonitas pelo caminho',          labels: ['Perfeito para passear'] },
+    es: { title: 'Paseo tranquilo',       subtitle: 'Paradas bonitas por el camino',          labels: ['Perfecto para pasear'] },
   },
 }
 

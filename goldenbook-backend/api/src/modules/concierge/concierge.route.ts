@@ -90,11 +90,11 @@ const recommendBodySchema = z.object({
 type AdjustmentEmotion = 'relax' | 'energy' | 'treat' | 'romantic' | 'culture'
 
 const EMOTION_INTENT_GROUPS: Record<AdjustmentEmotion, string[]> = {
-  relax: ['quiet_wine_bar', 'gallery_afternoon', 'coffee_and_work', 'hidden_gems'],
+  relax: ['relaxed_walk', 'quiet_wine_bar', 'gallery_afternoon', 'coffee_and_work', 'hidden_gems'],
   energy: ['cocktail_bars', 'sunset_drinks', 'late_night_jazz', 'after_dinner_drinks', 'hidden_gems'],
   treat: ['romantic_dinner', 'design_shopping', 'sunset_drinks', 'long_lunch', 'late_night_jazz'],
   romantic: ['romantic_dinner', 'quiet_wine_bar', 'sunset_drinks', 'hidden_gems'],
-  culture: ['gallery_afternoon', 'hidden_gems', 'coffee_and_work'],
+  culture: ['gallery_afternoon', 'relaxed_walk', 'hidden_gems', 'coffee_and_work'],
 }
 
 const ADJUSTMENT_SIGNAL_TAGS: Record<AdjustmentEmotion, string[]> = {

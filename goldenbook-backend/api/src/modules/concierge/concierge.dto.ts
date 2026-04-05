@@ -47,10 +47,14 @@ export interface ConciergeRecommendResponseDTO {
 // ─── Badge i18n ───────────────────────────────────────────────────────────────
 
 const BADGE_I18N: Record<string, Record<string, string>> = {
-  "Editor's Pick":       { en: "Editor's Pick",       pt: 'Escolha do editor' },
-  'Hidden Gem':          { en: 'Hidden Gem',           pt: 'Joia escondida'    },
-  'Exclusive Discovery': { en: 'Exclusive Discovery',  pt: 'Descoberta exclusiva' },
+  "Editor's Pick":       { en: "Editor's Pick",       pt: 'Escolha do editor',    es: 'Selección del editor' },
+  'Hidden Gem':          { en: 'Hidden Gem',           pt: 'Joia escondida',       es: 'Joya escondida' },
+  'Exclusive Discovery': { en: 'Exclusive Discovery',  pt: 'Descoberta exclusiva', es: 'Descubrimiento exclusivo' },
+  'Highly Recommended':  { en: 'Highly Recommended',   pt: 'Muito recomendado',    es: 'Muy recomendado' },
 }
+
+/** Tags that qualify a place for the "Exclusive Discovery" editorial badge */
+const DISCOVERY_TAGS = new Set(['local-secret', 'culture', 'viewpoint'])
 
 function localizeBadge(badge: string, locale: string): string {
   const localeFamily = locale.split('-')[0]
@@ -79,9 +83,25 @@ export function toRecommendationDTO(
 ): ConciergeRecommendationDTO {
   const intentLabels = getIntentLabels(intent.id, locale)
   const rawBadges: string[] = []
+
+  // Editorial badge logic:
+  // 1. Featured places → "Editor's Pick"
   if (place.featured) rawBadges.push("Editor's Pick")
+
+  // 2. Intent with "hidden" label → "Hidden Gem"
   if (intentLabels.labels[0]?.toLowerCase().includes('hidden')) rawBadges.push('Hidden Gem')
-  if (rawBadges.length === 0) rawBadges.push('Exclusive Discovery')
+
+  // 3. "Exclusive Discovery" ONLY for places with genuine editorial discovery tags
+  //    (local-secret, culture, viewpoint) — not just any restaurant
+  const placeTags = ('context_tag_slugs' in place && Array.isArray((place as any).context_tag_slugs))
+    ? (place as any).context_tag_slugs as string[]
+    : []
+  if (rawBadges.length === 0 && placeTags.some(t => DISCOVERY_TAGS.has(t))) {
+    rawBadges.push('Exclusive Discovery')
+  }
+
+  // 4. Fallback: "Highly Recommended" for everything else
+  if (rawBadges.length === 0) rawBadges.push('Highly Recommended')
 
   return {
     id: place.id,

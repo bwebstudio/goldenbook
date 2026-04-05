@@ -193,6 +193,9 @@ export async function getConciergeRecommendations(
       AND p.is_active = true
       AND p.is_temporarily_closed = false
       AND p.place_type IN (${typeParams})
+      -- Exclude service-type businesses (not visitable experiences)
+      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.business_type, '') NOT IN ('real_estate', 'relocation', 'consultancy', 'law_firm', 'corporate')
       ${intentFilter}
     ORDER BY
       -- Places with matching primary intents first
@@ -325,6 +328,8 @@ export async function getFallbackPlaces(
     WHERE d.slug = lower($1)
       AND p.status = 'published' AND p.is_active = true AND p.is_temporarily_closed = false
       AND p.place_type IN (${typeParams})
+      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND COALESCE(p.business_type, '') NOT IN ('real_estate', 'relocation', 'consultancy', 'law_firm', 'corporate')
       ${excludeClause}
     ORDER BY
       p.featured DESC,
