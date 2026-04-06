@@ -208,10 +208,31 @@ export function getTagLabel(tag: string, locale = 'en'): string {
   return TAG_LABELS[t]?.[lang] ?? TAG_LABELS[t]?.['en'] ?? tag
 }
 
+// ─── City timezone mapping ──────────────────────────────────────────────────
+
+const CITY_TIMEZONES: Record<string, string> = {
+  lisbon: 'Europe/Lisbon', lisboa: 'Europe/Lisbon',
+  porto: 'Europe/Lisbon', algarve: 'Europe/Lisbon',
+  madeira: 'Atlantic/Madeira',
+  barcelona: 'Europe/Madrid', madrid: 'Europe/Madrid',
+  paris: 'Europe/Paris', london: 'Europe/London',
+  rome: 'Europe/Rome', milan: 'Europe/Rome',
+  amsterdam: 'Europe/Amsterdam', berlin: 'Europe/Berlin',
+}
+
 // ─── Time-of-day detection ──────────────────────────────────────────────────
 
-export function getNowTimeOfDay(date: Date = new Date()): NowTimeOfDay {
-  const hour = date.getHours()
+/**
+ * Get time-of-day for a city. Uses the city's timezone, not the server's.
+ * Falls back to Europe/Lisbon if city is unknown.
+ */
+export function getNowTimeOfDay(date: Date = new Date(), citySlug?: string): NowTimeOfDay {
+  const tz = (citySlug && CITY_TIMEZONES[citySlug]) || 'Europe/Lisbon'
+  const hourStr = new Intl.DateTimeFormat('en-GB', {
+    hour: 'numeric', hour12: false, timeZone: tz,
+  }).format(date)
+  const hour = parseInt(hourStr, 10)
+
   if (hour >= 6 && hour < 11)  return 'morning'
   if (hour >= 11 && hour < 14) return 'midday'
   if (hour >= 14 && hour < 18) return 'afternoon'

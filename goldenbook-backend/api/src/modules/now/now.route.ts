@@ -360,14 +360,14 @@ async function resolveNow(
   weather: WeatherCondition | undefined
   ranked: ScoredCandidate[]
 }> {
-  const timeOfDay = getNowTimeOfDay()
-
   let city: { slug: string; name: string }
   if (cityParam) {
     city = (await getConciergeCity(cityParam, locale)) ?? (await getDefaultConciergeCity(locale))
   } else {
     city = await getDefaultConciergeCity(locale)
   }
+
+  const timeOfDay = getNowTimeOfDay(new Date(), city.slug)
 
   // Weather resolution — works with or without coordinates (falls back to city-based)
   const weatherResult = await resolveWeather(lat, lon, city.slug)
@@ -420,8 +420,6 @@ async function scorePlaceById(
   lon: number | undefined,
   weights: ScoringWeights,
 ): Promise<{ result: ScoredCandidate; weather: WeatherCondition | undefined; timeOfDay: NowTimeOfDay; city: { slug: string; name: string } } | null> {
-  const timeOfDay = getNowTimeOfDay()
-
   let city: { slug: string; name: string }
   if (cityParam) {
     city = (await getConciergeCity(cityParam, locale)) ?? (await getDefaultConciergeCity(locale))
@@ -429,6 +427,7 @@ async function scorePlaceById(
     city = await getDefaultConciergeCity(locale)
   }
 
+  const timeOfDay = getNowTimeOfDay(new Date(), city.slug)
   const weatherResult = await resolveWeather(lat, lon, city.slug)
   const weather = weatherResult?.condition
 
@@ -492,7 +491,7 @@ export async function nowRoutes(app: FastifyInstance) {
       sessionId, city.slug, segment,
     )
 
-    const timeOfDay = getNowTimeOfDay()
+    const timeOfDay = getNowTimeOfDay(new Date(), city.slug)
 
     // Reset slot history if time window or city changed
     ensureSlotContext(session, timeOfDay, city.slug)
@@ -613,7 +612,7 @@ export async function nowRoutes(app: FastifyInstance) {
       city = await getDefaultConciergeCity(locale)
     }
 
-    const timeOfDay = getNowTimeOfDay()
+    const timeOfDay = getNowTimeOfDay(new Date(), city.slug)
 
     // Reset slot history if time window or city changed
     ensureSlotContext(session, timeOfDay, city.slug)
