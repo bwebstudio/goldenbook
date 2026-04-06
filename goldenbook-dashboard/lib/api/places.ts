@@ -28,8 +28,9 @@ export async function fetchPlaceBySlug(slug: string, locale = "pt"): Promise<Pla
 
 // GET /api/v1/admin/categories
 // Returns all active categories and subcategories. Used to populate the category dropdown.
-export async function fetchAdminCategories(): Promise<AdminCategoryDTO[]> {
-  const data = await apiGet<AdminCategoriesResponseDTO>("/api/v1/admin/categories");
+export async function fetchAdminCategories(locale = 'en'): Promise<AdminCategoryDTO[]> {
+  const lang = locale.split('-')[0];
+  const data = await apiGet<AdminCategoriesResponseDTO>(`/api/v1/admin/categories?locale=${lang}`);
   return data.items;
 }
 

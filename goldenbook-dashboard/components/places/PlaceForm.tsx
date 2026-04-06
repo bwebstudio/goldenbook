@@ -555,8 +555,8 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
         {/* ── H. Contextual Relevance (tags + time windows for NOW / Concierge) ── */}
         {isEditing && place && (
           <FormSection
-            title="Contextual relevance"
-            description="Define the moments and contexts in which this place is most relevant. This helps improve recommendation quality across NOW and Concierge."
+            title={isPt ? "Relevância contextual" : "Contextual relevance"}
+            description={isPt ? "Define os momentos e contextos em que este espaço é mais relevante." : "Define the moments and contexts in which this place is most relevant."}
           >
             <PlaceNowVisibility
               placeId={place.id}

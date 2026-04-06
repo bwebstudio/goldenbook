@@ -42,23 +42,29 @@ export async function adminCategoriesRoutes(app: FastifyInstance) {
   // ── GET /admin/categories ───────────────────────────────────────────────────
   // Returns all categories (active and inactive) with their subcategories.
   // Exposes the full set of admin-editable fields.
-  app.get('/admin/categories', { preHandler: [authenticateDashboardUser] }, async (_request, reply) => {
+  app.get('/admin/categories', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { locale: rawLocale } = z.object({ locale: z.string().default('en') }).parse(request.query)
+    const lang = rawLocale.split('-')[0]
+
     const { rows: cats } = await db.query<{
       id: string; slug: string; name: string; description: string | null
       icon_name: string | null; sort_order: number; is_active: boolean
     }>(
       `
       SELECT c.id, c.slug,
-             COALESCE(ct.name, c.slug)  AS name,
-             ct.description,
+             COALESCE(NULLIF(ct_loc.name,''), NULLIF(ct_en.name,''), c.slug)  AS name,
+             COALESCE(ct_loc.description, ct_en.description) AS description,
              c.icon_name,
              c.sort_order,
              c.is_active
       FROM   categories c
-      LEFT JOIN category_translations ct
-             ON ct.category_id = c.id AND ct.locale = 'en'
+      LEFT JOIN category_translations ct_loc
+             ON ct_loc.category_id = c.id AND ct_loc.locale = $1
+      LEFT JOIN category_translations ct_en
+             ON ct_en.category_id = c.id AND ct_en.locale = 'en'
       ORDER  BY c.sort_order ASC, c.slug ASC
       `,
+      [lang],
     )
 
     const { rows: subs } = await db.query<{
@@ -67,15 +73,18 @@ export async function adminCategoriesRoutes(app: FastifyInstance) {
     }>(
       `
       SELECT s.id, s.slug, s.category_id,
-             COALESCE(st.name, s.slug) AS name,
-             st.description,
+             COALESCE(NULLIF(st_loc.name,''), NULLIF(st_en.name,''), s.slug) AS name,
+             COALESCE(st_loc.description, st_en.description) AS description,
              s.sort_order,
              s.is_active
       FROM   subcategories s
-      LEFT JOIN subcategory_translations st
-             ON st.subcategory_id = s.id AND st.locale = 'en'
+      LEFT JOIN subcategory_translations st_loc
+             ON st_loc.subcategory_id = s.id AND st_loc.locale = $1
+      LEFT JOIN subcategory_translations st_en
+             ON st_en.subcategory_id = s.id AND st_en.locale = 'en'
       ORDER  BY s.sort_order ASC, s.slug ASC
       `,
+      [lang],
     )
 
     const subsByCatId = new Map<string, typeof subs>()

@@ -13,7 +13,7 @@ export default async function NewPlacePage() {
       )
       .catch(() => [] as { slug: string; name: string }[]),
 
-    fetchAdminCategories()
+    fetchAdminCategories('pt')
       .then((cats) =>
         cats
           .map((c) => ({

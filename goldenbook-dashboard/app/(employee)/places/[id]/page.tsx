@@ -28,7 +28,7 @@ export default async function EditPlacePage({
       )
       .catch(() => [] as { slug: string; name: string }[]),
 
-    fetchAdminCategories()
+    fetchAdminCategories('pt')
       .then((cats) =>
         cats
           .map((c) => ({
