@@ -2,6 +2,7 @@ import { db } from '../../../db/postgres'
 import { AppError, NotFoundError, ValidationError } from '../../../shared/errors/AppError'
 import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from './admin-places.dto'
 import { translatePlaceFields, type PlaceTranslationFields } from '../../../lib/translation/deepl'
+import { autoClassifyPlace } from './auto-classify'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,9 @@ export async function createPlace(
 
     await client.query('COMMIT')
 
+    // Auto-classify (fire-and-forget — don't block response)
+    autoClassifyPlace(place.id).catch(() => {})
+
     const citySlugs = await getPlaceCitySlugs(place.id)
 
     return {
@@ -485,6 +489,9 @@ export async function updatePlace(
     }
 
     await client.query('COMMIT')
+
+    // Auto-classify (fire-and-forget — don't block response)
+    autoClassifyPlace(placeId).catch(() => {})
 
     // Fetch final state for response
     const { rows: final } = await db.query<{

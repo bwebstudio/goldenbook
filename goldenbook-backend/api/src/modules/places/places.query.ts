@@ -78,7 +78,11 @@ const CORE_SELECT = `
   p.longitude,
   p.brand_id,
   br.name  AS brand_name,
-  br.slug  AS brand_slug`
+  br.slug  AS brand_slug,
+  p.classification_auto,
+  p.context_windows_auto,
+  p.context_tags_auto,
+  p.moment_tags_auto`
 
 const BOOKING_SELECT = `,
   p.booking_enabled,
@@ -96,11 +100,7 @@ const BOOKING_SELECT = `,
   p.suggestion_reason,
   p.suggestion_source,
   p.suggestion_generated_at,
-  p.suggestion_dismissed,
-  p.classification_auto,
-  p.context_windows_auto,
-  p.context_tags_auto,
-  p.moment_tags_auto`
+  p.suggestion_dismissed`
 
 const FROM_CLAUSE = `
 FROM places p
