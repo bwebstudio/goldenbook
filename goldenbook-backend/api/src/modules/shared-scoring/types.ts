@@ -92,4 +92,8 @@ export interface ScoringContext {
   surface: 'now' | 'concierge'
   /** Concierge intent tags for context overlap scoring */
   intentTags?: string[]
+  /** User onboarding interests (fine-dining, wine, culture, etc.) */
+  userInterests?: string[]
+  /** User exploration style (solo, couple, friends, family) */
+  userStyle?: string
 }

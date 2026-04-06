@@ -168,6 +168,80 @@ function scoreProximity(distanceMeters: number | null): number {
   return Math.round(100 * (1 - (distanceMeters - 500) / 4500))
 }
 
+// ─── Personalization scoring ────────────────────────────────────────────────
+
+/**
+ * Map onboarding interest IDs to context tag slugs.
+ * When a user selects "Wine & Tastings", places tagged with "wine" get a boost.
+ */
+const INTEREST_TO_TAGS: Record<string, string[]> = {
+  'fine-dining':  ['fine-dining', 'dinner', 'romantic'],
+  'wine':         ['wine', 'sunset', 'terrace'],
+  'culture':      ['culture', 'viewpoint', 'local-secret'],
+  'hidden-gems':  ['local-secret', 'culture', 'viewpoint'],
+  'hotels':       ['wellness', 'rooftop', 'terrace'],
+  'nature':       ['viewpoint', 'sunset', 'terrace'],
+  'nightlife':    ['cocktails', 'late-night', 'live-music'],
+  'wellness':     ['wellness', 'coffee', 'terrace'],
+  'shopping':     ['shopping', 'quick-stop'],
+  'history':      ['culture', 'viewpoint', 'local-secret'],
+}
+
+/**
+ * Map exploration style to preferred context tags.
+ */
+const STYLE_TO_TAGS: Record<string, string[]> = {
+  'solo':    ['coffee', 'culture', 'quick-stop', 'viewpoint'],
+  'couple':  ['romantic', 'fine-dining', 'wine', 'sunset', 'terrace'],
+  'friends': ['cocktails', 'live-music', 'late-night', 'rooftop'],
+  'family':  ['family', 'culture', 'viewpoint', 'brunch', 'quick-stop'],
+}
+
+/**
+ * Personalization score (0–100).
+ * Boosts places that match the user's onboarding preferences.
+ */
+function scorePersonalization(
+  place: UnifiedCandidate,
+  ctx: ScoringContext,
+): number {
+  if (!ctx.userInterests?.length && !ctx.userStyle) return 0
+
+  const placeTags = new Set(place.context_tag_slugs ?? [])
+  if (placeTags.size === 0) return 0
+
+  let score = 0
+
+  // Interest matching: each matching tag adds points
+  if (ctx.userInterests?.length) {
+    for (const interest of ctx.userInterests) {
+      const matchTags = INTEREST_TO_TAGS[interest]
+      if (!matchTags) continue
+      for (const tag of matchTags) {
+        if (placeTags.has(tag)) {
+          score += 12
+          break // count each interest once
+        }
+      }
+    }
+  }
+
+  // Style matching: exploration style preferences
+  if (ctx.userStyle) {
+    const styleTags = STYLE_TO_TAGS[ctx.userStyle]
+    if (styleTags) {
+      for (const tag of styleTags) {
+        if (placeTags.has(tag)) {
+          score += 8
+          break // count style once
+        }
+      }
+    }
+  }
+
+  return Math.min(score, 100)
+}
+
 // ─── Single candidate scorer ────────────────────────────────────────────────
 
 export function scoreCandidate(
@@ -182,13 +256,16 @@ export function scoreCandidate(
   const editorialScore = scoreEditorial(place)
   const qualityScore = scoreQuality(place)
   const proximityScore = scoreProximity(place.distance_meters)
+  const personalizationScore = scorePersonalization(place, ctx)
 
   const totalScore =
     w.commercial * commercialScore +
     w.context    * contextScore +
     w.editorial  * editorialScore +
     w.quality    * qualityScore +
-    w.proximity  * proximityScore
+    w.proximity  * proximityScore +
+    // Personalization: additive bonus (not weighted — always applied when profile exists)
+    personalizationScore * 0.12
 
   const breakdown: ScoreBreakdown = {
     commercial: { raw: commercialScore, weighted: round2(w.commercial * commercialScore) },

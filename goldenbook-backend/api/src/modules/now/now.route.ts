@@ -354,6 +354,8 @@ async function resolveNow(
   lon: number | undefined,
   excludeIds: Set<string>,
   weights: ScoringWeights,
+  userInterests?: string[],
+  userStyle?: string,
 ): Promise<{
   city: { slug: string; name: string }
   timeOfDay: NowTimeOfDay
@@ -388,6 +390,7 @@ async function resolveNow(
 
   const ctx: ScoringContext = {
     timeOfDay, weather, paidPlaceIds, excludeIds: allExcludeIds, weights, surface: 'now',
+    userInterests, userStyle,
   }
 
   // Score → diversity → select top 3
@@ -399,6 +402,7 @@ async function resolveNow(
   if (ranked.length === 0 && cooldownIds.size > 0) {
     const retryCtx: ScoringContext = {
       timeOfDay, weather, paidPlaceIds, excludeIds, weights, surface: 'now',
+      userInterests, userStyle,
     }
     let retryScored = rankCandidates(candidates, retryCtx)
     retryScored = applyDiversityRules(retryScored)
@@ -498,6 +502,7 @@ export async function nowRoutes(app: FastifyInstance) {
 
     const { weather, ranked } = await resolveNow(
       cityParam, locale, lat, lon, session.shownPlaceIds, weights,
+      profile.interests, profile.style,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
@@ -649,6 +654,7 @@ export async function nowRoutes(app: FastifyInstance) {
     // ── Normal flow: show next unseen option (up to MAX_OPTIONS_PER_SLOT) ──
     const { weather, ranked } = await resolveNow(
       cityParam, locale, lat, lon, session.shownPlaceIds, weights,
+      profile.interests, profile.style,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
@@ -741,6 +747,7 @@ export async function nowRoutes(app: FastifyInstance) {
 
     const { timeOfDay, weather, ranked } = await resolveNow(
       cityParam, locale, lat, lon, session.shownPlaceIds, weights,
+      profile.interests, profile.style,
     )
 
     const alternatives = ranked.slice(0, limit)

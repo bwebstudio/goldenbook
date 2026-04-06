@@ -644,7 +644,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       timeOfDay: nowTimeOfDay,
       weather,
       paidPlaceIds: boostIds,
-      excludeIds: new Set(),  // don't hard-exclude, use penalty instead
+      excludeIds: new Set(),
       weights: {
         commercial: 0.15,
         context:    0.30,
@@ -654,6 +654,8 @@ export async function conciergeRoutes(app: FastifyInstance) {
       },
       surface: 'concierge',
       intentTags: [...resolvedIntent.tags, ...resolvedIntent.categorySlugs],
+      userInterests: interests?.length ? interests : undefined,
+      userStyle: style ?? undefined,
     }
 
     // Score all candidates with the shared engine + Concierge-specific adjustments
