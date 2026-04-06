@@ -82,6 +82,11 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     reservationSource: (dto.bookingAdmin?.reservationSource as ReservationSource) ?? null,
     reservationLastReviewedAt: dto.bookingAdmin?.reservationLastReviewedAt ?? null,
     suggestion: dto.suggestion ?? null,
+    // Auto-generated context engine fields
+    classificationAuto: dto.classificationAuto ?? null,
+    contextWindowsAuto: dto.contextWindowsAuto ?? null,
+    contextTagsAuto: dto.contextTagsAuto ?? null,
+    momentTagsAuto: dto.momentTagsAuto ?? null,
   };
 }
 

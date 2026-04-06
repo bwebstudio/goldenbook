@@ -98,6 +98,24 @@ export const EMPTY_NOW_FORM: NowFormValues = {
   nowTimeWindows: [],
 };
 
+// ─── Auto-generated data types ────────────────────────────────────────────
+
+interface AutoClassification {
+  type: string;
+  category: string;
+  subcategory: string;
+}
+
+// ─── Window translations for auto fields ──────────────────────────────────
+
+const WINDOW_LABELS: Record<string, Record<string, string>> = {
+  'manhã':     { en: 'Morning (6–11)',    pt: 'Manhã (6–11)' },
+  'almoço':    { en: 'Lunch (11–15)',     pt: 'Almoço (11–15)' },
+  'tarde':     { en: 'Afternoon (15–18)', pt: 'Tarde (15–18)' },
+  'noite':     { en: 'Evening (18–22)',   pt: 'Noite (18–22)' },
+  'madrugada': { en: 'Late Night (22–6)', pt: 'Madrugada (22–6)' },
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface PlaceContextualRelevanceProps {
@@ -105,9 +123,13 @@ interface PlaceContextualRelevanceProps {
   placeType?: string;
   value: NowFormValues;
   onChange: (next: NowFormValues) => void;
+  classificationAuto?: AutoClassification | null;
+  contextWindowsAuto?: string[] | null;
+  contextTagsAuto?: string[] | null;
+  momentTagsAuto?: string[] | null;
 }
 
-export default function PlaceNowVisibility({ placeId, placeType, value, onChange }: PlaceContextualRelevanceProps) {
+export default function PlaceNowVisibility({ placeId, placeType, value, onChange, classificationAuto, contextWindowsAuto, contextTagsAuto, momentTagsAuto }: PlaceContextualRelevanceProps) {
   const [allTags, setAllTags] = useState<NowContextTag[]>([]);
   const [loaded, setLoaded] = useState(false);
   const { locale } = useLocale();
@@ -170,6 +192,88 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
           ? "Define os momentos e contextos em que este espaço é mais relevante. Isto melhora a qualidade das recomendações no NOW e no Concierge."
           : "Define the moments and contexts in which this place is most relevant. This helps improve recommendation quality across NOW and Concierge."}
       </p>
+
+      {/* ── Auto-generated section ─────────────────────────────────────────── */}
+      {(classificationAuto || contextWindowsAuto?.length || contextTagsAuto?.length || momentTagsAuto?.length) ? (
+        <div className="rounded-xl border border-blue-100 bg-blue-50/50 px-5 py-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
+            </svg>
+            <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
+              {isPt ? "Gerado automaticamente" : "Auto-generated"}
+            </span>
+          </div>
+
+          {/* Auto-classification */}
+          {classificationAuto && (
+            <div className="flex items-center gap-2 text-xs text-blue-800">
+              <span className="font-medium">{isPt ? "Classificação:" : "Classification:"}</span>
+              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium capitalize">
+                {classificationAuto.type}
+              </span>
+              <span className="text-blue-400">→</span>
+              <span className="capitalize">{classificationAuto.category}</span>
+              <span className="text-blue-400">→</span>
+              <span className="capitalize">{classificationAuto.subcategory}</span>
+            </div>
+          )}
+
+          {/* Auto context windows */}
+          {contextWindowsAuto && contextWindowsAuto.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-blue-800">
+                {isPt ? "Janelas horárias (auto):" : "Time windows (auto):"}
+              </span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {contextWindowsAuto.map((w) => (
+                  <span key={w} className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium">
+                    {WINDOW_LABELS[w]?.[lang] ?? w}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Auto context tags */}
+          {contextTagsAuto && contextTagsAuto.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-blue-800">
+                {isPt ? "Tags de contexto (auto):" : "Context tags (auto):"}
+              </span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {contextTagsAuto.map((t) => (
+                  <span key={t} className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium">
+                    {TAG_TRANSLATIONS[t]?.[lang] ?? t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Moment tags */}
+          {momentTagsAuto && momentTagsAuto.length > 0 && (
+            <div>
+              <span className="text-xs font-medium text-blue-800">
+                {isPt ? "Tags de momento (NOW/Concierge):" : "Moment tags (NOW/Concierge):"}
+              </span>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {momentTagsAuto.map((t) => (
+                  <span key={t} className="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-xs font-medium">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <p className="text-[10px] text-blue-500 mt-1">
+            {isPt
+              ? "Derivado automaticamente dos dados do Google Places e horários. As seleções editoriais abaixo podem substituir estes valores."
+              : "Automatically derived from Google Places data and opening hours. Editorial selections below can override these values."}
+          </p>
+        </div>
+      ) : null}
 
       {/* Context tags — grouped */}
       <div>

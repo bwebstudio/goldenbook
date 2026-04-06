@@ -77,4 +77,9 @@ export interface UIPlaceDetail {
     generatedAt: string | null;
     dismissed: boolean;
   } | null;
+  // Auto-generated context engine fields (read-only)
+  classificationAuto: { type: string; category: string; subcategory: string } | null;
+  contextWindowsAuto: string[] | null;
+  contextTagsAuto: string[] | null;
+  momentTagsAuto: string[] | null;
 }

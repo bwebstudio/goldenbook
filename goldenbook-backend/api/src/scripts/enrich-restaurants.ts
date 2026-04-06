@@ -412,15 +412,23 @@ async function upsertEnrichment(
     changes.push(`coordinates: set from Google`)
   }
 
-  // Booking — only if not already configured
+  // Booking — only if not already configured and columns exist
   if (!place.booking_enabled && google.reservable) {
-    sets.push(`reservation_relevant = $${i++}`)
-    params.push(true)
-    sets.push(`reservation_source = $${i++}::reservation_source`)
-    params.push('ai_suggested')
-    sets.push(`reservation_confidence = $${i++}`)
-    params.push(confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.7 : 0.5)
-    changes.push(`reservation_relevant: true (Google says reservable)`)
+    try {
+      const { rows: resCols } = await db.query<{ column_name: string }>(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'places' AND column_name = 'reservation_relevant'
+      `)
+      if (resCols.length > 0) {
+        sets.push(`reservation_relevant = $${i++}`)
+        params.push(true)
+        sets.push(`reservation_source = $${i++}::reservation_source`)
+        params.push('ai_suggested')
+        sets.push(`reservation_confidence = $${i++}`)
+        params.push(confidence === 'high' ? 0.9 : confidence === 'medium' ? 0.7 : 0.5)
+        changes.push(`reservation_relevant: true (Google says reservable)`)
+      }
+    } catch { /* columns don't exist yet */ }
   }
 
   sets.push(`updated_at = now()`)
@@ -471,16 +479,26 @@ async function main() {
   console.log(`  Limit: ${LIMIT || 'none'}`)
   console.log(`${'═'.repeat(60)}\n`)
 
+  // Check which optional columns exist
+  const { rows: colCheck } = await db.query<{ column_name: string }>(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'places' AND column_name IN ('booking_enabled', 'booking_mode')
+  `)
+  const hasCols = new Set(colCheck.map(r => r.column_name))
+  const bookingSelect = hasCols.has('booking_enabled')
+    ? `p.booking_enabled, p.booking_mode::text AS booking_mode,`
+    : `false AS booking_enabled, 'none' AS booking_mode,`
+
   // Fetch restaurants
   let query = `
     SELECT p.id, p.slug, p.name, d.slug AS city_slug, d.name AS city_name,
       p.website_url, p.phone, p.address_line, p.latitude, p.longitude,
-      p.price_tier, p.booking_url, p.booking_enabled, p.booking_mode::text,
+      p.price_tier, p.booking_url,
+      ${bookingSelect}
       p.google_place_id
     FROM places p
     JOIN destinations d ON d.id = p.destination_id
     WHERE p.status = 'published' AND p.is_active = true
-      AND p.place_type = 'restaurant'
   `
   const qParams: unknown[] = []
   if (CITY_FILTER) {

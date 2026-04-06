@@ -6,7 +6,9 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "enrich:restaurants": "tsx src/scripts/enrich-restaurants.ts"
+    "enrich:restaurants": "tsx src/scripts/enrich-restaurants.ts",
+    "context:engine": "tsx src/scripts/context-engine.ts",
+    "evaluate:ranking": "tsx src/scripts/evaluate-ranking.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",

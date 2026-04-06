@@ -45,6 +45,11 @@ export interface PlaceRow {
   suggestion_source: string | null
   suggestion_generated_at: string | null
   suggestion_dismissed: boolean
+  // Auto-generated context engine fields
+  classification_auto: unknown | null
+  context_windows_auto: unknown | null
+  context_tags_auto: unknown | null
+  moment_tags_auto: unknown | null
 }
 
 // ─── Shared query fragments ──────────────────────────────────────────────────
@@ -91,7 +96,11 @@ const BOOKING_SELECT = `,
   p.suggestion_reason,
   p.suggestion_source,
   p.suggestion_generated_at,
-  p.suggestion_dismissed`
+  p.suggestion_dismissed,
+  p.classification_auto,
+  p.context_windows_auto,
+  p.context_tags_auto,
+  p.moment_tags_auto`
 
 const FROM_CLAUSE = `
 FROM places p
@@ -144,6 +153,10 @@ function withBookingDefaults(row: Record<string, unknown>): PlaceRow {
   r.suggestion_source           = r.suggestion_source ?? null
   r.suggestion_generated_at     = r.suggestion_generated_at ?? null
   r.suggestion_dismissed        = r.suggestion_dismissed ?? false
+  r.classification_auto         = r.classification_auto ?? null
+  r.context_windows_auto        = r.context_windows_auto ?? null
+  r.context_tags_auto           = r.context_tags_auto ?? null
+  r.moment_tags_auto            = r.moment_tags_auto ?? null
   return r as PlaceRow
 }
 

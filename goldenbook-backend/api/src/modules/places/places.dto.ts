@@ -119,6 +119,11 @@ export interface PlaceDetailDTO {
     generatedAt: string | null
     dismissed: boolean
   } | null
+  // Auto-generated context engine fields (read-only)
+  classificationAuto: { type: string; category: string; subcategory: string } | null
+  contextWindowsAuto: string[] | null
+  contextTagsAuto: string[] | null
+  momentTagsAuto: string[] | null
 }
 
 export function toPlaceDetailDTO(
@@ -248,5 +253,10 @@ export function toPlaceDetailDTO(
           dismissed: place.suggestion_dismissed,
         }
       : null,
+    // Auto-generated context engine fields
+    classificationAuto: place.classification_auto as PlaceDetailDTO['classificationAuto'] ?? null,
+    contextWindowsAuto: place.context_windows_auto as string[] ?? null,
+    contextTagsAuto: place.context_tags_auto as string[] ?? null,
+    momentTagsAuto: place.moment_tags_auto as string[] ?? null,
   }
 }

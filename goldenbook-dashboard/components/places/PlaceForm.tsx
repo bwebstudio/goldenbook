@@ -563,6 +563,10 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
               placeType={form.placeType}
               value={nowForm}
               onChange={(next) => { setNowForm(next); setIsDirty(true); }}
+              classificationAuto={place.classificationAuto}
+              contextWindowsAuto={place.contextWindowsAuto}
+              contextTagsAuto={place.contextTagsAuto}
+              momentTagsAuto={place.momentTagsAuto}
             />
           </FormSection>
         )}
