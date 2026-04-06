@@ -116,12 +116,11 @@ export default function ConciergeScreen() {
   const entryOpacity = useRef(new Animated.Value(entry === 'now' ? 0 : 1)).current
   const entryTranslateY = useRef(new Animated.Value(entry === 'now' ? 14 : 0)).current
 
-  // Dynamic pills: use last recommendation's fallbacks + bootstrap intents
-  // Backend already excludes the active intent from fallbackIntents, so no need to track it here
-  const lastRecoMessage = state.messages.filter(m => m.type === 'recommendation_response').at(-1)
+  // Pills are fixed for the session — always use bootstrap intents.
+  // This gives the user a stable menu to navigate, not a moving target.
   const quickOptions = buildQuickOptions(
     state.bootstrapData?.intents,
-    lastRecoMessage?.fallbackIntents,
+    undefined,
     null,
     locale,
   )

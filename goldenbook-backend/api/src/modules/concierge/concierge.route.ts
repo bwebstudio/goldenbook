@@ -326,8 +326,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
 
     const viable = await getViableIntents(city.slug, 2)
     const isViable = (i: typeof allIntents[0]) => {
-      // Intent must have at least 2 places of matching type in this city
-      const hasMatchingTypes = i.placeTypes.some((pt) => (availableTypes.get(pt) ?? 0) >= 2)
+      // Intent must have at least 3 places of matching type in this city (fills one page)
+      const typeCount = i.placeTypes.reduce((sum, pt) => sum + (availableTypes.get(pt) ?? 0), 0)
+      const hasMatchingTypes = typeCount >= 3
       if (!hasMatchingTypes) return false
       const hasEditorial = (i.editorialIntents ?? []).some((ei) => viable.has(ei))
       if (hasEditorial) return true
