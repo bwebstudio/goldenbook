@@ -302,18 +302,63 @@ function getProximityPhrase(distanceMeters: number | null, lang: string): string
 const TITLE_MAX = 60
 const SUBTITLE_MAX = 100
 
+// ─── Place-type guard ──────────────────────────────────────────────────────
+// Prevents absurd combos like "Fine dining" for a shop or "Shopping" for a museum.
+// Returns a safe bestTag given the place_type.
+
+const FOOD_TAGS = new Set<string>([
+  'brunch', 'coffee', 'cocktails', 'dinner', 'lunch', 'fine-dining', 'wine', 'late-night',
+])
+const PLACE_TYPE_SAFE_TAGS: Record<string, Set<string>> = {
+  restaurant: FOOD_TAGS,
+  cafe:       new Set(['brunch', 'coffee', 'lunch', 'quick-stop']),
+  bar:        new Set(['cocktails', 'wine', 'late-night', 'live-music']),
+  shop:       new Set(['shopping', 'local-secret', 'quick-stop']),
+  museum:     new Set(['culture', 'rainy-day', 'family']),
+  landmark:   new Set(['culture', 'viewpoint', 'family', 'sunset']),
+  hotel:      new Set(['wellness', 'romantic', 'celebration']),
+  beach:      new Set(['sunset', 'family', 'viewpoint']),
+  activity:   new Set(['wellness', 'culture', 'family', 'wine', 'local-secret']),
+  venue:      new Set(['live-music', 'late-night', 'cocktails', 'celebration']),
+}
+
+// Fallback tag when bestTag is inappropriate for the place type
+const PLACE_TYPE_FALLBACK_TAG: Record<string, ContextTag> = {
+  restaurant: 'dinner',
+  cafe:       'coffee',
+  bar:        'cocktails',
+  shop:       'shopping',
+  museum:     'culture',
+  landmark:   'culture',
+  hotel:      'wellness',
+  beach:      'sunset',
+  activity:   'local-secret',
+  venue:      'live-music',
+}
+
+function sanitizeBestTag(bestTag: string | null, placeType?: string): string | null {
+  if (!bestTag || !placeType) return bestTag
+  const safeSet = PLACE_TYPE_SAFE_TAGS[placeType]
+  if (!safeSet) return bestTag  // Unknown type — don't filter
+  if (safeSet.has(bestTag)) return bestTag  // Tag is valid for this type
+  // Tag is inappropriate — use fallback
+  return PLACE_TYPE_FALLBACK_TAG[placeType] ?? bestTag
+}
+
 /**
  * Build the NOW card title — max 60 chars.
  * Uses tag-specific template, or falls back to time-of-day generic.
+ * placeType is used to prevent absurd tag/copy combos.
  */
 export function buildTitle(
   bestTag: string | null,
   timeOfDay: NowTimeOfDay,
   cityName: string,
   locale = 'en',
+  placeType?: string,
 ): string {
   const l = resolveLocale(locale)
-  const tag = bestTag as ContextTag | null
+  const tag = sanitizeBestTag(bestTag, placeType) as ContextTag | null
 
   let template: string
   if (tag && TAG_TITLES[l]?.[tag]) {
@@ -333,9 +378,10 @@ export function buildSubtitle(
   bestTag: string | null,
   timeOfDay: NowTimeOfDay,
   locale = 'en',
+  placeType?: string,
 ): string {
   const l = resolveLocale(locale)
-  const tag = bestTag as ContextTag | null
+  const tag = sanitizeBestTag(bestTag, placeType) as ContextTag | null
 
   if (tag && TAG_SUBTITLES[l]?.[tag]) {
     return truncate(pick(TAG_SUBTITLES[l][tag]!), SUBTITLE_MAX)

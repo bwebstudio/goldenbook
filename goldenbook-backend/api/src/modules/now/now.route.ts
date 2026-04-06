@@ -331,8 +331,8 @@ function buildNowDTO(
       distance: place.distance_meters ? Math.round(place.distance_meters) : null,
     },
     isSponsored,
-    title: buildTitle(bestTag, timeOfDay, city, locale),
-    subtitle: buildSubtitle(bestTag, timeOfDay, locale),
+    title: buildTitle(bestTag, timeOfDay, city, locale, place.place_type),
+    subtitle: buildSubtitle(bestTag, timeOfDay, locale, place.place_type),
     explanation,
     context: {
       time_of_day: timeOfDay,
