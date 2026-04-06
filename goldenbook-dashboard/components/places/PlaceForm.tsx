@@ -13,7 +13,7 @@ import {
 import { createPlace, updatePlace, deletePlaceById } from "@/lib/api/places";
 import { applySuggestion, dismissSuggestion, generateSuggestionForPlace } from "@/lib/api/suggestions";
 import { ApiError } from "@/lib/api/client";
-import { useT } from "@/lib/i18n";
+import { useT, useLocale } from "@/lib/i18n";
 import FormSection from "@/components/ui/FormSection";
 import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
@@ -61,6 +61,8 @@ interface PlaceFormProps {
 export default function PlaceForm({ place, cities = [], categories = [], userRole = "editor" }: PlaceFormProps) {
   const router    = useRouter();
   const t         = useT();
+  const { locale } = useLocale();
+  const isPt      = locale.startsWith("pt");
   const pf        = t.placeForm;
   const isEditing = !!place;
 
@@ -434,21 +436,21 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           {userRole === "super_admin" && (
             <SelectField
               id="placeType"
-              label="Place Type"
-              hint="Determines how this place appears in recommendations"
+              label={isPt ? "Tipo de espaço" : "Place Type"}
+              hint={isPt ? "Determina como este espaço aparece nas recomendações" : "Determines how this place appears in recommendations"}
               value={form.placeType}
               onChange={(v) => setField("placeType", v)}
               options={[
-                { value: "restaurant", label: "Restaurant" },
-                { value: "bar", label: "Bar" },
-                { value: "cafe", label: "Café" },
-                { value: "hotel", label: "Hotel" },
-                { value: "shop", label: "Shop" },
-                { value: "museum", label: "Museum" },
-                { value: "landmark", label: "Landmark" },
-                { value: "activity", label: "Activity" },
-                { value: "beach", label: "Beach" },
-                { value: "venue", label: "Venue" },
+                { value: "restaurant", label: isPt ? "Restaurante" : "Restaurant" },
+                { value: "bar",        label: "Bar" },
+                { value: "cafe",       label: "Café" },
+                { value: "hotel",      label: "Hotel" },
+                { value: "shop",       label: isPt ? "Loja" : "Shop" },
+                { value: "museum",     label: isPt ? "Museu" : "Museum" },
+                { value: "landmark",   label: isPt ? "Monumento / Local de interesse" : "Landmark" },
+                { value: "activity",   label: isPt ? "Atividade" : "Activity" },
+                { value: "beach",      label: isPt ? "Praia" : "Beach" },
+                { value: "venue",      label: isPt ? "Espaço / Sala" : "Venue" },
               ]}
             />
           )}
