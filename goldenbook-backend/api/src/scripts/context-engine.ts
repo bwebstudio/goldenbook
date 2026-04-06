@@ -580,7 +580,7 @@ const LOCATION_KEYWORDS: Record<string, string[]> = {
 // ── Base tags by place type ─────────────────────────────────────────────
 // These are always applied regardless of other data
 const BASE_TAGS_BY_TYPE: Record<string, string[]> = {
-  restaurant: [],  // tags come from price/cuisine/windows
+  restaurant: ['wine', 'family'],  // all restaurants get wine + family
   cafe:       ['coffee'],
   bar:        ['cocktails'],
   hotel:      ['wellness'],
@@ -622,11 +622,11 @@ function generateContextTags(
     if (place.price_tier === 4) {
       tags.add('romantic'); tags.add('celebration'); tags.add('fine-dining')
     } else if (place.price_tier === 3) {
-      tags.add('romantic'); tags.add('wine')
+      tags.add('romantic'); tags.add('wine'); tags.add('fine-dining')
     } else if (place.price_tier === 2) {
-      // casual — no special tags needed
+      tags.add('wine'); tags.add('family')
     } else if (place.price_tier === 1) {
-      tags.add('quick-stop')
+      tags.add('quick-stop'); tags.add('family')
     }
   }
   // Price tier for hotels
@@ -643,6 +643,7 @@ function generateContextTags(
         tags.add('fine-dining'); tags.add('romantic'); tags.add('celebration')
       }
       if (cuisine === 'brunch') tags.add('brunch')
+      if (['portuguese', 'seafood', 'mediterranean', 'french', 'italian'].includes(cuisine)) tags.add('wine')
     }
   }
 
@@ -705,9 +706,18 @@ function generateContextTags(
       break
   }
 
+  // ── 6b. Dinner restaurants → wine ──────────────────────────────────────
+  if (isFoodDrink && contextWindows.includes('noite') && place.place_type === 'restaurant') {
+    tags.add('wine')
+  }
+
   // ── 7. Google rating signals ──────────────────────────────────────────
   if (place.google_rating && place.google_rating >= 4.5) {
     tags.add('local-secret')
+  }
+  if (place.google_rating && place.google_rating >= 4.6 && place.place_type === 'restaurant') {
+    tags.add('romantic')
+    if (place.price_tier && place.price_tier >= 3) tags.add('celebration')
   }
 
   // ── 8. Exclude inappropriate tags for this place type ─────────────────

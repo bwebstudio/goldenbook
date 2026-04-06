@@ -95,34 +95,78 @@ const EXCLUDED: Record<string, string[]> = {
   transport: ['lunch', 'dinner', 'fine-dining', 'cocktails', 'wine', 'brunch', 'coffee', 'romantic', 'celebration', 'terrace', 'rooftop', 'viewpoint', 'sunset', 'late-night', 'live-music', 'local-secret', 'wellness', 'family'],
 }
 
-function generateContextTags(type: string, priceTier: number | null, cuisines: string[] | null, windows: string[], googleRating: number | null, name: string): string[] {
+function generateContextTags(type: string, priceTier: number | null, cuisines: string[] | null, windows: string[], googleRating: number | null, name: string, address?: string | null, description?: string | null): string[] {
   const tags = new Set(BASE_TAGS[type] ?? [])
   const isFD = ['restaurant', 'cafe', 'bar'].includes(type)
+  // Combine all text fields for keyword matching
+  const text = [name, address ?? '', description ?? ''].join(' ').toLowerCase()
 
+  // ── Price tier ────────────────────────────────────────────────────────
   if (priceTier && isFD) {
-    if (priceTier === 4) { tags.add('romantic'); tags.add('celebration'); tags.add('fine-dining') }
-    else if (priceTier === 3) { tags.add('romantic'); tags.add('wine') }
-    else if (priceTier === 1) tags.add('quick-stop')
+    if (priceTier === 4) { tags.add('romantic'); tags.add('celebration'); tags.add('fine-dining'); tags.add('wine') }
+    else if (priceTier === 3) { tags.add('romantic'); tags.add('wine'); tags.add('fine-dining') }
+    else if (priceTier === 2) { tags.add('wine'); tags.add('family') }
+    else if (priceTier === 1) { tags.add('quick-stop'); tags.add('family') }
   }
   if (priceTier && type === 'hotel' && priceTier >= 3) { tags.add('romantic'); tags.add('celebration') }
 
-  if (isFD && cuisines?.includes('fine-dining')) { tags.add('fine-dining'); tags.add('romantic'); tags.add('celebration') }
-  if (isFD && cuisines?.includes('brunch')) tags.add('brunch')
+  // ── Cuisine types ─────────────────────────────────────────────────────
+  if (isFD && cuisines) {
+    if (cuisines.includes('fine-dining')) { tags.add('fine-dining'); tags.add('romantic'); tags.add('celebration') }
+    if (cuisines.includes('brunch')) tags.add('brunch')
+    if (cuisines.includes('portuguese') || cuisines.includes('seafood') || cuisines.includes('mediterranean')) tags.add('wine')
+  }
 
+  // ── Time windows ──────────────────────────────────────────────────────
   if (isFD) {
     if (windows.includes('almoço')) tags.add('lunch')
     if (windows.includes('noite') || windows.includes('madrugada')) tags.add('dinner')
     if (windows.includes('manhã') && type === 'cafe') tags.add('brunch')
+    // Restaurants open for dinner → wine is likely
+    if (windows.includes('noite') && type === 'restaurant') tags.add('wine')
   }
   if (windows.includes('madrugada') && ['bar', 'venue'].includes(type)) tags.add('late-night')
   if (type === 'bar') tags.add('wine')
+
+  // ── Google rating ─────────────────────────────────────────────────────
   if (googleRating != null && googleRating >= 4.5) tags.add('local-secret')
+  // High-rated restaurants are likely romantic/celebration worthy
+  if (googleRating != null && googleRating >= 4.6 && type === 'restaurant') {
+    tags.add('romantic')
+    if (priceTier && priceTier >= 3) tags.add('celebration')
+  }
 
-  const searchText = name.toLowerCase()
-  if (['terrace', 'terraço', 'esplanada'].some(k => searchText.includes(k))) tags.add('terrace')
-  if (['rooftop', 'roof'].some(k => searchText.includes(k))) tags.add('rooftop')
-  if (['viewpoint', 'miradouro', 'vista'].some(k => searchText.includes(k))) tags.add('viewpoint')
+  // ── Keyword matching on name + address + description ──────────────────
+  // Terrace / outdoor
+  if (['terrace', 'terraço', 'esplanada', 'terraza', 'outdoor', 'jardim', 'garden', 'patio'].some(k => text.includes(k))) tags.add('terrace')
+  // Rooftop
+  if (['rooftop', 'roof', 'topo', 'top floor'].some(k => text.includes(k))) tags.add('rooftop')
+  // Viewpoint / vista
+  if (['viewpoint', 'miradouro', 'vista', 'panoramic', 'panorâmic', 'view'].some(k => text.includes(k))) tags.add('viewpoint')
+  // Sunset
+  if (['sunset', 'pôr do sol', 'puesta de sol', 'west-facing', 'ocean view', 'sea view', 'rio', 'river'].some(k => text.includes(k))) tags.add('sunset')
+  // Beach / marina
+  if (['beach', 'praia', 'marina', 'seaside', 'beachfront', 'ocean', 'mar '].some(k => text.includes(k))) tags.add('terrace')
+  // Wine
+  if (['wine', 'vinho', 'vino', 'adega', 'cave', 'cellar', 'sommelier', 'enoteca'].some(k => text.includes(k))) tags.add('wine')
+  // Romantic signals
+  if (['romantic', 'romântic', 'íntimo', 'intimate', 'candlelight', 'couples', 'date night'].some(k => text.includes(k))) tags.add('romantic')
+  // Family signals
+  if (['family', 'família', 'crianças', 'kids', 'children', 'playground'].some(k => text.includes(k))) tags.add('family')
+  // Live music
+  if (['live music', 'música ao vivo', 'fado', 'jazz', 'concert', 'dj'].some(k => text.includes(k))) tags.add('live-music')
+  // Wellness
+  if (['spa', 'wellness', 'bem-estar', 'massage', 'pool', 'piscina'].some(k => text.includes(k))) tags.add('wellness')
+  // Culture
+  if (['museum', 'museu', 'galeria', 'gallery', 'art ', 'heritage', 'patrimóni', 'históric'].some(k => text.includes(k))) tags.add('culture')
 
+  // ── Restaurant base tags: all restaurants get wine + family by default ─
+  if (type === 'restaurant') {
+    tags.add('wine')
+    tags.add('family')
+  }
+
+  // ── Exclusions ────────────────────────────────────────────────────────
   const excl = new Set(EXCLUDED[type] ?? [])
   for (const t of excl) tags.delete(t)
   return [...tags].filter(t => CANONICAL_TAGS.has(t)).sort()
@@ -192,10 +236,10 @@ function generateMomentTags(type: string, category: string, subcategory: string,
 export async function autoClassifyPlace(placeId: string): Promise<void> {
   try {
     const { rows } = await db.query<{
-      place_type: string; price_tier: number | null; cuisine_types: string[] | null; google_rating: number | null; name: string
-    }>(`SELECT place_type, price_tier, cuisine_types, google_rating::float, name FROM places WHERE id = $1`, [placeId])
+      place_type: string; price_tier: number | null; cuisine_types: string[] | null; google_rating: number | null; name: string; address_line: string | null; short_description: string | null
+    }>(`SELECT place_type, price_tier, cuisine_types, google_rating::float, name, address_line, short_description FROM places WHERE id = $1`, [placeId])
     if (!rows[0]) return
-    const { place_type, price_tier, cuisine_types, google_rating, name } = rows[0]
+    const { place_type, price_tier, cuisine_types, google_rating, name, address_line, short_description } = rows[0]
 
     // Classification
     const cls = PLACE_TYPE_CLASSIFICATION[place_type]
@@ -208,7 +252,7 @@ export async function autoClassifyPlace(placeId: string): Promise<void> {
     if (windows.length === 0) windows = DEFAULT_WINDOWS[place_type] ?? []
 
     // Tags
-    const contextTags = generateContextTags(place_type, price_tier, cuisine_types, windows, google_rating, name)
+    const contextTags = generateContextTags(place_type, price_tier, cuisine_types, windows, google_rating, name, address_line, short_description)
     const momentTags = generateMomentTags(
       place_type, classification?.category ?? '', classification?.subcategory ?? '',
       windows, contextTags, price_tier, cuisine_types, google_rating)
