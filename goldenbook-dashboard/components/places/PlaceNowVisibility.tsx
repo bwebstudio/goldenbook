@@ -275,68 +275,60 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
         </div>
       ) : null}
 
-      {/* Context tags — grouped */}
-      <div>
-        <label className="block text-sm font-medium text-text mb-1">
-          {isPt ? "Tags de contexto" : "Context tags"}
-        </label>
-        <p className="text-[11px] text-muted mb-3">
-          {isPt
-            ? "Quando é que este espaço é uma boa recomendação? Selecione todos os que se aplicam."
-            : "When is this place a good recommendation? Select all that apply."}
-        </p>
+      {/* Extra editorial tags — only tags NOT already auto-generated */}
+      {(() => {
+        const autoSet = new Set(contextTagsAuto ?? []);
+        // Collect tags that are NOT auto-generated but exist in the registry
+        const extraGroups = TAG_GROUPS.map((group) => {
+          const extraTags = group.tags.filter((slug) => tagMap.has(slug) && !autoSet.has(slug));
+          return { ...group, tags: extraTags };
+        }).filter((g) => g.tags.length > 0);
 
-        {/* Legend */}
-        {suggested.size > 0 && (
-          <div className="flex items-center gap-4 text-[10px] mb-1">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded border border-gold/30 bg-gold/10" />
-              <span className="text-muted">{isPt ? "Selecionado" : "Selected"}</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded border border-amber-200 bg-amber-50" />
-              <span className="text-muted">{isPt ? "Sugerido para este tipo" : "Suggested for this type"}</span>
-            </span>
-          </div>
-        )}
+        if (extraGroups.length === 0) return null;
 
-        <div className="flex flex-col gap-4">
-          {TAG_GROUPS.map((group) => {
-            const groupTags = group.tags.filter((slug) => tagMap.has(slug));
-            if (groupTags.length === 0) return null;
-            return (
-              <div key={group.key}>
-                <p className="text-[10px] font-semibold text-muted/60 uppercase tracking-wider mb-1.5">
-                  {isPt ? group.pt : group.en}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {groupTags.map((slug) => {
-                    const tag = tagMap.get(slug)!;
-                    const selected = value.nowTagSlugs.includes(slug);
-                    const isSuggested = suggested.has(slug);
-                    return (
-                      <button
-                        key={slug}
-                        type="button"
-                        onClick={() => toggleTag(slug)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                          selected
-                            ? "bg-gold/10 text-gold border-gold/30"
-                            : isSuggested
-                              ? "bg-amber-50 border-amber-200 text-amber-700 hover:border-gold/30"
+        return (
+          <div>
+            <label className="block text-sm font-medium text-text mb-1">
+              {isPt ? "Tags editoriais adicionais" : "Additional editorial tags"}
+            </label>
+            <p className="text-[11px] text-muted mb-3">
+              {isPt
+                ? "Adicione tags que o sistema automático não detetou. Selecione os que se aplicam."
+                : "Add tags the auto system didn't detect. Select all that apply."}
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {extraGroups.map((group) => (
+                <div key={group.key}>
+                  <p className="text-[10px] font-semibold text-muted/60 uppercase tracking-wider mb-1.5">
+                    {isPt ? group.pt : group.en}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.tags.map((slug) => {
+                      const tag = tagMap.get(slug)!;
+                      const selected = value.nowTagSlugs.includes(slug);
+                      return (
+                        <button
+                          key={slug}
+                          type="button"
+                          onClick={() => toggleTag(slug)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                            selected
+                              ? "bg-gold/10 text-gold border-gold/30"
                               : "bg-white border-border text-muted hover:border-gold/30"
-                        }`}
-                      >
-                        {TAG_TRANSLATIONS[slug]?.[lang] ?? tag.name}
-                      </button>
-                    );
-                  })}
+                          }`}
+                        >
+                          {TAG_TRANSLATIONS[slug]?.[lang] ?? tag.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Time windows — only show manual selector if no auto-generated windows */}
       {!contextWindowsAuto?.length && (
