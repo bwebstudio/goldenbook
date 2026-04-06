@@ -1,6 +1,8 @@
 // Server component — fetches real data from the backend, then renders the
 // interactive PlacesClient with all data passed in as props.
 
+export const dynamic = "force-dynamic";
+
 import PlacesClient from "./PlacesClient";
 import { fetchAdminPlacesList } from "@/lib/api/places";
 import { mapAdminListItemToUI, extractCategories } from "@/lib/api/mappers/placeMapper";

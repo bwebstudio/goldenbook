@@ -2,6 +2,8 @@
 // only exposes GET /api/v1/places/:slug (no numeric ID endpoint exists).
 // PlaceCard links use place.slug so the param received here is always a slug.
 
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { fetchPlaceBySlug, fetchAdminCategories } from "@/lib/api/places";
 import { fetchDestinations } from "@/lib/api/destinations";
