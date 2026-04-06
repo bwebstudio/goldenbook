@@ -384,7 +384,7 @@ async function resolveNow(
   }
 
   // Coordinates are OPTIONAL — NOW works without them
-  const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
+  const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon, CITY_TIMEZONES[city.slug])
 
   // Merge city-level cooldown into exclude set (6-hour same-place prevention)
   const cooldownIds = await getCooldownPlaceIds(city.slug)
@@ -445,7 +445,7 @@ async function scorePlaceById(
     console.warn('[NOW/refresh] Failed to load paid placements', { err, city: city.slug })
   }
 
-  const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
+  const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon, CITY_TIMEZONES[city.slug])
   const target = candidates.find((c) => c.id === placeId)
   if (!target) return null
 

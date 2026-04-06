@@ -59,8 +59,10 @@ export async function getNowCandidates(
   timeWindow: string,
   userLat?: number,
   userLon?: number,
+  cityTimezone?: string,
 ): Promise<NowScoredPlace[]> {
   const hasCoords = userLat != null && userLon != null
+  const tz = cityTimezone ?? 'Europe/Lisbon'
 
   // Build distance expression
   const distanceExpr = hasCoords
@@ -214,6 +216,20 @@ export async function getNowCandidates(
             AND pv.is_active = true
             AND (pv.starts_at IS NULL OR pv.starts_at <= now())
             AND (pv.ends_at IS NULL OR pv.ends_at >= now())
+        )
+      )
+      -- Opening hours filter: exclude places that are closed RIGHT NOW
+      -- If the place has opening_hours rows, check if current day+time falls within an open slot.
+      -- If no opening_hours exist, don't exclude (we don't know their schedule).
+      AND (
+        NOT EXISTS (SELECT 1 FROM opening_hours oh WHERE oh.place_id = p.id)
+        OR EXISTS (
+          SELECT 1 FROM opening_hours oh
+          WHERE oh.place_id = p.id
+            AND oh.is_closed = false
+            AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE '${tz}')::int
+            AND oh.opens_at <= (now() AT TIME ZONE '${tz}')::time
+            AND oh.closes_at > (now() AT TIME ZONE '${tz}')::time
         )
       )
       -- Exclude service businesses (misclassified as activity/other)
