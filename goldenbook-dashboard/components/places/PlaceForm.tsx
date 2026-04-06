@@ -90,6 +90,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       phone:            place.phone             ?? "",
       email:            place.email             ?? "",
       bookingUrl:       place.bookingUrl        ?? "",
+      placeType:        (place as any).placeType ?? "restaurant",
       categorySlug:     place.categories[0]?.slug    ?? "",
       subcategorySlug:  place.subcategories[0]?.slug ?? "",
       status:           "published",
@@ -429,6 +430,27 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           title={pf.classification}
           description={pf.classificationDesc}
         >
+          {userRole === "super_admin" && (
+            <SelectField
+              id="placeType"
+              label="Place Type"
+              hint="Determines how this place appears in recommendations"
+              value={form.placeType}
+              onChange={(v) => setField("placeType", v)}
+              options={[
+                { value: "restaurant", label: "Restaurant" },
+                { value: "bar", label: "Bar" },
+                { value: "cafe", label: "Café" },
+                { value: "hotel", label: "Hotel" },
+                { value: "shop", label: "Shop" },
+                { value: "museum", label: "Museum" },
+                { value: "landmark", label: "Landmark" },
+                { value: "activity", label: "Activity" },
+                { value: "beach", label: "Beach" },
+                { value: "venue", label: "Venue" },
+              ]}
+            />
+          )}
           <div className="grid grid-cols-2 gap-6">
             <SelectField
               id="categorySlug"
@@ -535,6 +557,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           >
             <PlaceNowVisibility
               placeId={place.id}
+              placeType={form.placeType}
               value={nowForm}
               onChange={(next) => { setNowForm(next); setIsDirty(true); }}
             />

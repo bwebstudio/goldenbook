@@ -196,7 +196,7 @@ function scoreProximity(distanceMeters: number | null): number {
  * When a user selects "Wine & Tastings", places tagged with "wine" get a boost.
  */
 const INTEREST_TO_TAGS: Record<string, string[]> = {
-  'fine-dining':  ['fine-dining', 'dinner', 'romantic'],
+  'fine-dining':  ['fine-dining', 'dinner', 'lunch', 'romantic'],
   'wine':         ['wine', 'sunset', 'terrace'],
   'culture':      ['culture', 'viewpoint', 'local-secret'],
   'hidden-gems':  ['local-secret', 'culture', 'viewpoint'],
@@ -215,7 +215,7 @@ const STYLE_TO_TAGS: Record<string, string[]> = {
   'solo':    ['coffee', 'culture', 'quick-stop', 'viewpoint'],
   'couple':  ['romantic', 'fine-dining', 'wine', 'sunset', 'terrace'],
   'friends': ['cocktails', 'live-music', 'late-night', 'rooftop'],
-  'family':  ['family', 'culture', 'viewpoint', 'brunch', 'quick-stop'],
+  'family':  ['family', 'culture', 'viewpoint', 'brunch', 'lunch', 'quick-stop'],
 }
 
 /**

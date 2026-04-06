@@ -67,7 +67,17 @@ export function buildGreeting(timeOfDay: TimeOfDay, cityName: string, locale = '
 // always starts with suggestions that make sense for the moment.
 
 /** Map Concierge TimeOfDay (3 values) to shared NowTimeOfDay (5 values) */
-function toNowTimeOfDay(tod: TimeOfDay): NowTimeOfDay {
+/**
+ * Convert coarse Concierge TimeOfDay to fine-grained NowTimeOfDay.
+ * When a citySlug is provided, uses the real local hour for precise mapping
+ * (e.g. 12:09 in Porto → 'midday', not 'afternoon').
+ */
+function toNowTimeOfDay(tod: TimeOfDay, citySlug?: string): NowTimeOfDay {
+  if (citySlug) {
+    // Use real timezone-aware hour for precise midday/night detection
+    const { getNowTimeOfDay } = require('../shared-scoring/context-tags')
+    return getNowTimeOfDay(new Date(), citySlug) as NowTimeOfDay
+  }
   if (tod === 'morning') return 'morning'
   if (tod === 'afternoon') return 'afternoon'
   return 'evening'
@@ -81,8 +91,9 @@ function scoreIntentForContext(
   intent: ConciergeIntent,
   timeOfDay: TimeOfDay,
   weather?: string | null,
+  citySlug?: string,
 ): number {
-  const nowTod = toNowTimeOfDay(timeOfDay)
+  const nowTod = toNowTimeOfDay(timeOfDay, citySlug)
   const timeBoosts = TIME_TAG_BOOSTS[nowTod] ?? {}
   const weatherBoosts = weather ? (WEATHER_TAG_BOOSTS[weather as WeatherCondition] ?? {}) : {}
 
@@ -110,6 +121,7 @@ export function getBootstrapIntents(
   timeOfDay: TimeOfDay,
   profile?: OnboardingProfile,
   weather?: string | null,
+  citySlug?: string,
 ): ConciergeIntent[] {
   // Score ALL intents matching this time of day against the full context
   const candidates = INTENT_REGISTRY.filter((i) =>
@@ -117,7 +129,7 @@ export function getBootstrapIntents(
   )
 
   const scored = candidates.map((intent) => {
-    let score = scoreIntentForContext(intent, timeOfDay, weather)
+    let score = scoreIntentForContext(intent, timeOfDay, weather, citySlug)
 
     // Profile alignment bonus
     if (hasProfile(profile)) {
@@ -477,8 +489,9 @@ export function getDynamicFallbackIntents(
   previouslyUsed: Set<string>,
   timeOfDay: TimeOfDay,
   locale = 'en',
+  maxResults = 4,
 ): Array<{ id: string; title: string }> {
-  // Get time-appropriate intents from registry, excluding used ones
+  // 1. Time-appropriate intents, excluding current and previously used
   const result = INTENT_REGISTRY
     .filter((i) =>
       i.id !== excludeIntentId
@@ -486,37 +499,21 @@ export function getDynamicFallbackIntents(
       && i.preferredTimeOfDay.includes(timeOfDay),
     )
     .sort((a, b) => b.priority - a.priority)
-    .slice(0, 2)
+    .slice(0, maxResults)
     .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
 
-  if (result.length >= 2) return result
+  if (result.length >= maxResults) return result
 
-  // Fill from any remaining intents
+  // 2. Fill from previously used intents (still time-appropriate) for variety
   const extras = INTENT_REGISTRY.filter(
     (i) =>
       i.id !== excludeIntentId
-      && !previouslyUsed.has(i.id)
-      && !result.find((r: { id: string }) => r.id === i.id),
+      && !result.find((r) => r.id === i.id)
+      && i.preferredTimeOfDay.includes(timeOfDay),
   )
     .sort((a, b) => b.priority - a.priority)
-    .slice(0, 2 - result.length)
+    .slice(0, maxResults - result.length)
     .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
 
-  const combined = [...result, ...extras]
-
-  // If still < 2 (time-appropriate intents exhausted), allow any remaining
-  if (combined.length < 2) {
-    const fillers = INTENT_REGISTRY.filter(
-      (i) =>
-        i.id !== excludeIntentId
-        && !combined.find((c) => c.id === i.id)
-        && i.preferredTimeOfDay.includes(timeOfDay),
-    )
-      .sort((a, b) => b.priority - a.priority)
-      .slice(0, 2 - combined.length)
-      .map(({ id }) => ({ id, title: getIntentLabels(id, locale).title }))
-    return [...combined, ...fillers]
-  }
-
-  return combined
+  return [...result, ...extras]
 }

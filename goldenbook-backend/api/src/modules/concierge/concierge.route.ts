@@ -309,13 +309,18 @@ export async function conciergeRoutes(app: FastifyInstance) {
     const weather = weatherResult?.condition ?? null
 
     const greeting = buildGreeting(timeOfDay, city.name, locale)
-    const allIntents = getBootstrapIntents(timeOfDay, profile, weather)
+    const allIntents = getBootstrapIntents(timeOfDay, profile, weather, city.slug)
 
     // Filter bootstrap intents to only those with viable places in this city
+    // Require at least one primary editorialIntent to be viable,
+    // or fallback-viable with high priority (broad appeal intents)
     const viable = await getViableIntents(city.slug, 2)
-    const isViable = (i: typeof allIntents[0]) =>
-      (i.editorialIntents ?? []).some((ei) => viable.has(ei))
-      || (i.fallbackIntents ?? []).some((fi) => viable.has(fi))
+    const isViable = (i: typeof allIntents[0]) => {
+      const hasEditorial = (i.editorialIntents ?? []).some((ei) => viable.has(ei))
+      if (hasEditorial) return true
+      const hasFallback = (i.fallbackIntents ?? []).some((fi) => viable.has(fi))
+      return hasFallback && i.priority >= 6
+    }
 
     let intents = allIntents.filter(isViable).slice(0, 3)
 
@@ -408,6 +413,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
         // The 22 dashboard context tags → best-matching Concierge intent
         'brunch':       'coffee_and_work',
         'coffee':       'coffee_and_work',
+        'lunch':        'long_lunch',
         'quick-stop':   'coffee_and_work',
         'dinner':       'romantic_dinner',
         'fine-dining':  'romantic_dinner',
@@ -564,7 +570,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
       try {
         const ids = await getActiveVisibilityPlaceIdsByCity('concierge', city.slug, 20)
         boostIds = new Set(ids)
-      } catch {}
+      } catch (err) {
+        request.log.warn({ err, city: city.slug }, '[Concierge] Failed to load paid placements for pool')
+      }
 
       if (boostIds.size > 0) {
         const missingPaidIds = [...boostIds].filter((id) => !seenPoolIds.has(id))
@@ -616,9 +624,11 @@ export async function conciergeRoutes(app: FastifyInstance) {
         .filter((fi) => {
           const intent = getIntentById(fi.id)
           if (!intent) return false
-          return (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
-            || (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
-        }).slice(0, 2)
+          const hasEditorial = (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
+          if (hasEditorial) return true
+          const hasFallback = (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
+          return hasFallback && intent.priority >= 6
+        }).slice(0, 4)
 
       const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
       return reply.send({
@@ -635,7 +645,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
     try {
       const ids = await getActiveVisibilityPlaceIdsByCity('concierge', city.slug, 20)
       boostIds = new Set(ids)
-    } catch {}
+    } catch (err) {
+      request.log.warn({ err, city: city.slug }, '[Concierge] Failed to load paid placements for scoring')
+    }
 
     // ── Shared scoring context (same engine as NOW) ──────────────────
     const refinementAdj = adjustmentEmotion ? getRefinementTagAdjustments(adjustmentEmotion) : null
@@ -725,13 +737,14 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // Paid placements are EXEMPT from diversity penalties
     scoredCandidates = applyDiversityRules(scoredCandidates)
 
-    // Paid placement visibility floor: guarantee paid appears within top results
-    // Only inject if the paid placement has a reasonable score (not absurdly incompatible)
+    // Paid placement visibility floor: guarantee paid appears within top results.
+    // High relevance (≥1 tag overlap OR score ≥ 20): inject at last visible position.
+    // Low relevance but score > 0: still inject at last position (contractual guarantee).
+    // Score ≤ 0: do not inject (fundamentally incompatible — filtered earlier).
     const topSponsored = scoredCandidates.find((r) => r.isSponsored)
-    if (topSponsored && topSponsored.totalScore > 5) {
+    if (topSponsored && topSponsored.totalScore > 0) {
       const topSlice = scoredCandidates.slice(0, limit)
       if (!topSlice.some((r) => r.place.id === topSponsored.place.id)) {
-        // Paid placement fell outside visible results — inject at last position in top results
         scoredCandidates = [...scoredCandidates.slice(0, limit - 1).filter((r) =>
           r.place.id !== topSponsored.place.id,
         ), topSponsored, ...scoredCandidates.slice(limit - 1).filter((r) =>
@@ -830,10 +843,28 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // First tap shows results 1-3
     scored = pillCandidates.slice(0, RESULTS_PER_PAGE)
 
+    // ── Hero safeguard: sponsored placements must not occupy hero position ─
+    // If the top result is sponsored, swap it with the first organic result
+    // so the hero stays editorial. Sponsored still appears in card positions.
+    // If ALL candidates are sponsored, heroId = null — no editorial hero exists.
+    let heroId: string | null = null
+    if (scored.length > 0 && boostIds.has(scored[0].id)) {
+      const firstOrganic = scored.findIndex((p) => !boostIds.has(p.id))
+      if (firstOrganic > 0) {
+        // Swap sponsored out of hero position
+        const tmp = scored[0]
+        scored[0] = scored[firstOrganic]
+        scored[firstOrganic] = tmp
+        heroId = scored[0].id
+      }
+      // else: all candidates are sponsored → heroId stays null
+    } else if (scored.length > 0) {
+      heroId = scored[0].id
+    }
+
     // Update session history + hero tracking
     for (const p of scored) session.placeIds.add(p.id)
     session.intentIds.add(resolvedIntent.id)
-    const heroId = scored[0]?.id ?? null
     session.lastHeroId = heroId
     if (heroId) session.heroHistory.add(heroId)
     session.lastIntentId = resolvedIntent.id
@@ -872,13 +903,16 @@ export async function conciergeRoutes(app: FastifyInstance) {
       locale,
     )
     // Filter: only suggest intents that have places with matching editorial intents in this city
+    // Require at least one primary editorialIntent to be viable (fallback alone isn't enough for pills)
     const fallbackIntents = allFallbackIntents.filter((fi) => {
       const intent = getIntentById(fi.id)
       if (!intent) return false
-      // Check if any of the intent's editorial tags exist as viable in this city
-      return (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
-        || (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
-    }).slice(0, 2)
+      const hasEditorial = (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
+      if (hasEditorial) return true
+      // Allow fallback-only intents only if they have high priority (broad appeal)
+      const hasFallback = (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
+      return hasFallback && intent.priority >= 6
+    }).slice(0, 4)
 
     const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
 

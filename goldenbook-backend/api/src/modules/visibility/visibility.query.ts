@@ -54,7 +54,8 @@ const CITY_SURFACE_LIMITS: Record<string, number> = {
  *   2. Discover exclusivity: max 1 Discover surface per place
  *   3. Per-surface exclusivity: max 1 NOW/Search/Category per place
  *   4. Concierge + Discover anti-domination
- *   5. City slot inventory limits
+ *   5. Max 2 paid surfaces per place (cross-surface dominance limit)
+ *   6. City slot inventory limits
  */
 export async function createVisibility(data: {
   placeId: string; surface: string; visibilityType: string;
@@ -140,7 +141,22 @@ export async function createVisibility(data: {
     }
   }
 
-  // ── Rule 5: City slot inventory limits (sponsored only) ───────────────
+  // ── Rule 5: Max paid surfaces per place (cross-surface dominance limit) ─
+  // A place may hold at most 2 simultaneous paid placements across ALL surfaces.
+  const MAX_PAID_SURFACES_PER_PLACE = 2
+  if (data.visibilityType === 'sponsored') {
+    const { rows: [surfaceCount] } = await db.query<{ cnt: string }>(`
+      SELECT COUNT(*)::text AS cnt FROM place_visibility
+      WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+        AND (ends_at IS NULL OR ends_at >= now())
+    `, [data.placeId])
+
+    if (parseInt(surfaceCount?.cnt ?? '0', 10) >= MAX_PAID_SURFACES_PER_PLACE) {
+      throw new Error(`MAX_SURFACES_PER_PLACE: Place already has ${MAX_PAID_SURFACES_PER_PLACE} active paid placements. Cannot add another — prevents cross-surface domination.`)
+    }
+  }
+
+  // ── Rule 6: City slot inventory limits (sponsored only) ───────────────
   if (data.visibilityType === 'sponsored') {
     const maxSlots = CITY_SURFACE_LIMITS[data.surface]
     if (maxSlots != null) {

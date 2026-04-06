@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "@/lib/i18n";
 import type { CampaignAvailabilityResponse, AvailabilityInventoryItem } from "@/types/api/campaign";
 import { fetchCampaignAvailability, createCampaignCheckout, trackCampaignEvent } from "@/lib/api/campaigns";
 
@@ -15,13 +16,13 @@ const SECTION_LABELS: Record<string, string> = {
   concierge: "Concierge",
 };
 
-const BUCKET_LABELS: Record<string, string> = {
-  all_day: "All Day",
-  morning: "Morning",
-  lunch: "Lunch",
-  afternoon: "Afternoon",
-  evening: "Evening",
-  night: "Night",
+const BUCKET_LABELS: Record<string, Record<string, string>> = {
+  all_day:   { en: "All Day",   pt: "Todo o dia" },
+  morning:   { en: "Morning",   pt: "Manhã" },
+  lunch:     { en: "Lunch",     pt: "Almoço" },
+  afternoon: { en: "Afternoon", pt: "Tarde" },
+  evening:   { en: "Evening",   pt: "Fim de tarde" },
+  night:     { en: "Night",     pt: "Noite" },
 };
 
 function fmtDay(iso: string) {
@@ -35,6 +36,9 @@ interface Props {
 
 export default function CampaignAvailabilityClient({ campaignId, placeId }: Props) {
   const router = useRouter();
+  const { locale } = useLocale();
+  const lang = locale.split("-")[0] || "en";
+  const bucketLabel = (b: string) => BUCKET_LABELS[b]?.[lang] ?? BUCKET_LABELS[b]?.en ?? b;
   const [data, setData] = useState<CampaignAvailabilityResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [networkError, setNetworkError] = useState(false);
@@ -223,11 +227,15 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
           <p className="text-sm font-semibold text-[#92400E]">
             {place.reason === "DISCOVER_CONFLICT"
               ? "You already have an active Discover placement."
-              : place.reason === "DUPLICATE_SECTION"
-                ? `You already have an active ${SECTION_LABELS[campaign.section] ?? campaign.section} placement.`
-                  : place.reason === "CITY_MISMATCH"
-                    ? "Your place is not in the same city as this campaign."
-                  : isNowSection ? "No recommendation windows available right now." : "No slots available right now."}
+              : place.reason === "ANTI_DOMINATION"
+                ? "Your place already has a Concierge or Discover placement — they cannot be combined."
+                : place.reason === "MAX_SURFACES"
+                  ? "Your place already has the maximum of 2 active promotions."
+                  : place.reason === "DUPLICATE_SECTION"
+                    ? `You already have an active ${SECTION_LABELS[campaign.section] ?? campaign.section} placement.`
+                    : place.reason === "CITY_MISMATCH"
+                      ? "Your place is not in the same city as this campaign."
+                      : isNowSection ? "No recommendation windows available right now." : "No slots available right now."}
               </p>
           {alternatives.filter((a) => a.available).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -320,7 +328,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
                       : "bg-white text-[#222D52] border-[#EDE9E3] hover:border-[#D2B68A]"
                   }`}
                 >
-                  {BUCKET_LABELS[b] ?? b}
+                  {bucketLabel(b)}
                 </button>
               );
             })}
@@ -338,7 +346,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
               {!isNowSection ? ` #${selectedPosition}` : ""}
             </p>
             <p className="text-sm text-[#6B6B7B]">{fmtDay(selectedDate)}</p>
-            <p className="text-sm text-[#6B6B7B]">{BUCKET_LABELS[selectedBucket] ?? selectedBucket}</p>
+            <p className="text-sm text-[#6B6B7B]">{bucketLabel(selectedBucket)}</p>
           </div>
 
           <p className="mt-3 text-xs text-[#6B6B7B]">

@@ -19,9 +19,10 @@ export const CAMPAIGN_STATUSES = ['draft', 'active', 'paused', 'ended'] as const
 export const TIME_BUCKETS = ['morning', 'lunch', 'afternoon', 'evening', 'night', 'all_day'] as const
 
 // Section → group mapping
+// NOW is NOT a Discover product — it has its own surface rules (1 per place, time-window based)
 export const SECTION_TO_GROUP: Record<string, (typeof SECTION_GROUPS)[number]> = {
   golden_picks: 'discover',
-  now: 'discover',
+  now: 'intent',
   hidden_gems: 'discover',
   new_on_goldenbook: 'discover',
   search_priority: 'intent',
@@ -30,7 +31,8 @@ export const SECTION_TO_GROUP: Record<string, (typeof SECTION_GROUPS)[number]> =
 }
 
 // Discover sections are exclusive — a place can only be in ONE at a time
-export const DISCOVER_SECTIONS = ['golden_picks', 'now', 'hidden_gems', 'new_on_goldenbook'] as const
+// NOW is NOT included — it is an independent surface
+export const DISCOVER_SECTIONS = ['golden_picks', 'hidden_gems', 'new_on_goldenbook'] as const
 
 // ─── Campaign schemas ───────────────────────────────────────────────────────
 

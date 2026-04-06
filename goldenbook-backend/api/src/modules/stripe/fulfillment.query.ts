@@ -270,6 +270,21 @@ export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promi
     }
   }
 
+  // Cross-surface dominance limit: max 2 paid surfaces per place
+  const MAX_PAID_SURFACES_PER_PLACE = 2
+  const { rows: [surfaceCount] } = await db.query<{ cnt: string }>(`
+    SELECT COUNT(*)::text AS cnt FROM place_visibility
+    WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+      AND (ends_at IS NULL OR ends_at >= now())
+  `, [purchase.place_id])
+
+  if (parseInt(surfaceCount?.cnt ?? '0', 10) >= MAX_PAID_SURFACES_PER_PLACE) {
+    await decrementSlot(purchase.city!, placementToSurface(purchase.placement_type!))
+    await db.query(`UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`, [purchase.id])
+    console.error(`[fulfillment] MAX_SURFACES_PER_PLACE: place ${purchase.place_id} already has ${MAX_PAID_SURFACES_PER_PLACE} paid surfaces`)
+    return 'inventory_conflict'
+  }
+
   const { rows } = await db.query<{ id: string }>(
     `INSERT INTO place_visibility (
        place_id, surface, visibility_type, priority,

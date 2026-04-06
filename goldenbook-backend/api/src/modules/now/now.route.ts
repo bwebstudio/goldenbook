@@ -379,7 +379,9 @@ async function resolveNow(
   try {
     const ids = await getActiveVisibilityPlaceIdsByCity('now', city.slug, 20)
     paidPlaceIds = new Set(ids)
-  } catch {}
+  } catch (err) {
+    console.warn('[NOW] Failed to load paid placements — continuing without', { err, city: city.slug })
+  }
 
   // Coordinates are OPTIONAL — NOW works without them
   const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
@@ -439,7 +441,9 @@ async function scorePlaceById(
   try {
     const ids = await getActiveVisibilityPlaceIdsByCity('now', city.slug, 20)
     paidPlaceIds = new Set(ids)
-  } catch {}
+  } catch (err) {
+    console.warn('[NOW/refresh] Failed to load paid placements', { err, city: city.slug })
+  }
 
   const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
   const target = candidates.find((c) => c.id === placeId)

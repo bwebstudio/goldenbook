@@ -144,6 +144,62 @@ export async function validateCampaignCheckout(opts: {
       )
     }
   }
+
+  // 7. Concierge + Discover anti-domination
+  if (campaign.section === 'concierge') {
+    const { rows: hasDiscover } = await db.query<{ surface: string }>(
+      `SELECT surface FROM place_visibility
+       WHERE place_id = $1 AND surface IN ('golden_picks', 'hidden_spots', 'new_on_goldenbook')
+         AND is_active = true AND (ends_at IS NULL OR ends_at >= now())
+       LIMIT 1`,
+      [opts.placeId],
+    )
+    if (hasDiscover.length > 0) {
+      const alts = await buildAlternatives(opts.placeId, campaign.section).catch(() => [])
+      throw new CampaignValidationError(
+        'This place already has a Discover placement — cannot add Concierge sponsorship',
+        'ANTI_DOMINATION',
+        null,
+        alts,
+      )
+    }
+  }
+  if (campaign.section_group === 'discover') {
+    const { rows: hasConcierge } = await db.query<{ id: string }>(
+      `SELECT id FROM place_visibility
+       WHERE place_id = $1 AND surface = 'concierge'
+         AND is_active = true AND (ends_at IS NULL OR ends_at >= now())
+       LIMIT 1`,
+      [opts.placeId],
+    )
+    if (hasConcierge.length > 0) {
+      const alts = await buildAlternatives(opts.placeId, campaign.section).catch(() => [])
+      throw new CampaignValidationError(
+        'This place already has a Concierge sponsorship — cannot add Discover placement',
+        'ANTI_DOMINATION',
+        null,
+        alts,
+      )
+    }
+  }
+
+  // 8. Cross-surface dominance limit: max 2 paid surfaces per place
+  const MAX_PAID_SURFACES_PER_PLACE = 2
+  const { rows: [surfaceCount] } = await db.query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM place_visibility
+     WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+       AND (ends_at IS NULL OR ends_at >= now())`,
+    [opts.placeId],
+  )
+  if (parseInt(surfaceCount?.cnt ?? '0', 10) >= MAX_PAID_SURFACES_PER_PLACE) {
+    const alts = await buildAlternatives(opts.placeId, campaign.section).catch(() => [])
+    throw new CampaignValidationError(
+      `This place already has ${MAX_PAID_SURFACES_PER_PLACE} active paid placements — maximum reached`,
+      'MAX_SURFACES',
+      null,
+      alts,
+    )
+  }
 }
 
 // ─── Eligibility check (non-throwing) ───────────────────────────────────────
@@ -211,6 +267,37 @@ export async function checkPlaceEligibility(
     )
     if (conflict) errors.push('DISCOVER_CONFLICT')
   }
+
+  // Concierge + Discover anti-domination
+  if (campaign.section === 'concierge') {
+    const { rows: hasDiscover } = await db.query<{ surface: string }>(
+      `SELECT surface FROM place_visibility
+       WHERE place_id = $1 AND surface IN ('golden_picks', 'hidden_spots', 'new_on_goldenbook')
+         AND is_active = true AND (ends_at IS NULL OR ends_at >= now())
+       LIMIT 1`,
+      [placeId],
+    ).catch(() => ({ rows: [] as { surface: string }[] }))
+    if (hasDiscover.length > 0) errors.push('ANTI_DOMINATION')
+  }
+  if (campaign.section_group === 'discover') {
+    const { rows: hasConcierge } = await db.query<{ id: string }>(
+      `SELECT id FROM place_visibility
+       WHERE place_id = $1 AND surface = 'concierge'
+         AND is_active = true AND (ends_at IS NULL OR ends_at >= now())
+       LIMIT 1`,
+      [placeId],
+    ).catch(() => ({ rows: [] as { id: string }[] }))
+    if (hasConcierge.length > 0) errors.push('ANTI_DOMINATION')
+  }
+
+  // Cross-surface dominance limit: max 2 paid surfaces per place
+  const { rows: [paidCount] } = await db.query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM place_visibility
+     WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+       AND (ends_at IS NULL OR ends_at >= now())`,
+    [placeId],
+  ).catch(() => ({ rows: [{ cnt: '0' }] }))
+  if (parseInt(paidCount?.cnt ?? '0', 10) >= 2) errors.push('MAX_SURFACES')
 
   const alternatives = await buildAlternatives(placeId, campaign.section)
 

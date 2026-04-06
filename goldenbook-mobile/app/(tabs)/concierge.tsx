@@ -30,6 +30,7 @@ import {
 } from '@/features/concierge/components'
 import { useConcierge } from '@/features/concierge/hooks/useConcierge'
 import { useTranslation } from '@/i18n'
+import { useAppStore } from '@/store/appStore'
 import { useNowContextStore } from '@/store/nowContextStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import type {
@@ -41,33 +42,66 @@ const GOLD  = '#D2B68A'
 const NAVY  = '#222D52'
 const IVORY = '#FDFDFB'
 
-function getQuickOptions(locale: string): ConciergeIntentDTO[] {
-  const localeFamily = locale.split('-')[0]
+/**
+ * Build quick-option pills from dynamic backend data.
+ *
+ * Priority:
+ *   1. fallbackIntents from the last recommendation (time-appropriate + city-viable)
+ *   2. bootstrap intents (time-appropriate + city-viable, set on mount)
+ *   3. static fallback (only if backend returned nothing)
+ *
+ * Max 4 pills shown. The resolved intent (currently active) is excluded
+ * so the user always sees alternatives, not what they already picked.
+ */
+function buildQuickOptions(
+  bootstrapIntents: ConciergeIntentDTO[] | undefined,
+  lastFallbacks: { id: string; title: string }[] | undefined,
+  activeIntentId: string | null,
+  locale: string,
+): ConciergeIntentDTO[] {
+  // Merge: fallbacks first (most recent context), then bootstrap for variety
+  const seen = new Set<string>()
+  if (activeIntentId) seen.add(activeIntentId)
+  const pills: ConciergeIntentDTO[] = []
 
-  if (localeFamily === 'pt') {
-    return [
-      { id: 'romantic_dinner', title: 'Jantar romântico', subtitle: '', icon: 'restaurant', label: null },
-      { id: 'sunset_drinks', title: 'Cocktails com vista', subtitle: '', icon: 'wb_sunny', label: null },
-      { id: 'hidden_gems', title: 'Passeio tranquilo', subtitle: '', icon: 'diamond', label: null },
-      { id: 'gallery_afternoon', title: 'Algo cultural', subtitle: '', icon: 'museum', label: null },
-    ]
+  // Add fallbackIntents from last recommendation
+  if (lastFallbacks?.length) {
+    for (const fb of lastFallbacks) {
+      if (seen.has(fb.id) || pills.length >= 4) continue
+      seen.add(fb.id)
+      pills.push({ id: fb.id, title: fb.title, subtitle: '', icon: '', label: null })
+    }
   }
 
-  if (localeFamily === 'es') {
-    return [
-      { id: 'romantic_dinner', title: 'Cena romántica', subtitle: '', icon: 'restaurant', label: null },
-      { id: 'sunset_drinks', title: 'Cócteles con vistas', subtitle: '', icon: 'wb_sunny', label: null },
-      { id: 'hidden_gems', title: 'Paseo tranquilo', subtitle: '', icon: 'diamond', label: null },
-      { id: 'gallery_afternoon', title: 'Algo cultural', subtitle: '', icon: 'museum', label: null },
-    ]
+  // Fill from bootstrap intents
+  if (bootstrapIntents?.length) {
+    for (const bi of bootstrapIntents) {
+      if (seen.has(bi.id) || pills.length >= 4) continue
+      seen.add(bi.id)
+      pills.push(bi)
+    }
   }
 
-  return [
-    { id: 'romantic_dinner', title: 'Romantic dinner', subtitle: '', icon: 'restaurant', label: null },
-    { id: 'sunset_drinks', title: 'Cocktails with a view', subtitle: '', icon: 'wb_sunny', label: null },
-    { id: 'hidden_gems', title: 'Relaxed stroll', subtitle: '', icon: 'diamond', label: null },
-    { id: 'gallery_afternoon', title: 'Something cultural', subtitle: '', icon: 'museum', label: null },
-  ]
+  // Static fallback only if nothing from backend
+  if (pills.length === 0) {
+    const lang = locale.split('-')[0]
+    return lang === 'pt'
+      ? [
+          { id: 'hidden_gems', title: 'Lugares secretos', subtitle: '', icon: 'diamond', label: null },
+          { id: 'relaxed_walk', title: 'Passeio tranquilo', subtitle: '', icon: 'directions_walk', label: null },
+        ]
+      : lang === 'es'
+        ? [
+            { id: 'hidden_gems', title: 'Lugares secretos', subtitle: '', icon: 'diamond', label: null },
+            { id: 'relaxed_walk', title: 'Paseo tranquilo', subtitle: '', icon: 'directions_walk', label: null },
+          ]
+        : [
+            { id: 'hidden_gems', title: 'Hidden gems', subtitle: '', icon: 'diamond', label: null },
+            { id: 'relaxed_walk', title: 'Relaxed stroll', subtitle: '', icon: 'directions_walk', label: null },
+          ]
+  }
+
+  return pills
 }
 
 export default function ConciergeScreen() {
@@ -81,13 +115,27 @@ export default function ConciergeScreen() {
   const scrollRef = useRef<ScrollView>(null)
   const entryOpacity = useRef(new Animated.Value(entry === 'now' ? 0 : 1)).current
   const entryTranslateY = useRef(new Animated.Value(entry === 'now' ? 14 : 0)).current
-  const quickOptions = getQuickOptions(locale)
 
-  // Load bootstrap on mount and whenever locale changes
+  // Dynamic pills: use last recommendation's fallbacks + bootstrap intents
+  // Backend already excludes the active intent from fallbackIntents, so no need to track it here
+  const lastRecoMessage = state.messages.filter(m => m.type === 'recommendation_response').at(-1)
+  const quickOptions = buildQuickOptions(
+    state.bootstrapData?.intents,
+    lastRecoMessage?.fallbackIntents,
+    null,
+    locale,
+  )
+
+  // Load bootstrap on mount, city change, or locale change
+  const city = useAppStore((s) => s.selectedCity)
+  const bootstrapCity = state.bootstrapData?.city.slug
   useEffect(() => {
-    if (entry === 'now' || state.bootstrapData) return
-    loadBootstrap()
-  }, [entry, loadBootstrap, state.bootstrapData])
+    if (entry === 'now') return
+    // Reload if no bootstrap or if city changed since last bootstrap
+    if (!state.bootstrapData || (bootstrapCity && bootstrapCity !== city)) {
+      loadBootstrap()
+    }
+  }, [entry, loadBootstrap, state.bootstrapData, bootstrapCity, city])
 
   useEffect(() => {
     if (entry !== 'now' || pendingNowContext?.source !== 'now') return

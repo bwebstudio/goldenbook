@@ -1,6 +1,6 @@
 // ─── Context Tag System ──────────────────────────────────────────────────────
 //
-// Canonical registry of the 22 dashboard context tags.
+// Canonical registry of the 23 dashboard context tags.
 // These tags are the ONLY source of contextual relevance — no invented tags.
 //
 // Weather and time-of-day boosts RANK candidates, they never FILTER them.
@@ -9,7 +9,7 @@
 
 import type { NowTimeOfDay, WeatherCondition } from './types'
 
-// ─── The 22 dashboard context tags ──────────────────────────────────────────
+// ─── The 23 dashboard context tags ──────────────────────────────────────────
 
 export const CONTEXT_TAGS = [
   'brunch',
@@ -23,6 +23,7 @@ export const CONTEXT_TAGS = [
   'late-night',
   'live-music',
   'local-secret',
+  'lunch',
   'quick-stop',
   'rainy-day',
   'romantic',
@@ -55,11 +56,13 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'quick-stop':  0.8,
     'family':      0.7,    // family-friendly daytime activities
     'wellness':    0.6,
+    'lunch':       0.4,    // some places open for early lunch
     'shopping':    0.4,
     'terrace':     0.4,
     'sunday':      0.3,
   },
   midday: {
+    'lunch':       1.0,    // prime lunch time
     'brunch':      1.0,
     'quick-stop':  1.0,
     'culture':     0.8,    // cultural visits pair well with lunch
@@ -68,13 +71,14 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'viewpoint':   0.6,
     'family':      0.6,
     'shopping':    0.5,
+    'wine':        0.4,
     'wellness':    0.4,
-    'wine':        0.3,
   },
   afternoon: {
     'culture':     1.0,    // prime time for museums, galleries, municipalities
     'shopping':    0.9,
     'coffee':      0.8,
+    'lunch':       0.7,    // late lunch still relevant
     'terrace':     0.7,
     'sunset':      0.6,
     'wellness':    0.6,
@@ -189,6 +193,7 @@ export const TAG_LABELS: Record<ContextTag, Record<string, string>> = {
   'late-night':   { en: 'Late Night',     pt: 'Noite',                  es: 'Noche' },
   'live-music':   { en: 'Live Music',     pt: 'Música ao vivo',         es: 'Música en vivo' },
   'local-secret': { en: 'Local Secret',   pt: 'Segredo local',          es: 'Secreto local' },
+  'lunch':        { en: 'Lunch',          pt: 'Almoço',                 es: 'Almuerzo' },
   'quick-stop':   { en: 'Quick Stop',     pt: 'Paragem rápida',         es: 'Parada rápida' },
   'rainy-day':    { en: 'Rainy Day',      pt: 'Dia de chuva',           es: 'Día de lluvia' },
   'romantic':     { en: 'Romantic',        pt: 'Romântico',              es: 'Romántico' },

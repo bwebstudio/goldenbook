@@ -20,6 +20,8 @@ export interface PlaceFormValues {
   phone: string;
   email: string;
   bookingUrl: string;
+  /** Place type — determines how the place is used in recommendations. */
+  placeType: string;
   /** Primary category slug. */
   categorySlug: string;
   /** Optional subcategory slug. */
@@ -55,6 +57,7 @@ export const EMPTY_PLACE_FORM: PlaceFormValues = {
   phone: "",
   email: "",
   bookingUrl: "",
+  placeType: "restaurant",
   categorySlug: "",
   subcategorySlug: "",
   status: "published",

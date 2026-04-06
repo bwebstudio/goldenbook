@@ -19,15 +19,15 @@ import {
 // ── Product groups ──────────────────────────────────────────────────────────
 
 const PRODUCT_GROUPS = [
-  { key: "discover", products: ["golden_picks", "now", "hidden_gems", "new_on_goldenbook"] },
+  { key: "discover", products: ["golden_picks", "hidden_gems", "new_on_goldenbook"] },
+  { key: "recommendation", products: ["now", "concierge"] },
   { key: "intent", products: ["search_priority", "category_featured"] },
-  { key: "dynamic", products: ["concierge"] },
   { key: "listing", products: ["extra_images", "extended_description"] },
 ] as const;
 
 const GROUP_LABELS: Record<string, Record<string, string>> = {
-  en: { discover: "Discover (Exclusive)", intent: "Search & Categories", dynamic: "Concierge", listing: "Listing Upgrades" },
-  pt: { discover: "Descobrir (Exclusivo)", intent: "Pesquisa & Categorias", dynamic: "Concierge", listing: "Melhorias do Espaço" },
+  en: { discover: "Discover (Exclusive)", recommendation: "Recommendations", intent: "Search & Categories", listing: "Listing Upgrades" },
+  pt: { discover: "Descobrir (Exclusivo)", recommendation: "Recomendações", intent: "Pesquisa & Categorias", listing: "Melhorias do Espaço" },
 };
 
 const SCOPE_PRODUCTS = new Set(["search_priority", "category_featured"]);
@@ -357,9 +357,13 @@ export default function PortalPromote() {
                           ? t.promote.unavailableActive
                           : reason === "DISCOVER_CONFLICT"
                             ? t.promote.unavailableDiscoverMax
-                            : reason === "INVENTORY_FULL"
-                              ? t.promote.unavailableSoldOut
-                              : t.promote.unavailableGeneric}
+                            : reason === "ANTI_DOMINATION"
+                              ? t.promote.unavailableAntiDomination
+                              : reason === "MAX_SURFACES"
+                                ? t.promote.unavailableMaxSurfaces
+                                : reason === "INVENTORY_FULL"
+                                  ? t.promote.unavailableSoldOut
+                                  : t.promote.unavailableGeneric}
                       </span>
                     )}
                   </div>

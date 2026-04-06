@@ -201,6 +201,8 @@ export async function getNowCandidates(
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%law firm%'
+      AND COALESCE(p.short_description, '') NOT ILIKE '%consultancy%'
       -- NOW date window filter (if set)
       AND (p.now_start_at IS NULL OR p.now_start_at <= now())
       AND (p.now_end_at IS NULL OR p.now_end_at >= now())

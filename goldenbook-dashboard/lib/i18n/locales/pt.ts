@@ -365,6 +365,8 @@ const pt: TranslationKeys = {
     validUntil: "Válido até {date}",
     unavailableActive: "Ativo",
     unavailableDiscoverMax: "Máx. 1 no Discover",
+    unavailableAntiDomination: "Concierge + Discover exclusivo",
+    unavailableMaxSurfaces: "Máx. 2 promoções atingido",
     unavailableSoldOut: "Esgotado",
     unavailableGeneric: "Indisponível",
     cityLabel: "Cidade",

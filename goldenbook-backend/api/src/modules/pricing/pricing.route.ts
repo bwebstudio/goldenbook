@@ -126,11 +126,26 @@ export async function pricingRoutes(app: FastifyInstance) {
     const activeSurfaces = new Set(activeVisibility.map((r) => r.surface))
 
     // Check if place has any active discover placement
-    const discoverSurfaces = ['golden_picks', 'now', 'hidden_spots', 'hidden_gems', 'new_on_goldenbook']
+    // Discover = golden_picks, hidden_spots/hidden_gems, new_on_goldenbook (NOT now)
+    const discoverSurfaces = ['golden_picks', 'hidden_spots', 'hidden_gems', 'new_on_goldenbook']
     const hasActiveDiscover = discoverSurfaces.some((s) => activeSurfaces.has(s) || occupiedSections.has(s))
 
+    // Check if place has active concierge placement
+    const hasActiveConcierge = activeSurfaces.has('concierge') || occupiedSections.has('concierge')
+
+    // Count total active paid surfaces for cross-surface dominance limit
+    const MAX_PAID_SURFACES_PER_PLACE = 2
+    const { rows: [paidSurfaceCount] } = await db.query<{ cnt: string }>(
+      `SELECT COUNT(*)::text AS cnt FROM place_visibility
+       WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+         AND (ends_at IS NULL OR ends_at >= now())`,
+      [placeId],
+    ).catch(() => ({ rows: [{ cnt: '0' }] }))
+    const activePaidSurfaces = parseInt(paidSurfaceCount?.cnt ?? '0', 10)
+
     // Map of discover placement_type → surface name (they differ sometimes)
-    const discoverTypes = new Set(['golden_picks', 'now', 'hidden_gems', 'new_on_goldenbook'])
+    // NOW is NOT a Discover product — it has its own surface rules
+    const discoverTypes = new Set(['golden_picks', 'hidden_gems', 'new_on_goldenbook'])
     const intentTypes = new Set(['search_priority', 'category_featured'])
 
     // Resolve city slug for this business client's place
@@ -175,6 +190,20 @@ export async function pricingRoutes(app: FastifyInstance) {
       else if (isDiscover && hasActiveDiscover) {
         available = false
         reason = 'DISCOVER_CONFLICT'
+      }
+      // Concierge + Discover anti-domination
+      else if (section === 'concierge' && hasActiveDiscover) {
+        available = false
+        reason = 'ANTI_DOMINATION'
+      }
+      else if (isDiscover && hasActiveConcierge) {
+        available = false
+        reason = 'ANTI_DOMINATION'
+      }
+      // Cross-surface dominance limit: max 2 paid surfaces per place
+      else if (activePaidSurfaces >= MAX_PAID_SURFACES_PER_PLACE) {
+        available = false
+        reason = 'MAX_SURFACES'
       }
       // Global slot cap (promotion_inventory)
       else {
@@ -304,12 +333,22 @@ export async function pricingRoutes(app: FastifyInstance) {
       campaign = await getCampaignById(campaignBody.campaignId)
     }
 
-    const plan = await getPricingPlanById(body.planId)
+    // Resolve plan: for campaigns, find the plan matching the campaign section
+    let resolvedPlanId = body.planId
+    if (hasCampaign && campaign) {
+      const { rows: sectionPlans } = await db.query<{ id: string }>(
+        `SELECT id FROM pricing_plans WHERE placement_type = $1 AND is_active = true ORDER BY created_at DESC LIMIT 1`,
+        [campaign.section],
+      )
+      if (sectionPlans[0]) resolvedPlanId = sectionPlans[0].id
+    }
+
+    const plan = await getPricingPlanById(resolvedPlanId)
     if (!plan || !plan.is_active) {
       throw new AppError(404, 'Pricing plan not found or inactive', 'NOT_FOUND')
     }
 
-    const priceResult = await computePrice(body.planId, body.city, body.month)
+    const priceResult = await computePrice(resolvedPlanId, body.city, body.month)
     if (!priceResult) {
       throw new AppError(500, 'Could not compute price', 'PRICE_ERROR')
     }

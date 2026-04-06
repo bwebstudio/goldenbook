@@ -363,6 +363,8 @@ const en = {
     validUntil: "Valid until {date}",
     unavailableActive: "Active",
     unavailableDiscoverMax: "Max 1 in Discover",
+    unavailableAntiDomination: "Concierge + Discover exclusive",
+    unavailableMaxSurfaces: "Max 2 promotions reached",
     unavailableSoldOut: "Sold out",
     unavailableGeneric: "Unavailable",
     cityLabel: "City",
