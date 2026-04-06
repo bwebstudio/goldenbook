@@ -687,9 +687,18 @@ export async function conciergeRoutes(app: FastifyInstance) {
       userStyle: style ?? undefined,
     }
 
+    // ── Pre-filter: only score candidates whose place_type matches the intent ─
+    // This prevents restaurants from appearing in "Gallery afternoon" etc.
+    // Broad intents (hidden_gems, relaxed_walk) accept many types so this is not restrictive.
+    const intentTypeSet = new Set(resolvedIntent.placeTypes)
+    const typeFilteredCandidates = candidates.filter((p) => intentTypeSet.has(p.place_type))
+
+    // If strict filtering leaves too few candidates, fall back to full pool
+    const scoringPool = typeFilteredCandidates.length >= 3 ? typeFilteredCandidates : candidates
+
     // ── STEP 1: Base Score (shared engine) ─────────────────────────────
     // ── STEP 2: Adjustments (Concierge-specific) ────────────────────────
-    let scoredCandidates: ScoredCandidate[] = candidates
+    let scoredCandidates: ScoredCandidate[] = scoringPool
       .map((place) => {
         // STEP 1: base score from shared engine
         const result = scoreCandidate(place, scoringCtx)
