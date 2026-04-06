@@ -8,8 +8,8 @@ import { useT, useLocale } from "@/lib/i18n";
 
 const TIME_WINDOWS = [
   { value: "morning",   en: "Morning (6–11)",    pt: "Manhã (6–11)" },
-  { value: "midday",    en: "Lunch (11–14)",     pt: "Almoço (11–14)" },
-  { value: "afternoon", en: "Afternoon (14–18)", pt: "Tarde (14–18)" },
+  { value: "midday",    en: "Lunch (11–15)",     pt: "Almoço (11–15)" },
+  { value: "afternoon", en: "Afternoon (15–18)", pt: "Tarde (15–18)" },
   { value: "evening",   en: "Evening (18–22)",   pt: "Noite (18–22)" },
   { value: "night",     en: "Late Night (22–6)", pt: "Madrugada (22–6)" },
 ] as const;

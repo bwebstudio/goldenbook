@@ -78,7 +78,6 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'culture':     1.0,    // prime time for museums, galleries, municipalities
     'shopping':    0.9,
     'coffee':      0.8,
-    'lunch':       0.7,    // late lunch still relevant
     'terrace':     0.7,
     'sunset':      0.6,
     'wellness':    0.6,
@@ -239,8 +238,8 @@ export function getNowTimeOfDay(date: Date = new Date(), citySlug?: string): Now
   const hour = parseInt(hourStr, 10)
 
   if (hour >= 6 && hour < 11)  return 'morning'
-  if (hour >= 11 && hour < 14) return 'midday'
-  if (hour >= 14 && hour < 18) return 'afternoon'
+  if (hour >= 11 && hour < 15) return 'midday'
+  if (hour >= 15 && hour < 18) return 'afternoon'
   if (hour >= 18 && hour < 22) return 'evening'
   return 'night'
 }
