@@ -338,36 +338,38 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
         </div>
       </div>
 
-      {/* Time windows */}
-      <div>
-        <label className="block text-sm font-medium text-text mb-1">
-          {isPt ? "Janelas horárias" : "Time windows"}
-        </label>
-        <p className="text-[11px] text-muted mb-2">
-          {isPt
-            ? "Quando é que este espaço é mais relevante durante o dia? Deixe vazio se relevante a todas as horas."
-            : "When is this place most relevant during the day? Leave empty if relevant at all times."}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {TIME_WINDOWS.map((tw) => {
-            const selected = value.nowTimeWindows.includes(tw.value);
-            return (
-              <button
-                key={tw.value}
-                type="button"
-                onClick={() => toggleTimeWindow(tw.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer border ${
-                  selected
-                    ? "bg-gold/10 text-gold border-gold/30"
-                    : "bg-white border-border text-muted hover:border-gold/30"
-                }`}
-              >
-                {isPt ? tw.pt : tw.en}
-              </button>
-            );
-          })}
+      {/* Time windows — only show manual selector if no auto-generated windows */}
+      {!contextWindowsAuto?.length && (
+        <div>
+          <label className="block text-sm font-medium text-text mb-1">
+            {isPt ? "Janelas horárias" : "Time windows"}
+          </label>
+          <p className="text-[11px] text-muted mb-2">
+            {isPt
+              ? "Quando é que este espaço é mais relevante durante o dia? Deixe vazio se relevante a todas as horas."
+              : "When is this place most relevant during the day? Leave empty if relevant at all times."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {TIME_WINDOWS.map((tw) => {
+              const selected = value.nowTimeWindows.includes(tw.value);
+              return (
+                <button
+                  key={tw.value}
+                  type="button"
+                  onClick={() => toggleTimeWindow(tw.value)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer border ${
+                    selected
+                      ? "bg-gold/10 text-gold border-gold/30"
+                      : "bg-white border-border text-muted hover:border-gold/30"
+                  }`}
+                >
+                  {isPt ? tw.pt : tw.en}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
