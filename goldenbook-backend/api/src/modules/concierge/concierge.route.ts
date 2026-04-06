@@ -839,20 +839,23 @@ export async function conciergeRoutes(app: FastifyInstance) {
     }
 
     // ── Smart fallback: if insufficient results, search related categories ──
+    // Only fetch places of matching types — never fill cultural intents with restaurants
     if (scored.length < limit) {
       const existingIds = scored.map((p) => p.id)
+      const fallbackTypes = adjustmentEmotion
+        ? [...new Set(getEmotionIntentGroup(adjustmentEmotion, resolvedIntent).flatMap((intent) => intent.placeTypes))]
+        : resolvedIntent.placeTypes
       const fallbackPlaces = await getFallbackPlaces(
-        city.slug,
-        locale,
+        city.slug, locale,
         [...session.placeIds, ...existingIds],
         Math.max(limit * 2, 6),
-        adjustmentEmotion
-          ? [...new Set(getEmotionIntentGroup(adjustmentEmotion, resolvedIntent).flatMap((intent) => intent.placeTypes))]
-          : resolvedIntent.placeTypes,
+        fallbackTypes,
       )
+      // Strict type filter: only accept places whose type matches the intent
+      const typedFallbacks = fallbackPlaces.filter((p) => intentTypeSet.has(p.place_type))
       const extra = adjustmentEmotion
-        ? sortPlacesByEmotionPriority(fallbackPlaces, adjustmentEmotion)
-        : fallbackPlaces
+        ? sortPlacesByEmotionPriority(typedFallbacks, adjustmentEmotion)
+        : typedFallbacks
       scored = mergeUniquePlaces(scored, extra, limit)
     }
 
