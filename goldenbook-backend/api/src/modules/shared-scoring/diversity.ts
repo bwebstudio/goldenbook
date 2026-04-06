@@ -1,9 +1,14 @@
-// ─── Diversity Adjustment ────────────────────────────────────────────────────
+// ─── STEP 3: Diversity Multiplier ────────────────────────────────────────────
 //
-// Prevents repetitive results by penalizing adjacent same-category and
-// same-tag candidates, and introducing variety when scores are close.
+// Applied as the LAST step in the scoring pipeline (after STEP 1 base score
+// and STEP 2 adjustments). Multiplies totalScore, does not add/subtract.
 //
-// Applied AFTER scoring, BEFORE final selection.
+// Rules:
+//   - Adjacent same place_type: totalScore × 0.85 (15% penalty)
+//   - Adjacent same bestTag: totalScore × 0.90 (10% penalty)
+//   - Score plateau (<5% diff): 40% chance of random swap for variety
+//   - Paid placements are EXEMPT from all diversity penalties
+//   - Pool ≤ 3 candidates: diversity is skipped entirely
 
 import type { ScoredCandidate } from './types'
 

@@ -658,60 +658,57 @@ export async function conciergeRoutes(app: FastifyInstance) {
       userStyle: style ?? undefined,
     }
 
-    // Score all candidates with the shared engine + Concierge-specific adjustments
+    // ── STEP 1: Base Score (shared engine) ─────────────────────────────
+    // ── STEP 2: Adjustments (Concierge-specific) ────────────────────────
     let scoredCandidates: ScoredCandidate[] = candidates
       .map((place) => {
+        // STEP 1: base score from shared engine
         const result = scoreCandidate(place, scoringCtx)
 
-        // Concierge-specific: intent compatibility scoring
+        // STEP 2a: Intent match adjustment (+5 match, -5/-12/-20 mismatch)
         const intentMatch = resolvedIntent.placeTypes.includes(place.place_type)
         if (intentMatch) {
-          result.totalScore += 5
+          result.totalScore += 5                    // intentMatchAdjustment: +5
         } else if (result.isSponsored) {
-          // Paid placement doesn't match intent place_type.
-          // Measure how contextually close it is using tag overlap.
           const intentTagSet = new Set([...resolvedIntent.tags, ...resolvedIntent.categorySlugs]
             .map(t => t.toLowerCase().replace(/[^a-z0-9]/g, '-')))
           const placeTags = place.context_tag_slugs ?? []
           const tagOverlap = placeTags.filter(t => intentTagSet.has(t)).length
 
           if (tagOverlap >= 2) {
-            // Loosely related (e.g. wine bar for romantic dinner) — small penalty
-            result.totalScore -= 5
+            result.totalScore -= 5                  // intentMismatch: loosely related
           } else if (tagOverlap === 1) {
-            // Weakly related — moderate penalty
-            result.totalScore -= 12
+            result.totalScore -= 12                 // intentMismatch: weakly related
           } else {
-            // Strongly incompatible (e.g. late-night bar for family brunch) — heavy penalty
-            result.totalScore -= 20
+            result.totalScore -= 20                 // intentMismatch: strongly incompatible
           }
         }
 
-        // Anti-repetition: strong penalty for already-shown places
+        // STEP 2b: Anti-repetition penalty (-20)
         if (session.placeIds.has(place.id)) {
-          result.totalScore -= 20
+          result.totalScore -= 20                   // antiRepetitionPenalty
         }
 
-        // Hero domination prevention: places that were hero get heavy penalty
+        // STEP 2c: Hero history penalty (-18, paid exempt)
         if (!result.isSponsored && session.heroHistory.has(place.id)) {
-          result.totalScore -= 18
+          result.totalScore -= 18                   // heroHistoryPenalty
         }
 
-        // Hero rotation: extra penalty for the immediately previous hero
+        // STEP 2d: Hero rotation penalty (-12, paid exempt)
         if (previousHeroId && place.id === previousHeroId && !result.isSponsored) {
-          result.totalScore -= 12
+          result.totalScore -= 12                   // heroRotationPenalty
         }
 
-        // Frequency capping: penalize over-exposed places
+        // STEP 2e: Frequency cap penalty (-20, paid exempt)
         if (!result.isSponsored && isOverExposed(sessionId, place.id)) {
-          result.totalScore -= 20
+          result.totalScore -= 20                   // frequencyCapPenalty
         }
 
-        // Refinement tag adjustments (additive on top of shared scoring)
+        // STEP 2f: Refinement tag adjustments (+8 boost, -6 reduce)
         if (refinementAdj && place.context_tag_slugs?.length) {
           const placeTags = new Set(place.context_tag_slugs)
           for (const boostTag of refinementAdj.boost) {
-            if (placeTags.has(boostTag)) result.totalScore += 8
+            if (placeTags.has(boostTag)) result.totalScore += 8   // refinementBoost
           }
           for (const reduceTag of refinementAdj.reduce) {
             if (placeTags.has(reduceTag)) result.totalScore -= 6
@@ -723,7 +720,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
       .filter((r) => r.totalScore > 0)
       .sort((a, b) => b.totalScore - a.totalScore)
 
-    // Apply shared diversity rules (same as NOW)
+    // ── STEP 3: Diversity multiplier (applied LAST) ────────────────────
+    // Same-category adjacent: ×0.85, same-tag adjacent: ×0.90
+    // Paid placements are EXEMPT from diversity penalties
     scoredCandidates = applyDiversityRules(scoredCandidates)
 
     // Paid placement visibility floor: guarantee paid appears within top results

@@ -2,14 +2,35 @@
 //
 // Single scoring pipeline shared by NOW and Concierge.
 //
-// Two-stage architecture:
-//   1. Eligibility — hard filters (SQL-level, not here)
-//   2. Ranking — weighted scoring (this file)
+// ── Scoring Formula (explicit order of operations) ──────────────────────────
+//
+// STEP 1 — Base Score (computed here in scoreCandidate):
+//
+//   baseScore =
+//     0.15 × commercialScore   (paid placement boost, dashboard priority)
+//   + 0.30 × contextScore      (context tags × time-of-day × weather × intent overlap)
+//   + 0.15 × editorialScore    (editorial tags, NOW featured, time window match)
+//   + 0.25 × qualityScore      (popularity, hero image, recency)
+//   + 0.15 × proximityScore    (distance from user, or neutral if unavailable)
+//   + 0.12 × personalization   (onboarding interests + exploration style)
+//
+// STEP 2 — Adjustments (applied by the route handler AFTER scoreCandidate):
+//
+//   adjustedScore = baseScore
+//     + intentMatchAdjustment   (+5 match, -5/-12/-20 mismatch for paid)
+//     + refinementAdjustment    (+8 per boosted tag, -6 per reduced tag)
+//     - antiRepetitionPenalty   (-20 for already-shown places)
+//     - heroHistoryPenalty      (-18 for places that were hero before)
+//     - heroRotationPenalty     (-12 for the immediately previous hero)
+//     - frequencyCapPenalty     (-20 for over-exposed places, paid exempt)
+//
+// STEP 3 — Diversity (applied LAST by applyDiversityRules):
+//
+//   finalScore = adjustedScore × diversityMultiplier
+//     (0.85 for adjacent same place_type, 0.90 for same bestTag)
+//     (paid placements are EXEMPT from diversity penalties)
 //
 // Weather NEVER eliminates candidates. It adjusts context score up or down.
-//
-// finalScore = commercial + context + editorial + quality + proximity
-//              (each weighted by ScoringWeights)
 
 import type {
   UnifiedCandidate,
@@ -242,7 +263,10 @@ function scorePersonalization(
   return Math.min(score, 100)
 }
 
-// ─── Single candidate scorer ────────────────────────────────────────────────
+// ─── STEP 1: Base Score (single candidate) ──────────────────────────────────
+//
+// Computes the base score from objective signals only.
+// Route handlers apply STEP 2 (adjustments) and STEP 3 (diversity) afterward.
 
 export function scoreCandidate(
   place: UnifiedCandidate,
@@ -251,21 +275,26 @@ export function scoreCandidate(
   const isPaid = ctx.paidPlaceIds.has(place.id)
   const w = ctx.weights
 
-  const commercialScore = scoreCommercial(place, isPaid)
+  // ── Component scores (each 0–100) ──────────────────────────────────────
+  const commercialScore      = scoreCommercial(place, isPaid)
   const { score: contextScore, bestTag } = scoreContext(place, ctx)
-  const editorialScore = scoreEditorial(place)
-  const qualityScore = scoreQuality(place)
-  const proximityScore = scoreProximity(place.distance_meters)
+  const editorialScore       = scoreEditorial(place)
+  const qualityScore         = scoreQuality(place)
+  const proximityScore       = scoreProximity(place.distance_meters)
   const personalizationScore = scorePersonalization(place, ctx)
 
-  const totalScore =
+  // ── Base score: weighted sum + personalization bonus ────────────────────
+  const baseScore =
     w.commercial * commercialScore +
     w.context    * contextScore +
     w.editorial  * editorialScore +
     w.quality    * qualityScore +
-    w.proximity  * proximityScore +
-    // Personalization: additive bonus (not weighted — always applied when profile exists)
-    personalizationScore * 0.12
+    w.proximity  * proximityScore
+
+  const personalizationBonus = personalizationScore * 0.12
+
+  // totalScore = baseScore + personalization (STEP 2 adjustments added by route)
+  const totalScore = baseScore + personalizationBonus
 
   const breakdown: ScoreBreakdown = {
     commercial: { raw: commercialScore, weighted: round2(w.commercial * commercialScore) },
