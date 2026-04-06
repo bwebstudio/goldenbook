@@ -585,6 +585,12 @@ export async function conciergeRoutes(app: FastifyInstance) {
       session.pool = allCandidates
       session.poolCity = city.slug
       session.poolBuiltAt = Date.now()
+      // Clear cached pills — they contain candidates from the previous city
+      session.pills.clear()
+      session.placeIds.clear()
+      session.heroHistory.clear()
+      session.lastHeroId = null
+      session.lastIntentId = null
       candidates = allCandidates
     } else {
       candidates = session.pool!
