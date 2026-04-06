@@ -91,18 +91,25 @@ export async function getConciergeRecommendations(
     ? `AND (p.intents && ARRAY[${intentParams}]::text[] OR p.intents = ARRAY[]::text[])`
     : ''
 
-  // Context tags aggregation (shared with NOW — editorial relevance metadata)
+  // Context tags: editorial first, fallback to auto-generated
   const contextTagsExpr = `
     COALESCE(
-      (SELECT array_agg(nct.slug)
-       FROM place_now_tags pnt
-       JOIN now_context_tags nct ON nct.id = pnt.tag_id
-       WHERE pnt.place_id = p.id),
-      ARRAY[]::text[]
+      NULLIF(
+        (SELECT array_agg(nct.slug)
+         FROM place_now_tags pnt
+         JOIN now_context_tags nct ON nct.id = pnt.tag_id
+         WHERE pnt.place_id = p.id),
+        ARRAY[]::text[]
+      ),
+      CASE
+        WHEN p.context_tags_auto IS NOT NULL
+        THEN ARRAY(SELECT jsonb_array_elements_text(p.context_tags_auto))
+        ELSE ARRAY[]::text[]
+      END
     )
   `
 
-  // Max tag weight for this place
+  // Max tag weight: editorial if available, else 1.0
   const contextTagMaxWeightExpr = `
     COALESCE(
       (SELECT MAX(pnt.weight)
@@ -130,11 +137,20 @@ export async function getConciergeRecommendations(
   const limitIdx = timeWindowIdx + 1
   const timeWindowMatchExpr = `
     CASE
-      WHEN NOT EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id)
-        THEN true
-      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${timeWindowIdx})
-        THEN true
-      ELSE false
+      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id)
+        THEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${timeWindowIdx})
+      WHEN p.context_windows_auto IS NOT NULL
+        THEN p.context_windows_auto ? (
+          CASE $${timeWindowIdx}
+            WHEN 'morning'   THEN 'manhã'
+            WHEN 'midday'    THEN 'almoço'
+            WHEN 'afternoon' THEN 'tarde'
+            WHEN 'evening'   THEN 'noite'
+            WHEN 'night'     THEN 'madrugada'
+            ELSE $${timeWindowIdx}
+          END
+        )
+      ELSE true
     END
   `
 

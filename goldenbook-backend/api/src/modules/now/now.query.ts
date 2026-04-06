@@ -88,18 +88,26 @@ export async function getNowCandidates(
     )
   `
 
-  // NOW context tags aggregation
+  // NOW context tags: editorial tags first, fallback to auto-generated
   const nowTagsExpr = `
     COALESCE(
-      (SELECT array_agg(nct.slug)
-       FROM place_now_tags pnt
-       JOIN now_context_tags nct ON nct.id = pnt.tag_id
-       WHERE pnt.place_id = p.id),
-      ARRAY[]::text[]
+      NULLIF(
+        (SELECT array_agg(nct.slug)
+         FROM place_now_tags pnt
+         JOIN now_context_tags nct ON nct.id = pnt.tag_id
+         WHERE pnt.place_id = p.id),
+        ARRAY[]::text[]
+      ),
+      -- Fallback: use context_tags_auto (from Context Engine)
+      CASE
+        WHEN p.context_tags_auto IS NOT NULL
+        THEN ARRAY(SELECT jsonb_array_elements_text(p.context_tags_auto))
+        ELSE ARRAY[]::text[]
+      END
     )
   `
 
-  // Max tag weight for this place (used as a scoring multiplier)
+  // Max tag weight: editorial weight if available, else 1.0
   const nowTagMaxWeightExpr = `
     COALESCE(
       (SELECT MAX(pnt.weight)
@@ -109,15 +117,26 @@ export async function getNowCandidates(
     )
   `
 
-  // Time window match: does this place have a matching time window entry?
-  // If the place has NO time window rows, it's eligible for all windows (legacy).
+  // Time window match: editorial windows first, fallback to context_windows_auto
   const timeWindowMatchExpr = `
     CASE
-      WHEN NOT EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id)
-        THEN true
-      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${hasCoords ? 5 : 3})
-        THEN true
-      ELSE false
+      -- Editorial time windows set → use those
+      WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id)
+        THEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${hasCoords ? 5 : 3})
+      -- Auto-generated windows (Portuguese) → map English timeOfDay to PT window name
+      WHEN p.context_windows_auto IS NOT NULL
+        THEN p.context_windows_auto ? (
+          CASE $${hasCoords ? 5 : 3}
+            WHEN 'morning'   THEN 'manhã'
+            WHEN 'midday'    THEN 'almoço'
+            WHEN 'afternoon' THEN 'tarde'
+            WHEN 'evening'   THEN 'noite'
+            WHEN 'night'     THEN 'madrugada'
+            ELSE $${hasCoords ? 5 : 3}
+          END
+        )
+      -- No windows at all → eligible for everything
+      ELSE true
     END
   `
 
@@ -184,9 +203,10 @@ export async function getNowCandidates(
       AND p.status = 'published'
       AND p.is_active = true
       AND p.is_temporarily_closed = false
-      -- Eligibility: place must have at least one context tag OR an active paid placement
+      -- Eligibility: editorial tags OR auto-generated tags OR active paid placement
       AND (
         EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
+        OR p.context_tags_auto IS NOT NULL
         OR EXISTS (
           SELECT 1 FROM place_visibility pv
           WHERE pv.place_id = p.id
