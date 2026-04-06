@@ -338,6 +338,7 @@ export async function updatePlace(
     if (input.email        !== undefined) addField('email',          nullify(input.email))
     if (input.bookingUrl   !== undefined) addField('booking_url',    nullify(input.bookingUrl))
     if (input.featured     !== undefined) addField('featured',       input.featured)
+    if (input.placeType    !== undefined) addField('place_type',     input.placeType)
 
     // Booking fields — only if the booking migration has been applied
     const hasBookingColumns = await client.query(

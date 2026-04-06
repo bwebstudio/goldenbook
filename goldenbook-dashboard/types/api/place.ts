@@ -35,6 +35,7 @@ export interface AdminPlacePayload {
   phone?:            string;
   email?:            string;
   bookingUrl?:       string;
+  placeType?:        string;
   categorySlug?:     string;
   subcategorySlug?:  string;
   status?:           "draft" | "published" | "archived";

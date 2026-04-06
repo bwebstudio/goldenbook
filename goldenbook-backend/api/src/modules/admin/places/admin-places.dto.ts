@@ -89,6 +89,7 @@ export const updatePlaceSchema = z.object({
   phone:            z.string().optional(),
   email:            emailOrEmpty,
   bookingUrl:       bookingOrEmpty,
+  placeType:        z.enum(['restaurant', 'bar', 'cafe', 'hotel', 'shop', 'museum', 'landmark', 'activity', 'beach', 'venue', 'other']).optional(),
   categorySlug:     z.string().min(1).optional(),
   subcategorySlug:  z.string().optional(),
   status:           z.enum(['draft', 'published', 'archived']).optional(),

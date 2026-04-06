@@ -182,6 +182,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
         phone:            form.phone            || undefined,
         email:            form.email            || undefined,
         bookingUrl:       form.bookingUrl       || undefined,
+        placeType:        form.placeType || undefined,
         categorySlug:     form.categorySlug,
         subcategorySlug:  form.subcategorySlug  || undefined,
         status:           form.status,
