@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "enrich:restaurants": "tsx src/scripts/enrich-restaurants.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
