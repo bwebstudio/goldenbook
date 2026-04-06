@@ -8,11 +8,39 @@ import { useT, useLocale } from "@/lib/i18n";
 
 const TIME_WINDOWS = [
   { value: "morning",   en: "Morning (6–11)",    pt: "Manhã (6–11)" },
-  { value: "midday",    en: "Midday (11–14)",    pt: "Meio-dia (11–14)" },
+  { value: "midday",    en: "Lunch (11–14)",     pt: "Almoço (11–14)" },
   { value: "afternoon", en: "Afternoon (14–18)", pt: "Tarde (14–18)" },
-  { value: "evening",   en: "Evening (18–22)",   pt: "Fim de tarde (18–22)" },
-  { value: "night",     en: "Night (22–6)",      pt: "Noite (22–6)" },
+  { value: "evening",   en: "Evening (18–22)",   pt: "Noite (18–22)" },
+  { value: "night",     en: "Late Night (22–6)", pt: "Madrugada (22–6)" },
 ] as const;
+
+// ─── Tag translations ──────────────────────────────────────────────────────
+
+const TAG_TRANSLATIONS: Record<string, Record<string, string>> = {
+  brunch:        { en: "Brunch",       pt: "Brunch" },
+  lunch:         { en: "Lunch",        pt: "Almoço" },
+  dinner:        { en: "Dinner",       pt: "Jantar" },
+  "fine-dining": { en: "Fine Dining",  pt: "Fine Dining" },
+  coffee:        { en: "Coffee",       pt: "Café" },
+  "quick-stop":  { en: "Quick Stop",   pt: "Paragem rápida" },
+  cocktails:     { en: "Cocktails",    pt: "Cocktails" },
+  wine:          { en: "Wine",         pt: "Vinho" },
+  "late-night":  { en: "Late Night",   pt: "Noite" },
+  romantic:      { en: "Romantic",     pt: "Romântico" },
+  terrace:       { en: "Terrace",      pt: "Terraço" },
+  rooftop:       { en: "Rooftop",      pt: "Rooftop" },
+  viewpoint:     { en: "Viewpoint",    pt: "Miradouro" },
+  sunset:        { en: "Sunset",       pt: "Pôr do sol" },
+  "rainy-day":   { en: "Rainy Day",    pt: "Dia de chuva" },
+  culture:       { en: "Culture",      pt: "Cultura" },
+  "live-music":  { en: "Live Music",   pt: "Música ao vivo" },
+  "local-secret":{ en: "Local Secret", pt: "Segredo local" },
+  wellness:      { en: "Wellness",     pt: "Bem-estar" },
+  shopping:      { en: "Shopping",     pt: "Compras" },
+  family:        { en: "Family",       pt: "Família" },
+  sunday:        { en: "Sunday",       pt: "Domingo" },
+  celebration:   { en: "Celebration",  pt: "Celebração" },
+};
 
 // ─── Tag grouping by context ───────────────────────────────────────────────
 // Groups help editors understand which tags to use. Tags appear in their most
@@ -152,12 +180,21 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
           {isPt
             ? "Quando é que este espaço é uma boa recomendação? Selecione todos os que se aplicam."
             : "When is this place a good recommendation? Select all that apply."}
-          {suggested.size > 0 && (
-            <span className="ml-1 text-gold">
-              {isPt ? "Os tags sugeridos para este tipo estão destacados." : "Suggested tags for this type are highlighted."}
-            </span>
-          )}
         </p>
+
+        {/* Legend */}
+        {suggested.size > 0 && (
+          <div className="flex items-center gap-4 text-[10px] mb-1">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded border border-gold/30 bg-gold/10" />
+              <span className="text-muted">{isPt ? "Selecionado" : "Selected"}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 rounded border border-amber-200 bg-amber-50" />
+              <span className="text-muted">{isPt ? "Sugerido para este tipo" : "Suggested for this type"}</span>
+            </span>
+          </div>
+        )}
 
         <div className="flex flex-col gap-4">
           {TAG_GROUPS.map((group) => {
@@ -186,7 +223,7 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
                               : "bg-white border-border text-muted hover:border-gold/30"
                         }`}
                       >
-                        {tag.name}
+                        {TAG_TRANSLATIONS[slug]?.[lang] ?? tag.name}
                       </button>
                     );
                   })}
