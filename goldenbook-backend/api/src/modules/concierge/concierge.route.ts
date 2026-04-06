@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { db } from '../../db/postgres'
 import { getIntentById, getIntentLabels, type ConciergeIntent } from './concierge.intents'
 import {
   toIntentDTO,
@@ -314,8 +315,20 @@ export async function conciergeRoutes(app: FastifyInstance) {
     // Filter bootstrap intents to only those with viable places in this city
     // Require at least one primary editorialIntent to be viable,
     // or fallback-viable with high priority (broad appeal intents)
+    // Get place types actually available in this city
+    const { rows: cityTypes } = await db.query<{ place_type: string; cnt: string }>(`
+      SELECT p.place_type, COUNT(*)::text AS cnt
+      FROM places p JOIN destinations d ON d.id = p.destination_id
+      WHERE d.slug = lower($1) AND p.status = 'published' AND p.is_active = true
+      GROUP BY p.place_type
+    `, [city.slug])
+    const availableTypes = new Map(cityTypes.map((r) => [r.place_type, parseInt(r.cnt, 10)]))
+
     const viable = await getViableIntents(city.slug, 2)
     const isViable = (i: typeof allIntents[0]) => {
+      // Intent must have at least 2 places of matching type in this city
+      const hasMatchingTypes = i.placeTypes.some((pt) => (availableTypes.get(pt) ?? 0) >= 2)
+      if (!hasMatchingTypes) return false
       const hasEditorial = (i.editorialIntents ?? []).some((ei) => viable.has(ei))
       if (hasEditorial) return true
       const hasFallback = (i.fallbackIntents ?? []).some((fi) => viable.has(fi))
@@ -625,15 +638,12 @@ export async function conciergeRoutes(app: FastifyInstance) {
         ? buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
         : (locale.split('-')[0] === 'es' ? `Explora más opciones en ${city.name}.` : `Explore more in ${city.name}.`)
 
-      const viableIntents = await getViableIntents(city.slug, 2)
+      const cachedPoolTypes = new Set((session.pool ?? []).map((c) => c.place_type))
       const fallbackIntents = getDynamicFallbackIntents(resolvedIntent.id, session.intentIds, timeOfDay, locale)
         .filter((fi) => {
           const intent = getIntentById(fi.id)
           if (!intent) return false
-          const hasEditorial = (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
-          if (hasEditorial) return true
-          const hasFallback = (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
-          return hasFallback && intent.priority >= 6
+          return intent.placeTypes.some((pt) => cachedPoolTypes.has(pt))
         }).slice(0, 4)
 
       const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
@@ -683,22 +693,23 @@ export async function conciergeRoutes(app: FastifyInstance) {
         // STEP 1: base score from shared engine
         const result = scoreCandidate(place, scoringCtx)
 
-        // STEP 2a: Intent match adjustment (+5 match, -5/-12/-20 mismatch)
+        // STEP 2a: Intent match adjustment (+5 match, -10/-15 mismatch for wrong type)
         const intentMatch = resolvedIntent.placeTypes.includes(place.place_type)
         if (intentMatch) {
           result.totalScore += 5                    // intentMatchAdjustment: +5
-        } else if (result.isSponsored) {
+        } else {
+          // Wrong place type for this intent — penalize so correct types rank higher
           const intentTagSet = new Set([...resolvedIntent.tags, ...resolvedIntent.categorySlugs]
             .map(t => t.toLowerCase().replace(/[^a-z0-9]/g, '-')))
           const placeTags = place.context_tag_slugs ?? []
           const tagOverlap = placeTags.filter(t => intentTagSet.has(t)).length
 
           if (tagOverlap >= 2) {
-            result.totalScore -= 5                  // intentMismatch: loosely related
+            result.totalScore -= 5                  // wrong type but tags overlap
           } else if (tagOverlap === 1) {
-            result.totalScore -= 12                 // intentMismatch: weakly related
+            result.totalScore -= 10                 // wrong type, weak tag overlap
           } else {
-            result.totalScore -= 20                 // intentMismatch: strongly incompatible
+            result.totalScore -= 15                 // wrong type, no tag overlap
           }
         }
 
@@ -908,16 +919,14 @@ export async function conciergeRoutes(app: FastifyInstance) {
       timeOfDay,
       locale,
     )
-    // Filter: only suggest intents that have places with matching editorial intents in this city
-    // Require at least one primary editorialIntent to be viable (fallback alone isn't enough for pills)
+    // Filter: only suggest intents that have matching candidates in the session pool.
+    // A pill is useless if tapping it would show irrelevant place types.
+    const poolTypes = new Set(candidates.map((c) => c.place_type))
     const fallbackIntents = allFallbackIntents.filter((fi) => {
       const intent = getIntentById(fi.id)
       if (!intent) return false
-      const hasEditorial = (intent.editorialIntents ?? []).some((ei) => viableIntents.has(ei))
-      if (hasEditorial) return true
-      // Allow fallback-only intents only if they have high priority (broad appeal)
-      const hasFallback = (intent.fallbackIntents ?? []).some((fi2) => viableIntents.has(fi2))
-      return hasFallback && intent.priority >= 6
+      // The intent must have at least one placeType present in the pool
+      return intent.placeTypes.some((pt) => poolTypes.has(pt))
     }).slice(0, 4)
 
     const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
