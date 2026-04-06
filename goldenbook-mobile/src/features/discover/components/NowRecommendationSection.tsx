@@ -7,6 +7,7 @@ import { getStorageUrl } from '@/utils/storage'
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
 import { useTranslation } from '@/i18n'
 import { useNowRecommendation, type NowEmotion } from '../hooks/useNowRecommendation'
+import { useAppStore } from '@/store/appStore'
 import { useNowContextStore, type NowAdjustment } from '@/store/nowContextStore'
 import { useSettingsStore } from '@/store/settingsStore'
 
@@ -72,6 +73,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   const router = useRouter()
   const t = useTranslation()
   const locale = useSettingsStore((s) => s.locale)
+  const citySlug = useAppStore((s) => s.selectedCity)
   const { data, loading, refreshing, error, refresh, reload } = useNowRecommendation()
   const setNowContext = useNowContextStore((s) => s.set)
   const destinationTimeZone = getTimeZoneForCity(data?.place?.city || cityName)
@@ -85,7 +87,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
       return
     }
     setNowContext({
-      city: data.place.city,
+      city: citySlug,
       time_of_day: data.context.time_of_day,
       weather: data.context.weather,
       moment: data.context.moment,
