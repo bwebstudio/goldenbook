@@ -50,6 +50,7 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     id: dto.id,
     slug: dto.slug,
     name: dto.name,
+    placeType: dto.placeType ?? 'restaurant',
     city: dto.city.name,
     citySlug: dto.city.slug,
     citySlugs: dto.citySlugs ?? [dto.city.slug],

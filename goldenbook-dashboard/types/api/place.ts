@@ -119,6 +119,7 @@ export interface PlaceDetailDTO {
   id: string;
   slug: string;
   name: string;
+  placeType?: string;
   city: { slug: string; name: string };
   citySlugs?: string[];
   heroImage: MediaAssetDTO;

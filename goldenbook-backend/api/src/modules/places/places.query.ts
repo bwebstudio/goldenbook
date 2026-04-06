@@ -5,6 +5,7 @@ import { db } from '../../db/postgres'
 export interface PlaceRow {
   id: string
   slug: string
+  place_type: string
   name: string
   city_slug: string
   city_name: string
@@ -51,6 +52,7 @@ export interface PlaceRow {
 const CORE_SELECT = `
   p.id,
   p.slug,
+  p.place_type,
   COALESCE(NULLIF(pt.name,''),      NULLIF(pt_lang.name,''),      NULLIF(pt_fb.name,''),      p.name)                              AS name,
   d.slug                                                                                            AS city_slug,
   COALESCE(NULLIF(dt.name,''),      NULLIF(dt_lang.name,''),      NULLIF(dt_fb.name,''),      d.name)                              AS city_name,

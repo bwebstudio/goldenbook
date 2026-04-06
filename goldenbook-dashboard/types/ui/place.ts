@@ -36,6 +36,7 @@ export interface UIPlaceDetail {
   id: string;
   slug: string;
   name: string;
+  placeType: string;
   city: string;
   citySlug: string;
   citySlugs: string[];

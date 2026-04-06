@@ -44,6 +44,7 @@ export interface PlaceDetailDTO {
   id: string
   slug: string
   name: string
+  placeType: string
   city: { slug: string; name: string }
   citySlugs: string[]
   heroImage: MediaAssetDTO
@@ -158,6 +159,7 @@ export function toPlaceDetailDTO(
     id: place.id,
     slug: place.slug,
     name: place.name,
+    placeType: place.place_type ?? 'restaurant',
     city: { slug: place.city_slug, name: place.city_name },
     citySlugs: citySlugs ?? [place.city_slug],
     heroImage: { bucket: place.hero_bucket, path: place.hero_path },

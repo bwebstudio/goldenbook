@@ -92,7 +92,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       phone:            place.phone             ?? "",
       email:            place.email             ?? "",
       bookingUrl:       place.bookingUrl        ?? "",
-      placeType:        (place as any).placeType ?? "restaurant",
+      placeType:        place.placeType ?? "restaurant",
       categorySlug:     place.categories[0]?.slug    ?? "",
       subcategorySlug:  place.subcategories[0]?.slug ?? "",
       status:           "published",
