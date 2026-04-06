@@ -50,31 +50,31 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
   morning: {
     'coffee':      1.0,
     'brunch':      1.0,
+    'culture':     0.8,    // museums, municipalities, galleries — great morning visits
+    'viewpoint':   0.8,    // miradouros, scenic walks
     'quick-stop':  0.8,
+    'family':      0.7,    // family-friendly daytime activities
     'wellness':    0.6,
-    'culture':     0.5,
-    'viewpoint':   0.5,
     'shopping':    0.4,
     'terrace':     0.4,
     'sunday':      0.3,
-    'family':      0.3,
   },
   midday: {
     'brunch':      1.0,
     'quick-stop':  1.0,
+    'culture':     0.8,    // cultural visits pair well with lunch
     'coffee':      0.7,
     'terrace':     0.6,
+    'viewpoint':   0.6,
+    'family':      0.6,
     'shopping':    0.5,
-    'family':      0.5,
-    'culture':     0.4,
-    'viewpoint':   0.4,
     'wellness':    0.4,
     'wine':        0.3,
   },
   afternoon: {
+    'culture':     1.0,    // prime time for museums, galleries, municipalities
+    'shopping':    0.9,
     'coffee':      0.8,
-    'shopping':    1.0,
-    'culture':     0.8,
     'terrace':     0.7,
     'sunset':      0.6,
     'wellness':    0.6,
