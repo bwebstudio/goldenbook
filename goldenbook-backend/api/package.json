@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "enrich:restaurants": "tsx src/scripts/enrich-restaurants.ts",
     "context:engine": "tsx src/scripts/context-engine.ts",
-    "evaluate:ranking": "tsx src/scripts/evaluate-ranking.ts"
+    "evaluate:ranking": "tsx src/scripts/evaluate-ranking.ts",
+    "generate:editorial-notes": "tsx src/scripts/generate-editorial-notes.ts"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
