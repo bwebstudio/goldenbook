@@ -5,7 +5,6 @@
 import { db } from '../../../db/postgres'
 import { createPlace } from './admin-places.query'
 import { autoClassifyPlace } from './auto-classify'
-import { translateText } from '../../../lib/translation/deepl'
 
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY ?? process.env.GOOGLE_PLACES_API_KEY ?? ''
 
@@ -252,12 +251,20 @@ export async function generatePlaceFromGoogle(
   const categorySlug = TYPE_TO_CATEGORY[placeType] ?? 'gastronomy'
   const subcategorySlug = TYPE_TO_SUBCATEGORY[placeType] ?? 'restaurantes'
 
-  // 2. Generate editorial note (EN)
+  // 2. Generate editorial texts (EN)
   const noteEN = generateEditorialNote(
     name, placeType, citySlug, google.formattedAddress ?? '',
     cuisines, priceTier, google.rating ?? null, google.editorialSummary?.text ?? null,
   )
   const tipEN = generateInsiderTip(placeType)
+  // Short description: use Google editorial summary if available, otherwise generate one
+  const shortDescEN = google.editorialSummary?.text
+    ?? noteEN  // fallback to the editorial note
+  // Full description: combine Google summary + our editorial context
+  const googleSummary = google.editorialSummary?.text ?? ''
+  const fullDescEN = googleSummary
+    ? `${googleSummary}\n\n${noteEN}`
+    : noteEN
 
   // 3. Create the place
   const place = await createPlace({
@@ -266,6 +273,10 @@ export async function generatePlaceFromGoogle(
     citySlug,
     categorySlug,
     subcategorySlug,
+    shortDescription: shortDescEN,
+    fullDescription: fullDescEN,
+    goldenbookNote: noteEN,
+    insiderTip: tipEN,
     status: 'published',
     featured: false,
     addressLine: google.formattedAddress ?? undefined,
@@ -314,31 +325,9 @@ export async function generatePlaceFromGoogle(
   // 6. Run auto-classify (generates classification, windows, tags, moments)
   await autoClassifyPlace(place.id)
 
-  // 7. Save EN editorial note
-  await db.query(`
-    UPDATE place_translations SET
-      goldenbook_note = $2, insider_tip = $3, updated_at = now()
-    WHERE place_id = $1 AND locale = 'en'
-  `, [place.id, noteEN, tipEN])
-
-  // 8. Translate to PT and ES via DeepL
-  try {
-    const [notePT, tipPT, noteES, tipES] = await Promise.all([
-      translateText(noteEN, 'pt', 'en'),
-      translateText(tipEN, 'pt', 'en'),
-      translateText(noteEN, 'es', 'en'),
-      translateText(tipEN, 'es', 'en'),
-    ])
-
-    await Promise.all([
-      db.query(`UPDATE place_translations SET goldenbook_note = $2, insider_tip = $3, updated_at = now() WHERE place_id = $1 AND locale = 'pt'`,
-        [place.id, notePT, tipPT]),
-      db.query(`UPDATE place_translations SET goldenbook_note = $2, insider_tip = $3, updated_at = now() WHERE place_id = $1 AND locale = 'es'`,
-        [place.id, noteES, tipES]),
-    ])
-  } catch (err) {
-    console.error('[generate-place] Translation failed, EN-only:', err)
-  }
+  // Note: goldenbook_note, insider_tip, short_description, full_description
+  // are already saved in EN and auto-translated to PT + ES by createPlace()
+  // via upsertAutoTranslationsFromEnglish (DeepL).
 
   return { id: place.id, slug: place.slug, name: place.name, status: place.status }
 }
