@@ -30,6 +30,7 @@ export default function PlaceGenerator({ cities }: PlaceGeneratorProps) {
   const [generating, setGenerating] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Debounced search
   const handleSearch = useCallback((value: string) => {
@@ -90,7 +91,7 @@ export default function PlaceGenerator({ cities }: PlaceGeneratorProps) {
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.parentElement?.contains(e.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setResults([]);
       }
     };
@@ -161,7 +162,7 @@ export default function PlaceGenerator({ cities }: PlaceGeneratorProps) {
       </div>
 
       {/* Search input */}
-      <div className="relative mb-6">
+      <div className="relative mb-6" ref={containerRef}>
         <label className="block text-sm font-medium text-text mb-1.5">
           {isPt ? "Nome do estabelecimento" : "Establishment name"} <span className="text-red-400">*</span>
         </label>
