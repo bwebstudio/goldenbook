@@ -77,6 +77,21 @@ export interface NowPlaceConfig {
 }
 
 // GET /api/v1/admin/now/tags — all available context tags
+// GET /api/v1/admin/places/search-google?q=...
+// Google Places autocomplete for the new place flow.
+export async function searchGooglePlaces(query: string): Promise<{ placeId: string; name: string; address: string }[]> {
+  const data = await apiGet<{ results: { placeId: string; name: string; address: string }[] }>(
+    "/api/v1/admin/places/search-google", { q: query }
+  );
+  return data.results;
+}
+
+// POST /api/v1/admin/places/generate
+// Creates a fully auto-filled place from a Google Place ID.
+export async function generatePlace(googlePlaceId: string, citySlug: string): Promise<AdminPlaceResponseDTO> {
+  return apiPost<AdminPlaceResponseDTO>("/api/v1/admin/places/generate", { googlePlaceId, citySlug });
+}
+
 export async function fetchNowContextTags(): Promise<NowContextTag[]> {
   const data = await apiGet<{ items: NowContextTag[] }>("/api/v1/admin/now/tags");
   return data.items;

@@ -16,10 +16,32 @@ import { createPlaceSchema, updatePlaceSchema } from './admin-places.dto'
 import { createPlace, updatePlace, deletePlace } from './admin-places.query'
 import { getAdminPlacesList } from './admin-places-list.query'
 import { getPlaceImages, setCoverImage, setGalleryOrder, moveImageToGallery, removeImageFromGallery, deleteImage, addImageToPlace } from './admin-images.query'
+import { searchGooglePlaces, generatePlaceFromGoogle } from './generate-place'
 
 const idParamsSchema = z.object({ id: z.string().uuid('Place id must be a valid UUID') })
 
 export async function adminPlacesRoutes(app: FastifyInstance) {
+
+  // ── GET /admin/places/search-google ─────────────────────────────────────────
+  // Google Places autocomplete for the "new place" flow
+  app.get('/admin/places/search-google', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { q } = z.object({ q: z.string().min(2) }).parse(request.query)
+    const results = await searchGooglePlaces(q)
+    return reply.send({ results })
+  })
+
+  // ── POST /admin/places/generate ─────────────────────────────────────────────
+  // Create a fully auto-filled place from a Google Place ID
+  app.post('/admin/places/generate', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { googlePlaceId, citySlug } = z.object({
+      googlePlaceId: z.string().min(1),
+      citySlug: z.string().min(1),
+    }).parse(request.body)
+
+    const result = await generatePlaceFromGoogle(googlePlaceId, citySlug)
+    return reply.status(201).send(result)
+  })
+
   // ── GET /admin/places ───────────────────────────────────────────────────────
   // Lightweight list for dashboard with booking + suggestion metadata
   app.get('/admin/places', { preHandler: [authenticateDashboardUser] }, async (_request, reply) => {

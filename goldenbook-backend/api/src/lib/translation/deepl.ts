@@ -111,10 +111,12 @@ export async function translateText(
     for (let attempt = 1; attempt <= maxAttemptsPerUrl; attempt++) {
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          auth_key: DEEPL_API_KEY,
-          text: trimmed,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+        },
+        body: JSON.stringify({
+          text: [trimmed],
           source_lang: sourceLang,
           target_lang: targetLang,
         }),
