@@ -112,6 +112,28 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'celebration': 0.5,
     'local-secret': 0.4,
   },
+  late_evening: {
+    'late-night':   1.0,
+    'cocktails':    1.0,
+    'wine':         0.9,
+    'live-music':   0.8,
+    'dinner':       0.7,   // late dinner still relevant
+    'rooftop':      0.7,
+    'romantic':     0.6,
+    'fine-dining':  0.5,
+    'local-secret': 0.4,
+    'viewpoint':    0.3,   // night views still interesting
+  },
+  deep_night: {
+    'late-night':   1.0,
+    'cocktails':    0.8,
+    'viewpoint':    0.9,   // scenic nighttime fallback — city lights, bridges
+    'sunset':       0.3,   // low but allows coastal/waterfront places
+    'wine':         0.6,
+    'live-music':   0.5,
+    'local-secret': 0.5,
+    'terrace':      0.4,   // late-night outdoor seating
+  },
 }
 
 // ─── Weather → tag boosts ───────────────────────────────────────────────────
@@ -237,9 +259,11 @@ export function getNowTimeOfDay(date: Date = new Date(), citySlug?: string): Now
   }).format(date)
   const hour = parseInt(hourStr, 10)
 
-  if (hour >= 6 && hour < 11)  return 'morning'
-  if (hour >= 11 && hour < 15) return 'midday'
-  if (hour >= 15 && hour < 18) return 'afternoon'
-  if (hour >= 18 && hour < 22) return 'evening'
-  return 'night'
+  if (hour >= 8 && hour < 11)  return 'morning'        // 08:00–11:00
+  if (hour >= 11 && hour < 15) return 'midday'          // 11:00–15:00
+  if (hour >= 15 && hour < 18) return 'afternoon'       // 15:00–18:00
+  if (hour >= 18 && hour < 23) return 'evening'         // 18:00–23:00
+  if (hour >= 23 || hour < 2)  return 'late_evening'    // 23:00–02:00
+  if (hour >= 2 && hour < 7)   return 'deep_night'      // 02:00–07:00
+  return 'morning'                                       // 07:00–08:00 early morning transition
 }

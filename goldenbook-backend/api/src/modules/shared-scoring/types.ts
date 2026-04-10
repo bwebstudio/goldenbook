@@ -3,7 +3,8 @@
 // Unified types used by both NOW and Concierge scoring pipelines.
 // Single source of truth for candidate shape, weights, and scored results.
 
-export type NowTimeOfDay = 'morning' | 'midday' | 'afternoon' | 'evening' | 'night'
+export type NowTimeOfDay = 'morning' | 'midday' | 'afternoon' | 'evening' | 'late_evening' | 'deep_night' | 'night'
+// night = legacy alias (22:00-23:00 gap), late_evening = 23:00-02:00, deep_night = 02:00-07:00
 export type WeatherCondition = 'sunny' | 'cloudy' | 'rainy' | 'hot' | 'cold'
 
 // ─── Unified candidate (superset of NOW + Concierge fields) ─────────────────
@@ -26,6 +27,11 @@ export interface UnifiedCandidate {
   longitude: number | null
   distance_meters: number | null
   category_slugs: string[]
+  // Contact / booking fields
+  website_url: string | null
+  booking_url: string | null
+  phone: string | null
+  google_maps_url: string | null
   // Context tags (from place_now_tags / now_context_tags)
   context_tag_slugs: string[]
   context_tag_max_weight: number

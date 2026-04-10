@@ -26,6 +26,8 @@ export interface ConciergeRecommendationDTO {
   shortDescription: string | null
   badges: string[]
   category: string
+  // Booking — used by mobile reservation button
+  bookingUrl: string | null
 }
 
 export interface ConciergeBootstrapDTO {
@@ -113,5 +115,6 @@ export function toRecommendationDTO(
     shortDescription: place.short_description ?? place.editorial_summary ?? null,
     badges: rawBadges.map((b) => localizeBadge(b, locale)),
     category: place.place_type,
+    bookingUrl: (place as any).booking_url ?? (place as any).website_url ?? null,
   }
 }

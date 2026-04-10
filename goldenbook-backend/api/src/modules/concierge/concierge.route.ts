@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../../db/postgres'
-import { getIntentById, getIntentLabels, type ConciergeIntent } from './concierge.intents'
+import { getIntentById, getIntentLabels } from './concierge.intents'
 import {
   toIntentDTO,
   toRecommendationDTO,
@@ -19,7 +19,6 @@ import {
 import {
   buildGreeting,
   buildResponseText,
-  getFallbackIntents,
   getDynamicFallbackIntents,
   getBootstrapIntents,
   getDefaultIntent,
@@ -27,6 +26,7 @@ import {
   resolveIntentFromQuery,
   detectRefinementFromText,
   getRefinementTagAdjustments,
+  ensureTimeValidIntent,
 } from './concierge.service'
 import {
   type OnboardingProfile,
@@ -56,8 +56,6 @@ type ScoredPlace = UnifiedCandidate
 // a session pool of ~20 candidates on first request. Subsequent intent changes
 // rerank within this pool, keeping the experience curated and consistent.
 
-const SESSION_POOL_SIZE = 20
-const SESSION_POOL_TTL = 15 * 60 * 1000 // 15 minutes
 const MAX_PLACES_PER_PILL = 6   // curated cap: max 6 unique places per intent
 const RESULTS_PER_PAGE = 3      // show 3 at a time
 
@@ -73,9 +71,7 @@ interface ConciergeSession {
   intentIds: Set<string>
   lastHeroId: string | null
   lastIntentId: string | null
-  pool: UnifiedCandidate[] | null
   poolCity: string | null
-  poolBuiltAt: number
   heroHistory: Set<string>
   /** Per-pill state: scored candidates + tap counter, keyed by intent+adjustment */
   pills: Map<string, PillState>
@@ -121,93 +117,6 @@ const recommendBodySchema = z.object({
 
 type AdjustmentEmotion = 'relax' | 'energy' | 'treat' | 'romantic' | 'culture'
 
-const EMOTION_INTENT_GROUPS: Record<AdjustmentEmotion, string[]> = {
-  relax: ['relaxed_walk', 'quiet_wine_bar', 'gallery_afternoon', 'coffee_and_work', 'hidden_gems'],
-  energy: ['cocktail_bars', 'sunset_drinks', 'late_night_jazz', 'after_dinner_drinks', 'hidden_gems'],
-  treat: ['romantic_dinner', 'design_shopping', 'sunset_drinks', 'long_lunch', 'late_night_jazz'],
-  romantic: ['romantic_dinner', 'quiet_wine_bar', 'sunset_drinks', 'hidden_gems'],
-  culture: ['gallery_afternoon', 'relaxed_walk', 'hidden_gems', 'coffee_and_work'],
-}
-
-const ADJUSTMENT_SIGNAL_TAGS: Record<AdjustmentEmotion, string[]> = {
-  relax: [
-    'quiet',
-    'calm',
-    'slow',
-    'slower',
-    'tranquil',
-    'intimate',
-    'wine',
-    'gallery',
-    'art',
-    'culture',
-    'spa',
-    'relax',
-  ],
-  energy: [
-    'cocktail',
-    'cocktails',
-    'rooftop',
-    'terrace',
-    'view',
-    'sunset',
-    'nightlife',
-    'music',
-    'jazz',
-    'live-music',
-    'discover',
-    'hidden',
-  ],
-  treat: [
-    'romantic',
-    'fine-dining',
-    'luxury',
-    'design',
-    'boutique',
-    'special',
-    'elegant',
-    'atmospheric',
-    'refined',
-    'golden-hour',
-  ],
-  romantic: [
-    'romantic', 'intimate', 'date', 'couple', 'candlelit', 'wine', 'sunset',
-    'fine-dining', 'atmospheric', 'elegant',
-  ],
-  culture: [
-    'gallery', 'art', 'museum', 'culture', 'contemporary', 'exhibition',
-    'design', 'architecture', 'heritage',
-  ],
-}
-
-function getEmotionScoreForPlace(
-  place: ScoredPlace,
-  intent: ConciergeIntent,
-  emotion: AdjustmentEmotion,
-): number {
-  const text = [place.short_description, place.editorial_summary]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
-
-  const signalTags = ADJUSTMENT_SIGNAL_TAGS[emotion]
-  let score = 0
-
-  for (const tag of signalTags) {
-    if (text.includes(tag)) score += 3
-  }
-
-  for (const tag of intent.tags) {
-    if (signalTags.includes(tag)) score += 2
-  }
-
-  if (emotion === 'relax' && ['cafe', 'museum'].includes(place.place_type)) score += 2
-  if (emotion === 'energy' && ['bar', 'venue'].includes(place.place_type)) score += 2
-  if (emotion === 'treat' && ['restaurant', 'shop'].includes(place.place_type)) score += 2
-
-  return score
-}
-
 function dedupePlaces(places: ScoredPlace[]): ScoredPlace[] {
   const seen = new Set<string>()
   const deduped: ScoredPlace[] = []
@@ -219,55 +128,6 @@ function dedupePlaces(places: ScoredPlace[]): ScoredPlace[] {
   }
 
   return deduped
-}
-
-function mergeUniquePlaces(base: ScoredPlace[], extra: ScoredPlace[], limit: number): ScoredPlace[] {
-  return dedupePlaces([...base, ...extra]).slice(0, limit)
-}
-
-function getEmotionIntentGroup(adjustment: AdjustmentEmotion, resolvedIntent: ConciergeIntent): ConciergeIntent[] {
-  const ids = [resolvedIntent.id, ...EMOTION_INTENT_GROUPS[adjustment]]
-  const seen = new Set<string>()
-  const intents: ConciergeIntent[] = []
-
-  for (const id of ids) {
-    const intent = getIntentById(id)
-    if (!intent || seen.has(intent.id)) continue
-    seen.add(intent.id)
-    intents.push(intent)
-  }
-
-  return intents
-}
-
-function sortPlacesByEmotionPriority(places: ScoredPlace[], emotion: AdjustmentEmotion): ScoredPlace[] {
-  const signalTags = ADJUSTMENT_SIGNAL_TAGS[emotion]
-
-  return [...places].sort((a, b) => {
-    const scoreText = (place: ScoredPlace) =>
-      [place.short_description, place.editorial_summary]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-
-    const scoreFor = (place: ScoredPlace) => {
-      const text = scoreText(place)
-      let score = 0
-      for (const tag of signalTags) {
-        if (text.includes(tag)) score += 3
-      }
-      if (emotion === 'relax' && ['cafe', 'museum'].includes(place.place_type)) score += 2
-      if (emotion === 'energy' && ['bar', 'venue'].includes(place.place_type)) score += 2
-      if (emotion === 'treat' && ['restaurant', 'shop'].includes(place.place_type)) score += 2
-      return score
-    }
-
-    const delta = scoreFor(b) - scoreFor(a)
-
-    if (delta !== 0) return delta
-    if ((b.featured ? 1 : 0) !== (a.featured ? 1 : 0)) return (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
-    return (b.popularity_score ?? 0) - (a.popularity_score ?? 0)
-  })
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -286,9 +146,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       bootstrapQuerySchema.parse(request.query)
     const locale = normalizeLocale(rawLocale)
 
-    const timeOfDay = getTimeOfDay()
-
-    // Resolve city: param → DB → first available city → dev fallback (Lisbon)
+    // Resolve city FIRST so getTimeOfDay uses the destination's real timezone
     let city: { slug: string; name: string }
     if (cityParam) {
       const resolved = await getConciergeCity(cityParam, locale)
@@ -300,6 +158,8 @@ export async function conciergeRoutes(app: FastifyInstance) {
       city = await getDefaultConciergeCity(locale)
     }
 
+    const timeOfDay = getTimeOfDay(city.slug)
+
     const profile: OnboardingProfile = {
       interests: parseInterests(rawInterests),
       style:     style ?? undefined,
@@ -310,12 +170,8 @@ export async function conciergeRoutes(app: FastifyInstance) {
     const weather = weatherResult?.condition ?? null
 
     const greeting = buildGreeting(timeOfDay, city.name, locale)
-    const allIntents = getBootstrapIntents(timeOfDay, profile, weather, city.slug)
 
-    // Filter bootstrap intents to only those with viable places in this city
-    // Require at least one primary editorialIntent to be viable,
-    // or fallback-viable with high priority (broad appeal intents)
-    // Get place types actually available in this city
+    // ── Viability check: does this intent have enough places in this city? ─
     const { rows: cityTypes } = await db.query<{ place_type: string; cnt: string }>(`
       SELECT p.place_type, COUNT(*)::text AS cnt
       FROM places p JOIN destinations d ON d.id = p.destination_id
@@ -323,44 +179,21 @@ export async function conciergeRoutes(app: FastifyInstance) {
       GROUP BY p.place_type
     `, [city.slug])
     const availableTypes = new Map(cityTypes.map((r) => [r.place_type, parseInt(r.cnt, 10)]))
-
     const viable = await getViableIntents(city.slug, 2)
-    const isViable = (i: typeof allIntents[0]) => {
-      // Intent must have at least 3 places of matching type in this city (fills one page)
-      const typeCount = i.placeTypes.reduce((sum, pt) => sum + (availableTypes.get(pt) ?? 0), 0)
-      const hasMatchingTypes = typeCount >= 3
-      if (!hasMatchingTypes) return false
-      const hasEditorial = (i.editorialIntents ?? []).some((ei) => viable.has(ei))
+
+    const isViable = (intentId: string): boolean => {
+      const intent = getIntentById(intentId)
+      if (!intent) return false
+      const typeCount = intent.placeTypes.reduce((sum, pt) => sum + (availableTypes.get(pt) ?? 0), 0)
+      if (typeCount < 3) return false
+      const hasEditorial = (intent.editorialIntents ?? []).some((ei) => viable.has(ei))
       if (hasEditorial) return true
-      const hasFallback = (i.fallbackIntents ?? []).some((fi) => viable.has(fi))
-      return hasFallback && i.priority >= 6
+      const hasFallback = (intent.fallbackIntents ?? []).some((fi) => viable.has(fi))
+      return hasFallback && intent.priority >= 6
     }
 
-    let intents = allIntents.filter(isViable).slice(0, 3)
-
-    // If not enough, fill from ALL registry intents that are viable AND time-appropriate
-    if (intents.length < 3) {
-      const { INTENT_REGISTRY } = await import('./concierge.intents')
-      // First pass: only intents that match the current time of day
-      const timeFiltered = INTENT_REGISTRY
-        .filter((i) =>
-          !intents.find((x) => x.id === i.id)
-          && isViable(i)
-          && i.preferredTimeOfDay.includes(timeOfDay),
-        )
-        .sort((a, b) => b.priority - a.priority)
-        .slice(0, 3 - intents.length)
-      intents = [...intents, ...timeFiltered]
-
-      // Second pass: if STILL not enough, allow any viable intent (last resort)
-      if (intents.length < 3) {
-        const remaining = INTENT_REGISTRY
-          .filter((i) => !intents.find((x) => x.id === i.id) && isViable(i))
-          .sort((a, b) => b.priority - a.priority)
-          .slice(0, 3 - intents.length)
-        intents = [...intents, ...remaining]
-      }
-    }
+    // Bootstrap uses curated editorial matrix + viability filter
+    const intents = getBootstrapIntents(timeOfDay, profile, weather, city.slug, isViable)
 
     const response: ConciergeBootstrapDTO = {
       city,
@@ -392,9 +225,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       })
     }
 
-    const timeOfDay = getTimeOfDay()
-
-    // Resolve city
+    // Resolve city FIRST so getTimeOfDay uses the destination's real timezone
     let city: { slug: string; name: string }
     if (cityParam) {
       const resolved = await getConciergeCity(cityParam, locale)
@@ -406,6 +237,8 @@ export async function conciergeRoutes(app: FastifyInstance) {
       city = await getDefaultConciergeCity(locale)
     }
 
+    const timeOfDay = getTimeOfDay(city.slug)
+
     // ── Detect refinement from text queries ──────────────────────────────
     // "algo más relajado", "something quieter" etc. → adjusts tag weights
     let detectedRefinement: string | null = null
@@ -413,18 +246,23 @@ export async function conciergeRoutes(app: FastifyInstance) {
       detectedRefinement = detectRefinementFromText(query)
     }
 
-    // Resolve intent: explicit id → refinement → keyword resolution → NOW → default
+    // ── Intent resolution ────────────────────────────────────────────────
+    // Order: resolve raw intent → enforce temporal eligibility → proceed
+    // This ensures no absurd time-context combinations reach scoring.
     let resolvedIntent: ReturnType<typeof getIntentById> | undefined
     if (intentParam) {
-      resolvedIntent = getIntentById(intentParam) ?? resolveIntentFromQuery(query ?? '', timeOfDay)
+      // Explicit intent from frontend pill tap — do NOT trust blindly
+      const rawIntent = getIntentById(intentParam)
+      resolvedIntent = rawIntent
+        ? ensureTimeValidIntent(rawIntent, timeOfDay)
+        : resolveIntentFromQuery(query ?? '', timeOfDay)  // already time-safe
     } else if (query) {
+      // Free-text query — resolveIntentFromQuery is already time-safe
       resolvedIntent = resolveIntentFromQuery(query, timeOfDay)
     } else if (now_context?.inferred_moment) {
       // NOW → Concierge handoff: map moment to best-matching intent directly.
       // If an adjustment is provided, bias the intent toward that emotion.
-      // Map context tags (from NOW bestTag) to Concierge intents
       const tagToIntent: Record<string, string> = {
-        // The 22 dashboard context tags → best-matching Concierge intent
         'brunch':       'coffee_and_work',
         'coffee':       'coffee_and_work',
         'lunch':        'long_lunch',
@@ -450,7 +288,6 @@ export async function conciergeRoutes(app: FastifyInstance) {
         'rainy-day':    'gallery_afternoon',
       }
 
-      // Adjustment overrides: shift the intent based on emotion
       const adjustmentOverrides: Record<string, Record<string, string>> = {
         relax: {
           'cocktails':   'quiet_wine_bar',
@@ -507,14 +344,16 @@ export async function conciergeRoutes(app: FastifyInstance) {
       const baseId = tagToIntent[now_context.inferred_moment]
       const mappedIntentId = overrideId ?? baseId
 
-      resolvedIntent = mappedIntentId
+      const rawHandoffIntent = mappedIntentId
         ? getIntentById(mappedIntentId) ?? getDefaultIntent(timeOfDay)
         : getDefaultIntent(timeOfDay)
+      // Enforce temporal eligibility on NOW handoff result
+      resolvedIntent = ensureTimeValidIntent(rawHandoffIntent, timeOfDay)
     } else {
       resolvedIntent = getDefaultIntent(timeOfDay)
     }
 
-    // Safety: always have a valid intent
+    // Safety: always have a valid, time-appropriate intent
     if (!resolvedIntent) {
       resolvedIntent = getDefaultIntent(timeOfDay)
     }
@@ -532,9 +371,7 @@ export async function conciergeRoutes(app: FastifyInstance) {
       intentIds: new Set<string>(),
       lastHeroId: null,
       lastIntentId: null,
-      pool: null,
       poolCity: null,
-      poolBuiltAt: 0,
       heroHistory: new Set<string>(),
       pills: new Map<string, PillState>(),
     }
@@ -543,71 +380,18 @@ export async function conciergeRoutes(app: FastifyInstance) {
     const intentChanged = session.lastIntentId != null && session.lastIntentId !== resolvedIntent.id
     const previousHeroId = intentChanged ? session.lastHeroId : null
 
-    const nowTimeOfDay = getNowTimeOfDay()
+    const nowTimeOfDay = getNowTimeOfDay(new Date(), city.slug)
     const weatherResult = await resolveWeather(undefined, undefined, city.slug)
     const weather = weatherResult?.condition
 
-    // ── Build or reuse session pool ─────────────────────────────────────
-    const poolExpired = Date.now() - session.poolBuiltAt > SESSION_POOL_TTL
-    const poolCityChanged = session.poolCity !== city.slug
-    const needsPool = !session.pool || poolExpired || poolCityChanged
-
-    let candidates: UnifiedCandidate[]
-
-    if (needsPool) {
-      // Build fresh pool: fetch a broad set of candidates across multiple intents
-      const poolIntents = [resolvedIntent]
-
-      // Add time-appropriate intents to broaden the pool
-      const { INTENT_REGISTRY } = await import('./concierge.intents')
-      const timeIntents = INTENT_REGISTRY
-        .filter((i) => i.preferredTimeOfDay.includes(timeOfDay) && i.id !== resolvedIntent.id)
-        .sort((a, b) => b.priority - a.priority)
-        .slice(0, 3)
-      poolIntents.push(...timeIntents)
-
-      // Fetch candidates from multiple intents and deduplicate
-      const allCandidates: UnifiedCandidate[] = []
-      const seenPoolIds = new Set<string>()
-      for (const intent of poolIntents) {
-        const batch = await getConciergeRecommendations(city.slug, intent, locale, SESSION_POOL_SIZE, nowTimeOfDay)
-        for (const c of batch) {
-          if (!seenPoolIds.has(c.id)) {
-            seenPoolIds.add(c.id)
-            allCandidates.push(c)
-          }
-        }
-      }
-
-      // Inject paid placements into the pool
-      let boostIds: Set<string> = new Set()
-      try {
-        const ids = await getActiveVisibilityPlaceIdsByCity('concierge', city.slug, 20)
-        boostIds = new Set(ids)
-      } catch (err) {
-        request.log.warn({ err, city: city.slug }, '[Concierge] Failed to load paid placements for pool')
-      }
-
-      if (boostIds.size > 0) {
-        const missingPaidIds = [...boostIds].filter((id) => !seenPoolIds.has(id))
-        if (missingPaidIds.length > 0) {
-          const paidPlaces = await getPlacesByIds(missingPaidIds, locale, nowTimeOfDay)
-          allCandidates.push(...paidPlaces)
-        }
-      }
-
-      session.pool = allCandidates
-      session.poolCity = city.slug
-      session.poolBuiltAt = Date.now()
-      // Clear cached pills — they contain candidates from the previous city
+    // ── City change detection: clear stale pill caches ───────────────
+    if (session.poolCity !== city.slug) {
       session.pills.clear()
       session.placeIds.clear()
       session.heroHistory.clear()
       session.lastHeroId = null
       session.lastIntentId = null
-      candidates = allCandidates
-    } else {
-      candidates = session.pool!
+      session.poolCity = city.slug
     }
 
     // ── Resolve adjustment emotion early (needed for pill key) ─────────
@@ -637,15 +421,9 @@ export async function conciergeRoutes(app: FastifyInstance) {
       const recommendations = results.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
       const responseText = recommendations.length > 0
         ? buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
-        : (locale.split('-')[0] === 'es' ? `Explora más opciones en ${city.name}.` : `Explore more in ${city.name}.`)
+        : (locale.split('-')[0] === 'es' ? `Explora más opciones en ${city.name}.` : locale.split('-')[0] === 'pt' ? `Explore mais opções em ${city.name}.` : `Explore more in ${city.name}.`)
 
-      const cachedPoolTypes = new Set((session.pool ?? []).map((c) => c.place_type))
       const fallbackIntents = getDynamicFallbackIntents(resolvedIntent.id, session.intentIds, timeOfDay, locale)
-        .filter((fi) => {
-          const intent = getIntentById(fi.id)
-          if (!intent) return false
-          return intent.placeTypes.some((pt) => cachedPoolTypes.has(pt))
-        }).slice(0, 4)
 
       const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
       return reply.send({
@@ -655,7 +433,13 @@ export async function conciergeRoutes(app: FastifyInstance) {
       })
     }
 
-    // ── First tap on this pill: score pool and cache top 6 ──────────────
+    // ══════════════════════════════════════════════════════════════════════
+    // First tap on this pill: per-intent fresh retrieval, score, cache top 6
+    // ══════════════════════════════════════════════════════════════════════
+    //
+    // Instead of reusing a shared pool, each pill gets its own retrieval.
+    // This ensures each pill has editorial identity — cocktail_bars never
+    // scores from romantic_dinner candidates, and vice versa.
 
     // Get paid placement IDs for scoring
     let boostIds: Set<string> = new Set()
@@ -664,6 +448,44 @@ export async function conciergeRoutes(app: FastifyInstance) {
       boostIds = new Set(ids)
     } catch (err) {
       request.log.warn({ err, city: city.slug }, '[Concierge] Failed to load paid placements for scoring')
+    }
+
+    // ── Fetch candidates specifically for this intent ────────────────
+    // MAX_PLACES_PER_PILL * 3 = 18 candidates to score, then keep top 6
+    const FETCH_LIMIT = MAX_PLACES_PER_PILL * 3
+    let candidates = await getConciergeRecommendations(
+      city.slug, resolvedIntent, locale, FETCH_LIMIT, nowTimeOfDay,
+    )
+
+    // Inject paid placements if they match the intent's place types
+    const intentTypeSet = new Set(resolvedIntent.placeTypes)
+    if (boostIds.size > 0) {
+      const candidateIds = new Set(candidates.map((c) => c.id))
+      const missingPaidIds = [...boostIds].filter((id) => !candidateIds.has(id))
+      if (missingPaidIds.length > 0) {
+        const paidPlaces = await getPlacesByIds(missingPaidIds, locale, nowTimeOfDay)
+        // Only inject paid places whose type matches the intent
+        candidates.push(...paidPlaces.filter((p) => intentTypeSet.has(p.place_type)))
+      }
+    }
+
+    // Strict city filter: never show places from a different destination
+    candidates = candidates.filter((p) => p.city_slug === city.slug)
+
+    // If too few candidates from strict retrieval, try fallback places
+    if (candidates.length < MAX_PLACES_PER_PILL) {
+      const existingIds = candidates.map((c) => c.id)
+      const fallbackPlaces = await getFallbackPlaces(
+        city.slug, locale,
+        [...session.placeIds, ...existingIds],
+        FETCH_LIMIT,
+        resolvedIntent.placeTypes,
+      )
+      // Only accept places whose type matches the intent AND are in the right city
+      const typed = fallbackPlaces.filter((p) =>
+        intentTypeSet.has(p.place_type) && p.city_slug === city.slug,
+      )
+      candidates = dedupePlaces([...candidates, ...typed])
     }
 
     // ── Shared scoring context (same engine as NOW) ──────────────────
@@ -687,207 +509,140 @@ export async function conciergeRoutes(app: FastifyInstance) {
       userStyle: style ?? undefined,
     }
 
-    // ── Pre-filter: only score candidates whose place_type matches the intent ─
-    // This prevents restaurants from appearing in "Gallery afternoon" etc.
-    // Broad intents (hidden_gems, relaxed_walk) accept many types so this is not restrictive.
-    const intentTypeSet = new Set(resolvedIntent.placeTypes)
-    const typeFilteredCandidates = candidates.filter((p) => intentTypeSet.has(p.place_type))
-
-    // If strict filtering leaves too few candidates, fall back to full pool
-    const scoringPool = typeFilteredCandidates.length >= 3 ? typeFilteredCandidates : candidates
+    // ── Beautiful spots: scenic scoring constants ─────────────────────
+    const isBeautifulSpots = resolvedIntent.id === 'beautiful_spots'
+    const SCENIC_TAGS = new Set([
+      'viewpoint', 'sunset', 'rooftop', 'terrace', 'culture', 'local-secret',
+    ])
+    const SCENIC_PLACE_TYPES = new Set(['landmark', 'museum', 'activity', 'beach', 'venue', 'hotel'])
+    const DINING_TYPES = new Set(['restaurant', 'cafe', 'bar'])
 
     // ── STEP 1: Base Score (shared engine) ─────────────────────────────
     // ── STEP 2: Adjustments (Concierge-specific) ────────────────────────
-    let scoredCandidates: ScoredCandidate[] = scoringPool
-      .map((place) => {
-        // STEP 1: base score from shared engine
+    let scoredCandidates: ScoredCandidate[] = candidates
+      .map((place: UnifiedCandidate) => {
         const result = scoreCandidate(place, scoringCtx)
 
-        // STEP 2a: Intent match adjustment (+5 match, -10/-15 mismatch for wrong type)
+        // STEP 2a: Intent match adjustment
         const intentMatch = resolvedIntent.placeTypes.includes(place.place_type)
         if (intentMatch) {
-          result.totalScore += 5                    // intentMatchAdjustment: +5
+          result.totalScore += 5
         } else {
-          // Wrong place type for this intent — penalize so correct types rank higher
           const intentTagSet = new Set([...resolvedIntent.tags, ...resolvedIntent.categorySlugs]
-            .map(t => t.toLowerCase().replace(/[^a-z0-9]/g, '-')))
+            .map((t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, '-')))
           const placeTags = place.context_tag_slugs ?? []
-          const tagOverlap = placeTags.filter(t => intentTagSet.has(t)).length
-
-          if (tagOverlap >= 2) {
-            result.totalScore -= 5                  // wrong type but tags overlap
-          } else if (tagOverlap === 1) {
-            result.totalScore -= 10                 // wrong type, weak tag overlap
-          } else {
-            result.totalScore -= 15                 // wrong type, no tag overlap
-          }
+          const tagOverlap = placeTags.filter((t: string) => intentTagSet.has(t)).length
+          result.totalScore -= tagOverlap >= 2 ? 5 : tagOverlap === 1 ? 10 : 15
         }
 
         // STEP 2b: Anti-repetition penalty (-20)
-        if (session.placeIds.has(place.id)) {
-          result.totalScore -= 20                   // antiRepetitionPenalty
-        }
+        if (session.placeIds.has(place.id)) result.totalScore -= 20
 
         // STEP 2c: Hero history penalty (-18, paid exempt)
-        if (!result.isSponsored && session.heroHistory.has(place.id)) {
-          result.totalScore -= 18                   // heroHistoryPenalty
-        }
+        if (!result.isSponsored && session.heroHistory.has(place.id)) result.totalScore -= 18
 
         // STEP 2d: Hero rotation penalty (-12, paid exempt)
-        if (previousHeroId && place.id === previousHeroId && !result.isSponsored) {
-          result.totalScore -= 12                   // heroRotationPenalty
-        }
+        if (previousHeroId && place.id === previousHeroId && !result.isSponsored) result.totalScore -= 12
 
         // STEP 2e: Frequency cap penalty (-20, paid exempt)
-        if (!result.isSponsored && isOverExposed(sessionId, place.id)) {
-          result.totalScore -= 20                   // frequencyCapPenalty
-        }
+        if (!result.isSponsored && isOverExposed(sessionId, place.id)) result.totalScore -= 20
 
-        // STEP 2f: Refinement tag adjustments (+8 boost, -6 reduce)
+        // STEP 2f: Refinement tag adjustments
         if (refinementAdj && place.context_tag_slugs?.length) {
           const placeTags = new Set(place.context_tag_slugs)
           for (const boostTag of refinementAdj.boost) {
-            if (placeTags.has(boostTag)) result.totalScore += 8   // refinementBoost
+            if (placeTags.has(boostTag)) result.totalScore += 8
           }
           for (const reduceTag of refinementAdj.reduce) {
             if (placeTags.has(reduceTag)) result.totalScore -= 6
           }
         }
 
+        // STEP 2g: Beautiful spots — scenic priority scoring
+        if (isBeautifulSpots) {
+          const placeTags = new Set(place.context_tag_slugs ?? [])
+          const hasScenicTag = [...SCENIC_TAGS].some((t) => placeTags.has(t))
+          const isScenicType = SCENIC_PLACE_TYPES.has(place.place_type)
+          const isDining = DINING_TYPES.has(place.place_type)
+
+          if (isScenicType) result.totalScore += 12
+          if (hasScenicTag) result.totalScore += 8
+          if (isDining && !hasScenicTag) result.totalScore -= 15
+          else if (isDining && hasScenicTag) result.totalScore -= 3
+
+          const text = [place.short_description, place.editorial_summary]
+            .filter(Boolean).join(' ').toLowerCase()
+          const scenicKeywords = ['view', 'vista', 'panoram', 'architect', 'garden', 'jardim', 'palace', 'palácio', 'heritage', 'scenic', 'tower', 'bridge', 'river', 'ocean', 'cliff', 'miradouro', 'terrace', 'rooftop', 'gallery', 'monument', 'church', 'castle', 'forest']
+          result.totalScore += scenicKeywords.filter((kw) => text.includes(kw)).length * 3
+        }
+
         return result
       })
-      .filter((r) => r.totalScore > 0)
-      .sort((a, b) => b.totalScore - a.totalScore)
+      .filter((r: ScoredCandidate) => r.totalScore > 0)
+      .sort((a: ScoredCandidate, b: ScoredCandidate) => b.totalScore - a.totalScore)
 
-    // ── STEP 3: Diversity multiplier (applied LAST) ────────────────────
-    // Same-category adjacent: ×0.85, same-tag adjacent: ×0.90
-    // Paid placements are EXEMPT from diversity penalties
+    // ── STEP 3: Diversity multiplier ──────────────────────────────────
     scoredCandidates = applyDiversityRules(scoredCandidates)
 
-    // Paid placement visibility floor: guarantee paid appears within top results.
-    // High relevance (≥1 tag overlap OR score ≥ 20): inject at last visible position.
-    // Low relevance but score > 0: still inject at last position (contractual guarantee).
-    // Score ≤ 0: do not inject (fundamentally incompatible — filtered earlier).
+    // ── STEP 3b: Beautiful spots — hard restaurant cap ────────────────
+    if (isBeautifulSpots) {
+      const capped: ScoredCandidate[] = []
+      let diningCount = 0
+      for (const r of scoredCandidates) {
+        if (DINING_TYPES.has(r.place.place_type)) {
+          if (diningCount >= 1) continue
+          diningCount++
+        }
+        capped.push(r)
+      }
+      scoredCandidates = capped
+    }
+
+    // ── Paid placement visibility floor ──────────────────────────────
     const topSponsored = scoredCandidates.find((r) => r.isSponsored)
     if (topSponsored && topSponsored.totalScore > 0) {
-      const topSlice = scoredCandidates.slice(0, limit)
+      const topSlice = scoredCandidates.slice(0, MAX_PLACES_PER_PILL)
       if (!topSlice.some((r) => r.place.id === topSponsored.place.id)) {
-        scoredCandidates = [...scoredCandidates.slice(0, limit - 1).filter((r) =>
-          r.place.id !== topSponsored.place.id,
-        ), topSponsored, ...scoredCandidates.slice(limit - 1).filter((r) =>
-          r.place.id !== topSponsored.place.id,
-        )]
+        scoredCandidates = [
+          ...scoredCandidates.slice(0, MAX_PLACES_PER_PILL - 1).filter((r) =>
+            r.place.id !== topSponsored.place.id),
+          topSponsored,
+          ...scoredCandidates.slice(MAX_PLACES_PER_PILL - 1).filter((r) =>
+            r.place.id !== topSponsored.place.id),
+        ]
       }
     }
 
-    // Extract places — deduplicate by place ID
+    // ── Extract top 6 unique places for pill cache (PAGINATION FIX) ──
+    // Previously this was sliced to `limit` (3) before caching, so page 2
+    // was always empty. Now we store up to MAX_PLACES_PER_PILL (6) first,
+    // then slice to RESULTS_PER_PAGE (3) for the response.
     const seenIds = new Set<string>()
-    let scored = scoredCandidates
+    const allPillPlaces = scoredCandidates
       .filter((r) => {
         if (seenIds.has(r.place.id)) return false
         seenIds.add(r.place.id)
         return true
       })
-      .slice(0, limit)
+      .slice(0, MAX_PLACES_PER_PILL)
       .map((r) => r.place)
-    let levelUsed = adjustmentEmotion ? 1 : 0
 
-    if (adjustmentEmotion && scored.length < limit) {
-      // Level 2+3 fallback: expand pool with related intent candidates
-      const fetchLimit = SESSION_POOL_SIZE
-      const emotionIntents = getEmotionIntentGroup(adjustmentEmotion, resolvedIntent)
-      const level2Buckets = await Promise.all(
-        emotionIntents
-          .filter((intent) => intent.id !== resolvedIntent.id)
-          .map(async (intent) => {
-            const candidatesForIntent = await getConciergeRecommendations(
-              city.slug, intent, locale, fetchLimit, nowTimeOfDay,
-            )
-            const intentCtx: ScoringContext = {
-              ...scoringCtx,
-              intentTags: [...intent.tags, ...intent.categorySlugs],
-            }
-            return candidatesForIntent
-              .map((place) => scoreCandidate(place, intentCtx))
-              .filter((r) => r.totalScore > 0)
-              .sort((a, b) => b.totalScore - a.totalScore)
-              .map((r) => r.place)
-          }),
-      )
-
-      const level2Matches = dedupePlaces(level2Buckets.flat())
-      const combined = mergeUniquePlaces(scored, level2Matches, limit)
-
-      if (combined.length >= limit) {
-        scored = combined
-        levelUsed = 2
-      } else {
-        const fallbackPlaceTypes = [...new Set(emotionIntents.flatMap((intent) => intent.placeTypes))]
-        const level3Matches = sortPlacesByEmotionPriority(
-          await getFallbackPlaces(
-            city.slug, locale,
-            [...session.placeIds, ...combined.map((p) => p.id)],
-            Math.max(limit * 2, 6),
-            fallbackPlaceTypes,
-          ),
-          adjustmentEmotion,
-        )
-
-        scored = mergeUniquePlaces(combined, level3Matches, limit)
-        levelUsed = 3
-      }
-    }
-
-    // ── Smart fallback: if insufficient results, search related categories ──
-    // Only fetch places of matching types — never fill cultural intents with restaurants
-    if (scored.length < limit) {
-      const existingIds = scored.map((p) => p.id)
-      const fallbackTypes = adjustmentEmotion
-        ? [...new Set(getEmotionIntentGroup(adjustmentEmotion, resolvedIntent).flatMap((intent) => intent.placeTypes))]
-        : resolvedIntent.placeTypes
-      const fallbackPlaces = await getFallbackPlaces(
-        city.slug, locale,
-        [...session.placeIds, ...existingIds],
-        Math.max(limit * 2, 6),
-        fallbackTypes,
-      )
-      // Strict type filter: only accept places whose type matches the intent
-      const typedFallbacks = fallbackPlaces.filter((p) => intentTypeSet.has(p.place_type))
-      const extra = adjustmentEmotion
-        ? sortPlacesByEmotionPriority(typedFallbacks, adjustmentEmotion)
-        : typedFallbacks
-      scored = mergeUniquePlaces(scored, extra, limit)
-    }
-
-    request.log.info({
-      level_used: levelUsed,
-      results_count: scored.length,
-      emotion_applied: adjustmentEmotion ?? null,
-      resolved_intent: resolvedIntent.id,
-    }, '[Concierge] adjustment fallback ladder')
-
-    // ── Store pill state: top 6 candidates, show first 3 ──────────────
-    const pillCandidates = scored.slice(0, MAX_PLACES_PER_PILL)
-    session.pills.set(pillKey, { candidates: pillCandidates, tapCount: 1 })
+    // Store pill state: up to 6 candidates
+    session.pills.set(pillKey, { candidates: allPillPlaces, tapCount: 1 })
 
     // First tap shows results 1-3
-    scored = pillCandidates.slice(0, RESULTS_PER_PAGE)
+    let scored = allPillPlaces.slice(0, RESULTS_PER_PAGE)
 
-    // ── Hero safeguard: sponsored placements must not occupy hero position ─
-    // If the top result is sponsored, swap it with the first organic result
-    // so the hero stays editorial. Sponsored still appears in card positions.
-    // If ALL candidates are sponsored, heroId = null — no editorial hero exists.
+    // ── Hero safeguard: sponsored must not occupy hero position ───────
     let heroId: string | null = null
     if (scored.length > 0 && boostIds.has(scored[0].id)) {
       const firstOrganic = scored.findIndex((p) => !boostIds.has(p.id))
       if (firstOrganic > 0) {
-        // Swap sponsored out of hero position
         const tmp = scored[0]
         scored[0] = scored[firstOrganic]
         scored[firstOrganic] = tmp
         heroId = scored[0].id
       }
-      // else: all candidates are sponsored → heroId stays null
     } else if (scored.length > 0) {
       heroId = scored[0].id
     }
@@ -900,23 +655,25 @@ export async function conciergeRoutes(app: FastifyInstance) {
     session.lastIntentId = resolvedIntent.id
     sessionHistory.set(sessionKey, session)
 
-    // Frequency capping: record exposures for cross-surface tracking
+    // Frequency capping
     recordExposures(sessionId, scored.map((p) => p.id))
 
     const localeFamily = locale.split('-')[0]
     const recommendations = scored.map((p) => toRecommendationDTO(p, resolvedIntent, locale))
 
-    // ── Response text: always contextual, never generic ────────────────
+    // ── Response text ─────────────────────────────────────────────────
     let responseText: string
     if (recommendations.length > 0) {
       responseText = buildResponseText(resolvedIntent, city.name, timeOfDay, locale)
     } else {
-      // Even with fallback empty — give time-based suggestion
+      const todLabelPt: Record<string, string> = { morning: 'manhã', afternoon: 'tarde', evening: 'noite', late_evening: 'noite', deep_night: 'madrugada' }
+      const todLabelEs: Record<string, string> = { morning: 'mañana', afternoon: 'tarde', evening: 'noche', late_evening: 'noche', deep_night: 'madrugada' }
+      const todLabelEn: Record<string, string> = { morning: 'morning', afternoon: 'afternoon', evening: 'evening', late_evening: 'evening', deep_night: 'night' }
       const todLabel = localeFamily === 'pt'
-        ? (timeOfDay === 'morning' ? 'manhã' : timeOfDay === 'afternoon' ? 'tarde' : 'noite')
+        ? (todLabelPt[timeOfDay] ?? 'noite')
         : localeFamily === 'es'
-          ? (timeOfDay === 'morning' ? 'mañana' : timeOfDay === 'afternoon' ? 'tarde' : 'noche')
-          : timeOfDay
+          ? (todLabelEs[timeOfDay] ?? 'noche')
+          : (todLabelEn[timeOfDay] ?? 'evening')
       responseText = localeFamily === 'pt'
         ? `Para esta ${todLabel} em ${city.name}, experimente explorar outras categorias.`
         : localeFamily === 'es'
@@ -924,23 +681,13 @@ export async function conciergeRoutes(app: FastifyInstance) {
           : `For this ${todLabel} in ${city.name}, try exploring other categories.`
     }
 
-    // ── Dynamic fallback intents: only suggest if viable in this city ──
-    const viableIntents = await getViableIntents(city.slug, 2)
-    const allFallbackIntents = getDynamicFallbackIntents(
+    // ── Dynamic fallback intents (conflict-aware) ────────────────────
+    const fallbackIntents = getDynamicFallbackIntents(
       resolvedIntent.id,
       session.intentIds,
       timeOfDay,
       locale,
     )
-    // Filter: only suggest intents that have matching candidates in the session pool.
-    // A pill is useless if tapping it would show irrelevant place types.
-    const poolTypes = new Set(candidates.map((c) => c.place_type))
-    const fallbackIntents = allFallbackIntents.filter((fi) => {
-      const intent = getIntentById(fi.id)
-      if (!intent) return false
-      // The intent must have at least one placeType present in the pool
-      return intent.placeTypes.some((pt) => poolTypes.has(pt))
-    }).slice(0, 4)
 
     const resolvedIntentTitle = getIntentLabels(resolvedIntent.id, locale).title
 

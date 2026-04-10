@@ -142,11 +142,13 @@ export async function getConciergeRecommendations(
       WHEN p.context_windows_auto IS NOT NULL
         THEN p.context_windows_auto ? (
           CASE $${timeWindowIdx}
-            WHEN 'morning'   THEN 'manhã'
-            WHEN 'midday'    THEN 'almoço'
-            WHEN 'afternoon' THEN 'tarde'
-            WHEN 'evening'   THEN 'noite'
-            WHEN 'night'     THEN 'madrugada'
+            WHEN 'morning'      THEN 'manhã'
+            WHEN 'midday'       THEN 'almoço'
+            WHEN 'afternoon'    THEN 'tarde'
+            WHEN 'evening'      THEN 'noite'
+            WHEN 'night'        THEN 'madrugada'
+            WHEN 'late_evening' THEN 'madrugada'
+            WHEN 'deep_night'   THEN 'madrugada'
             ELSE $${timeWindowIdx}
           END
         )
@@ -174,6 +176,10 @@ export async function getConciergeRecommendations(
       p.longitude,
       NULL::real AS distance_meters,
       (${categorySlugsExpr}) AS category_slugs,
+      p.website_url,
+      p.booking_url,
+      p.phone,
+      p.google_maps_url,
       (${contextTagsExpr}) AS context_tag_slugs,
       (${contextTagMaxWeightExpr}) AS context_tag_max_weight,
       COALESCE(p.now_enabled, false) AS now_enabled,
@@ -405,6 +411,10 @@ export async function getPlacesByIds(
         (SELECT array_agg(DISTINCT c.slug) FROM place_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.place_id = p.id),
         ARRAY[]::text[]
       ) AS category_slugs,
+      p.website_url,
+      p.booking_url,
+      p.phone,
+      p.google_maps_url,
       COALESCE(
         (SELECT array_agg(nct.slug) FROM place_now_tags pnt JOIN now_context_tags nct ON nct.id = pnt.tag_id WHERE pnt.place_id = p.id),
         ARRAY[]::text[]

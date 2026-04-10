@@ -2,33 +2,34 @@
 //
 // Single scoring pipeline shared by NOW and Concierge.
 //
-// ── Scoring Formula (explicit order of operations) ──────────────────────────
+// ── Pipeline (strict order) ────────────────────────────────────────────────
 //
-// STEP 1 — Base Score (computed here in scoreCandidate):
+// STEP 0 — Hard eligibility filters (before ANY scoring):
+//   - Excluded IDs (session, cooldown)
+//   - Time-of-day hard exclusions (type × time window matrix)
+//   - Shopping curfew (22:00–08:00 — NEVER)
+//   - Dinner-only restaurants in afternoon → excluded unless they have lunch/terrace/coffee
+//   - Bars in morning → excluded
+//   - Paid placements: still excluded if the place is truly absurd for the time
+//     (closed restaurant at 04:00) — commercial contract doesn't override physics
+//
+// STEP 1 — Base Score (computed in scoreCandidate):
 //
 //   baseScore =
-//     0.15 × commercialScore   (paid placement boost, dashboard priority)
-//   + 0.30 × contextScore      (context tags × time-of-day × weather × intent overlap)
-//   + 0.15 × editorialScore    (editorial tags, NOW featured, time window match)
-//   + 0.25 × qualityScore      (popularity, hero image, recency)
-//   + 0.15 × proximityScore    (distance from user, or neutral if unavailable)
-//   + 0.12 × personalization   (onboarding interests + exploration style)
+//     w.commercial × commercialScore
+//   + w.context    × contextScore
+//   + w.editorial  × editorialScore
+//   + w.quality    × qualityScore
+//   + w.proximity  × proximityScore
+//   + 0.12         × personalization
 //
-// STEP 2 — Adjustments (applied by the route handler AFTER scoreCandidate):
+// STEP 2 — Time-of-day adjustments (additive boosts/penalties)
 //
-//   adjustedScore = baseScore
-//     + intentMatchAdjustment   (+5 match, -5/-12/-20 mismatch for paid)
-//     + refinementAdjustment    (+8 per boosted tag, -6 per reduced tag)
-//     - antiRepetitionPenalty   (-20 for already-shown places)
-//     - heroHistoryPenalty      (-18 for places that were hero before)
-//     - heroRotationPenalty     (-12 for the immediately previous hero)
-//     - frequencyCapPenalty     (-20 for over-exposed places, paid exempt)
+// STEP 3 — Adjustments (applied by route handler after scoreCandidate):
+//   intentMatch, refinement, antiRepetition, heroHistory, frequencyCap
 //
-// STEP 3 — Diversity (applied LAST by applyDiversityRules):
-//
-//   finalScore = adjustedScore × diversityMultiplier
-//     (0.85 for adjacent same place_type, 0.90 for same bestTag)
-//     (paid placements are EXEMPT from diversity penalties)
+// STEP 4 — Diversity (applied LAST by applyDiversityRules):
+//   category/tag penalties, plateau rotation, paid exemptions
 //
 // Weather NEVER eliminates candidates. It adjusts context score up or down.
 
@@ -40,6 +41,7 @@ import type {
   ScoreBreakdown,
 } from './types'
 import { DEFAULT_WEIGHTS } from './types'
+import type { NowTimeOfDay } from './types'
 import {
   TIME_TAG_BOOSTS,
   WEATHER_TAG_BOOSTS,
@@ -263,10 +265,122 @@ function scorePersonalization(
   return Math.min(score, 100)
 }
 
-// ─── STEP 1: Base Score (single candidate) ──────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// STEP 0: HARD ELIGIBILITY FILTERS
+// ═══════════════════════════════════════════════════════════════════════════
 //
-// Computes the base score from objective signals only.
-// Route handlers apply STEP 2 (adjustments) and STEP 3 (diversity) afterward.
+// These rules REMOVE candidates from the pool BEFORE scoring.
+// A filtered candidate NEVER enters ranking, regardless of score.
+//
+// Eligibility is binary: eligible or not. No grey area.
+
+/**
+ * Check if a candidate is eligible for the current time window.
+ * Returns false if the place should be EXCLUDED from the candidate pool.
+ *
+ * Rules are strict and context-aware:
+ * - Shopping: excluded 22:00–08:00 (hard curfew)
+ * - Museums: excluded 23:00–08:00
+ * - Bars: excluded 07:00–11:00 (morning)
+ * - Daytime cafes: excluded 02:00–07:00 (unless late-night tag)
+ * - Dinner-only restaurants: excluded 15:00–18:00 (afternoon)
+ *   unless they also have lunch, terrace, coffee, or quick-stop tags
+ */
+function isEligibleForTimeWindow(
+  place: UnifiedCandidate,
+  timeOfDay: NowTimeOfDay,
+): boolean {
+  const pt = place.place_type
+  const tags = place.context_tag_slugs ?? []
+  const hasTag = (t: string) => tags.includes(t)
+
+  // ── Shopping curfew: most shops close 19:00–20:00 ─────────────────────
+  // Exclude from evening onwards. A few design shops stay open later but
+  // the general rule is: no shops after 18:00 for recommendation purposes.
+  if (pt === 'shop') {
+    if (timeOfDay === 'evening' || timeOfDay === 'late_evening' || timeOfDay === 'deep_night' || timeOfDay === 'night') {
+      return false
+    }
+  }
+
+  // ── Museums: excluded evening onwards (most close 18:00–19:00) ────────
+  if (pt === 'museum') {
+    if (timeOfDay === 'evening' || timeOfDay === 'late_evening' || timeOfDay === 'deep_night' || timeOfDay === 'night') {
+      return false
+    }
+  }
+
+  // ── Bars: excluded in morning (07:00–11:00) ───────────────────────────
+  if (pt === 'bar' && timeOfDay === 'morning') {
+    return false
+  }
+
+  // ── Cafes: only morning + afternoon ──────────────────────────────────
+  // Cafes like Nicolau are daytime places. Exclude from evening onwards
+  // unless they have explicit evening-relevant tags (cocktails, wine, late-night).
+  if (pt === 'cafe') {
+    const hasEveningRelevance = hasTag('cocktails') || hasTag('wine') || hasTag('late-night') || hasTag('dinner')
+    if ((timeOfDay === 'evening' || timeOfDay === 'late_evening' || timeOfDay === 'deep_night' || timeOfDay === 'night') && !hasEveningRelevance) {
+      return false
+    }
+  }
+
+  // ── Dinner-only restaurants in afternoon (15:00–18:00) ────────────────
+  // If a restaurant ONLY has dinner-related tags and NO daytime tags,
+  // it shouldn't appear at 16:00. A dinner restaurant with a terrace
+  // or lunch service is fine — it has daytime relevance.
+  if (pt === 'restaurant' && timeOfDay === 'afternoon') {
+    const hasDinnerTag = hasTag('dinner') || hasTag('fine-dining')
+    const hasDaytimeTag = hasTag('lunch') || hasTag('terrace') || hasTag('coffee')
+      || hasTag('brunch') || hasTag('quick-stop') || hasTag('wine')
+    if (hasDinnerTag && !hasDaytimeTag) {
+      return false
+    }
+  }
+
+  // ── Restaurants without late-night in deep night ──────────────────────
+  if (pt === 'restaurant' && timeOfDay === 'deep_night' && !hasTag('late-night')) {
+    return false
+  }
+
+  // ── Activities without evening relevance: excluded from evening ───────
+  // Activities like tours, gardens, boardwalks close by sunset.
+  // Only activities tagged late-night or viewpoint survive into evening.
+  if (pt === 'activity' && timeOfDay === 'evening') {
+    if (!hasTag('late-night') && !hasTag('viewpoint') && !hasTag('live-music')) {
+      return false
+    }
+  }
+
+  // ── Landmarks without viewpoint: excluded from evening ──────────────
+  // Most landmarks (churches, palaces, gardens) close by 18:00–19:00.
+  // Viewpoints and waterfront spots remain valid for evening/sunset.
+  if (pt === 'landmark' && timeOfDay === 'evening') {
+    if (!hasTag('viewpoint') && !hasTag('sunset')) {
+      return false
+    }
+  }
+
+  // ── Landmarks/activities in late evening ──────────────────────────────
+  // Almost everything is closed. Only viewpoints survive.
+  if ((pt === 'landmark' || pt === 'activity') && timeOfDay === 'late_evening') {
+    if (!hasTag('viewpoint') && !hasTag('late-night')) {
+      return false
+    }
+  }
+
+  // ── Landmarks/activities/hotels in deep night ─────────────────────────
+  if (pt === 'landmark' && timeOfDay === 'deep_night' && !hasTag('viewpoint')) {
+    return false
+  }
+  if (pt === 'activity' && timeOfDay === 'deep_night') {
+    return false
+  }
+
+  return true
+}
+
+// ─── STEP 1: Base Score (single candidate) ──────────────────────────────────
 
 export function scoreCandidate(
   place: UnifiedCandidate,
@@ -293,8 +407,95 @@ export function scoreCandidate(
 
   const personalizationBonus = personalizationScore * 0.12
 
-  // totalScore = baseScore + personalization (STEP 2 adjustments added by route)
-  const totalScore = baseScore + personalizationBonus
+  // ── STEP 2: Time-of-day appropriateness boosts + penalties ─────────────
+  // These are SOFT adjustments for places that passed eligibility.
+  // They fine-tune ranking, not eligibility.
+  let timeAdjustment = 0
+  const tod = ctx.timeOfDay
+  const pt = place.place_type
+  const tags = place.context_tag_slugs ?? []
+  const hasTag = (t: string) => tags.includes(t)
+
+  if (tod === 'morning') {
+    // 08:00–11:00: cafes, bakeries, brunch → boost; everything else neutral
+    if (pt === 'cafe')                                   timeAdjustment += 12
+    if (hasTag('coffee') || hasTag('brunch'))             timeAdjustment += 10
+    if (hasTag('culture'))                                timeAdjustment += 5
+    if (hasTag('viewpoint'))                              timeAdjustment += 5
+    // Restaurants: only if they have breakfast/brunch/coffee
+    if (pt === 'restaurant' && !hasTag('brunch') && !hasTag('coffee') && !hasTag('lunch'))
+                                                         timeAdjustment -= 15
+  }
+  else if (tod === 'midday') {
+    // 11:00–15:00: lunch time
+    if (hasTag('lunch') || hasTag('brunch'))              timeAdjustment += 10
+    if (hasTag('quick-stop'))                             timeAdjustment += 5
+    if (pt === 'bar' && !hasTag('lunch') && !hasTag('wine'))
+                                                         timeAdjustment -= 20
+  }
+  else if (tod === 'afternoon') {
+    // 15:00–18:00: culture, coffee, shopping, terraces, viewpoints
+    if (hasTag('coffee') || hasTag('culture'))            timeAdjustment += 8
+    if (hasTag('terrace') || hasTag('viewpoint'))         timeAdjustment += 6
+    if (hasTag('shopping'))                               timeAdjustment += 5
+    if (hasTag('wellness'))                               timeAdjustment += 5
+    if (hasTag('sunset'))                                 timeAdjustment += 4
+    // Wine bars are fine in afternoon
+    if (pt === 'bar' && hasTag('wine'))                   timeAdjustment += 3
+    // Regular bars without wine/terrace: penalize
+    if (pt === 'bar' && !hasTag('wine') && !hasTag('terrace'))
+                                                         timeAdjustment -= 15
+    // Dinner restaurants that passed eligibility (they have daytime tags)
+    // get a small boost for their daytime side
+    if (pt === 'restaurant' && hasTag('lunch'))           timeAdjustment += 5
+  }
+  else if (tod === 'evening') {
+    // 18:00–23:00: dinner, drinks, sunset, nightlife ramp-up
+    if (hasTag('dinner') || hasTag('fine-dining'))        timeAdjustment += 10
+    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 8
+    if (hasTag('sunset'))                                 timeAdjustment += 8
+    if (hasTag('rooftop'))                                timeAdjustment += 6
+    if (hasTag('romantic'))                               timeAdjustment += 5
+    if (hasTag('live-music'))                             timeAdjustment += 5
+    // Shops, museums and cafes are now hard-excluded in evening (isEligibleForTimeWindow)
+  }
+  else if (tod === 'late_evening') {
+    // 23:00–02:00: bars, late restaurants, hotel F&B
+    if (pt === 'bar')                                    timeAdjustment += 15
+    if (pt === 'restaurant' && hasTag('late-night'))      timeAdjustment += 12
+    if (pt === 'restaurant' && hasTag('dinner'))          timeAdjustment += 5
+    if (pt === 'hotel' && (hasTag('cocktails') || hasTag('rooftop') || hasTag('wine')))
+                                                         timeAdjustment += 10
+    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 8
+    if (hasTag('rooftop'))                                timeAdjustment += 5
+    if (hasTag('live-music'))                             timeAdjustment += 5
+    // Cafes without evening relevance are now hard-excluded (isEligibleForTimeWindow)
+    // Hotels without F&B tags: mild penalty
+    if (pt === 'hotel' && !hasTag('cocktails') && !hasTag('wine') && !hasTag('rooftop'))
+                                                         timeAdjustment -= 10
+  }
+  else if (tod === 'deep_night') {
+    // 02:00–07:00: late bars, viewpoints as scenic fallback
+    if (pt === 'bar')                                    timeAdjustment += 12
+    if (hasTag('late-night'))                             timeAdjustment += 15
+    if (hasTag('viewpoint'))                              timeAdjustment += 12
+    if (pt === 'beach')                                  timeAdjustment += 8
+    // Hotels with bar/lounge
+    if (pt === 'hotel' && (hasTag('cocktails') || hasTag('wine')))
+                                                         timeAdjustment += 8
+    if (pt === 'hotel' && !hasTag('cocktails') && !hasTag('wine'))
+                                                         timeAdjustment -= 15
+  }
+  else if (tod === 'night') {
+    // 22:00–23:00 (legacy transition window)
+    if (pt === 'bar')                                    timeAdjustment += 10
+    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 8
+    if (hasTag('late-night'))                             timeAdjustment += 5
+    if (hasTag('live-music'))                             timeAdjustment += 5
+  }
+
+  // totalScore = baseScore + personalization + time adjustment
+  const totalScore = baseScore + personalizationBonus + timeAdjustment
 
   const breakdown: ScoreBreakdown = {
     commercial: { raw: commercialScore, weighted: round2(w.commercial * commercialScore) },
@@ -318,22 +519,33 @@ export function scoreCandidate(
   }
 }
 
-// ─── Pipeline: score → filter → rank ────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Pipeline: eligibility → score → rank
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Score all candidates, exclude filtered IDs, and sort by total score.
- * This is the shared pipeline entry point for both NOW and Concierge.
+ * Score all candidates, apply hard eligibility filters, and sort by total score.
  *
- * Unlike the old system, candidates with zero context score are NOT removed.
- * They simply rank lower. The only hard filter is the excludeIds set.
+ * Pipeline:
+ *   1. Remove excluded IDs (session, cooldown)
+ *   2. Apply hard time-of-day eligibility (isEligibleForTimeWindow)
+ *      — Paid placements are NOT exempt: a closed restaurant at 04:00
+ *        must not appear regardless of commercial contract.
+ *   3. Score remaining candidates
+ *   4. Sort by total score
  */
 export function rankCandidates(
   candidates: UnifiedCandidate[],
   ctx: ScoringContext,
 ): ScoredCandidate[] {
   return candidates
+    // Step 0a: remove excluded IDs
     .filter((p) => !ctx.excludeIds.has(p.id))
+    // Step 0b: hard time-of-day eligibility (ALL candidates, including paid)
+    .filter((p) => isEligibleForTimeWindow(p, ctx.timeOfDay))
+    // Step 1+2: score + time adjustments
     .map((place) => scoreCandidate(place, ctx))
+    // Sort by total score descending
     .sort((a, b) => b.totalScore - a.totalScore)
 }
 

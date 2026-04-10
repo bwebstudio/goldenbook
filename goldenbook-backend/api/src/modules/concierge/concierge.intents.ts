@@ -5,7 +5,7 @@
 //
 // V2 TODO: consider moving this to a DB table for admin editability.
 
-export type TimeOfDay = 'morning' | 'afternoon' | 'evening'
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'late_evening' | 'deep_night'
 
 export interface ConciergeIntent {
   id: string
@@ -34,6 +34,7 @@ export interface ConciergeIntent {
 }
 
 export const INTENT_REGISTRY: ConciergeIntent[] = [
+  // ── Dining ─────────────────────────────────────────────────────────────
   {
     id: 'romantic_dinner',
     title: 'Romantic dinner',
@@ -42,39 +43,41 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     labels: ["Editor's choice"],
     placeTypes: ['restaurant'],
     editorialIntents: ['romantic_dinner', 'date_night'],
-    fallbackIntents: ['fine_dining', 'trendy_restaurant'],
+    fallbackIntents: ['fine_dining'],
     categorySlugs: ['restaurant', 'fine-dining', 'dinner'],
-    tags: ['romantic', 'date-night', 'atmospheric', 'fine-dining', 'intimate', 'candlelit', 'couple'],
-    preferredTimeOfDay: ['evening'],
+    tags: ['romantic', 'date-night', 'fine-dining', 'intimate', 'candlelit'],
+    preferredTimeOfDay: ['evening', 'late_evening'],
     keywords: ['romantic', 'romance', 'date', 'dinner', 'couple', 'anniversary', 'intimate'],
     priority: 9,
   },
   {
-    id: 'hidden_gems',
-    title: 'Hidden gems',
-    subtitle: 'Curated places away from the crowds',
-    icon: 'diamond',
-    labels: ["Editor's choice"],
-    placeTypes: ['restaurant', 'bar', 'cafe', 'shop', 'venue'],
-    editorialIntents: ['hidden_gem_restaurant', 'local_food'],
-    fallbackIntents: ['casual_dining', 'concept_store'],
-    categorySlugs: [],
-    tags: ['hidden', 'secret', 'local', 'neighbourhood', 'off-the-beaten-path', 'gem', 'undiscovered'],
-    preferredTimeOfDay: ['morning', 'afternoon', 'evening'],
-    keywords: ['hidden', 'secret', 'local', 'gem', 'discover', 'undiscovered', 'off beaten'],
-    priority: 8,
+    id: 'long_lunch',
+    title: 'Long lunch',
+    subtitle: 'Unhurried midday dining at its finest',
+    icon: 'restaurant',
+    labels: ["Chef's recommendation"],
+    placeTypes: ['restaurant'],
+    editorialIntents: ['casual_dining', 'local_food', 'lunch_spot'],
+    fallbackIntents: ['fine_dining'],
+    categorySlugs: ['restaurant', 'brasserie', 'bistro', 'lunch'],
+    tags: ['lunch', 'leisurely', 'brasserie', 'bistro', 'midday', 'sunday-lunch'],
+    preferredTimeOfDay: ['morning', 'afternoon'],
+    keywords: ['lunch', 'midday', 'afternoon dining', 'brasserie', 'bistro', 'leisurely'],
+    priority: 6,
   },
+
+  // ── Drinks (each with exclusive editorial territory) ───────────────────
   {
     id: 'sunset_drinks',
     title: 'Sunset drinks',
     subtitle: 'The golden hour, elevated',
     icon: 'wb_sunny',
     labels: ['Highly recommended'],
-    placeTypes: ['bar', 'restaurant'],
+    placeTypes: ['bar', 'restaurant', 'hotel'],
     editorialIntents: ['rooftop', 'scenic_views'],
-    fallbackIntents: ['cocktail_bar', 'wine_bar'],
-    categorySlugs: ['rooftop', 'terrace', 'view', 'bar'],
-    tags: ['rooftop', 'terrace', 'view', 'sunset', 'outdoor', 'panoramic', 'golden-hour'],
+    fallbackIntents: [],
+    categorySlugs: ['rooftop', 'terrace', 'bar'],
+    tags: ['rooftop', 'terrace', 'sunset', 'outdoor', 'panoramic', 'golden-hour'],
     preferredTimeOfDay: ['afternoon', 'evening'],
     keywords: ['sunset', 'rooftop', 'terrace', 'view', 'outdoor', 'panoramic', 'golden hour'],
     priority: 8,
@@ -85,12 +88,12 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     subtitle: 'Elegant pours and a slower pace',
     icon: 'wine_bar',
     labels: ['Highly recommended'],
-    placeTypes: ['bar', 'restaurant'],
+    placeTypes: ['bar'],
     editorialIntents: ['wine_bar'],
-    fallbackIntents: ['fine_dining', 'date_night'],
+    fallbackIntents: [],
     categorySlugs: ['bar', 'wine-bar', 'wine'],
-    tags: ['wine', 'quiet', 'intimate', 'wine-bar', 'natural-wine', 'sommelier'],
-    preferredTimeOfDay: ['afternoon', 'evening'],
+    tags: ['wine', 'wine-bar', 'natural-wine', 'sommelier', 'quiet'],
+    preferredTimeOfDay: ['afternoon', 'evening', 'late_evening'],
     keywords: ['wine', 'wines', 'vino', 'winery', 'wine bar', 'natural wine'],
     priority: 7,
   },
@@ -101,12 +104,42 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     icon: 'local_bar',
     labels: ['Highly recommended'],
     placeTypes: ['bar'],
-    editorialIntents: ['cocktail_bar', 'nightlife'],
-    fallbackIntents: ['wine_bar', 'late_night'],
+    editorialIntents: ['cocktail_bar'],
+    fallbackIntents: [],
     categorySlugs: ['cocktail-bar', 'bar', 'speakeasy'],
-    tags: ['cocktails', 'craft-drinks', 'speakeasy', 'mixology', 'spirits', 'bartender'],
-    preferredTimeOfDay: ['afternoon', 'evening'],
+    tags: ['cocktails', 'speakeasy', 'mixology', 'craft-drinks', 'spirits'],
+    preferredTimeOfDay: ['evening', 'late_evening'],
     keywords: ['cocktail', 'cocktails', 'drink', 'drinks', 'spirits', 'mixology', 'speakeasy'],
+    priority: 7,
+  },
+  {
+    id: 'after_dinner_drinks',
+    title: 'After-dinner drinks',
+    subtitle: 'A refined cap to the evening',
+    icon: 'nightlife',
+    labels: ['Evening essential'],
+    placeTypes: ['bar', 'hotel'],
+    editorialIntents: ['nightlife'],
+    fallbackIntents: ['hotel_bar'],
+    categorySlugs: ['bar', 'lounge', 'whisky-bar', 'hotel-bar'],
+    tags: ['digestif', 'lounge', 'after-dinner', 'whisky', 'nightcap', 'hotel-bar'],
+    preferredTimeOfDay: ['evening', 'late_evening'],
+    keywords: ['after dinner', 'nightcap', 'lounge', 'digestif', 'late drinks', 'whisky', 'whiskey'],
+    priority: 6,
+  },
+  {
+    id: 'late_night_drinks',
+    title: 'Late-night drinks',
+    subtitle: 'The bar is still open',
+    icon: 'local_bar',
+    labels: ['Night owl'],
+    placeTypes: ['bar', 'hotel'],
+    editorialIntents: ['late_night', 'hotel_bar'],
+    fallbackIntents: ['nightlife'],
+    categorySlugs: ['bar', 'hotel-bar', 'lounge', 'nightclub'],
+    tags: ['late-night', 'nightlife', 'lounge', 'hotel-bar'],
+    preferredTimeOfDay: ['late_evening', 'deep_night'],
+    keywords: ['late drink', 'still open', 'bar open', 'nightcap', 'last drink', 'after hours'],
     priority: 7,
   },
   {
@@ -116,57 +149,50 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     icon: 'music_note',
     labels: ['Hidden gem'],
     placeTypes: ['bar', 'venue'],
-    editorialIntents: ['jazz_bar', 'live_music', 'late_night'],
-    fallbackIntents: ['nightlife', 'cocktail_bar'],
+    editorialIntents: ['jazz_bar', 'live_music'],
+    fallbackIntents: ['nightlife'],
     categorySlugs: ['jazz', 'live-music', 'nightclub', 'music'],
     tags: ['jazz', 'live-music', 'music', 'nightlife', 'late-night', 'blues'],
-    preferredTimeOfDay: ['evening'],
+    preferredTimeOfDay: ['evening', 'late_evening', 'deep_night'],
     keywords: ['jazz', 'music', 'live music', 'nightlife', 'night', 'blues', 'concert'],
-    priority: 3,  // low: very few live-music venues across cities — only show if user searches for it
+    priority: 3,
+  },
+
+  // ── Discovery & Culture ────────────────────────────────────────────────
+  {
+    id: 'beautiful_spots',
+    title: 'Beautiful spots',
+    subtitle: 'Scenic and elegant places worth discovering',
+    icon: 'photo_camera',
+    labels: ['Visually stunning'],
+    placeTypes: ['landmark', 'museum', 'activity', 'beach'],
+    editorialIntents: ['scenic_views', 'viewpoint'],
+    fallbackIntents: ['nature'],
+    categorySlugs: ['viewpoint', 'garden', 'park', 'nature', 'landmark'],
+    tags: ['viewpoint', 'scenic', 'panoramic', 'heritage', 'garden', 'architecture'],
+    preferredTimeOfDay: ['morning', 'afternoon', 'evening'],
+    keywords: [
+      'beautiful', 'scenic', 'views', 'viewpoint', 'miradouro', 'bonito', 'bonita',
+      'fotogénico', 'photogenic', 'architecture', 'arquitectura', 'garden', 'jardín', 'jardim',
+      'palace', 'palacio', 'palácio', 'heritage', 'patrimonio', 'património',
+      'landscape', 'paisaje', 'paisagem', 'elegant', 'elegante',
+      'discover', 'descobrir', 'descubrir', 'lugar bonito', 'lugares bonitos',
+    ],
+    priority: 7,
   },
   {
-    id: 'long_lunch',
-    title: 'Long lunch',
-    subtitle: 'Unhurried midday dining at its finest',
-    icon: 'restaurant',
-    labels: ["Chef's recommendation"],
-    placeTypes: ['restaurant'],
-    editorialIntents: ['casual_dining', 'local_food', 'lunch_spot'],
-    fallbackIntents: ['trendy_restaurant', 'fine_dining'],
-    categorySlugs: ['restaurant', 'brasserie', 'bistro', 'lunch'],
-    tags: ['lunch', 'leisurely', 'brasserie', 'bistro', 'midday', 'sunday-lunch'],
+    id: 'hidden_gems',
+    title: 'Hidden gems',
+    subtitle: 'Local favourites away from the crowds',
+    icon: 'diamond',
+    labels: ["Editor's choice"],
+    placeTypes: ['restaurant', 'cafe', 'shop'],
+    editorialIntents: ['hidden_gem_restaurant', 'local_food'],
+    fallbackIntents: ['concept_store'],
+    categorySlugs: [],
+    tags: ['hidden', 'secret', 'local', 'neighbourhood', 'off-the-beaten-path', 'undiscovered'],
     preferredTimeOfDay: ['morning', 'afternoon'],
-    keywords: ['lunch', 'midday', 'afternoon dining', 'brasserie', 'bistro', 'leisurely'],
-    priority: 6,
-  },
-  {
-    id: 'after_dinner_drinks',
-    title: 'After-dinner drinks',
-    subtitle: 'A refined cap to the evening',
-    icon: 'nightlife',
-    labels: ['Evening essential'],
-    placeTypes: ['bar'],
-    editorialIntents: ['cocktail_bar', 'late_night', 'nightlife'],
-    fallbackIntents: ['wine_bar', 'jazz_bar'],
-    categorySlugs: ['bar', 'cocktail-bar', 'lounge', 'whisky-bar'],
-    tags: ['digestif', 'lounge', 'after-dinner', 'whisky', 'spirits', 'nightcap'],
-    preferredTimeOfDay: ['evening'],
-    keywords: ['after dinner', 'nightcap', 'lounge', 'digestif', 'late drinks', 'whisky', 'whiskey'],
-    priority: 6,
-  },
-  {
-    id: 'coffee_and_work',
-    title: 'Coffee & work',
-    subtitle: 'Thoughtfully brewed and quiet',
-    icon: 'coffee',
-    labels: ['Perfect for mornings'],
-    placeTypes: ['cafe'],
-    editorialIntents: ['coffee_shop', 'work_friendly', 'breakfast'],
-    fallbackIntents: ['brunch', 'casual_dining'],
-    categorySlugs: ['cafe', 'coffee', 'specialty-coffee'],
-    tags: ['coffee', 'specialty-coffee', 'wifi', 'quiet', 'work', 'cafe', 'espresso', 'brunch'],
-    preferredTimeOfDay: ['morning', 'afternoon'],
-    keywords: ['coffee', 'cafe', 'espresso', 'work', 'laptop', 'breakfast', 'brunch', 'morning'],
+    keywords: ['hidden', 'secret', 'local', 'gem', 'discover', 'undiscovered', 'off beaten'],
     priority: 5,
   },
   {
@@ -176,12 +202,12 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     icon: 'museum',
     labels: ['Cultural highlight'],
     placeTypes: ['museum', 'activity', 'landmark'],
-    editorialIntents: ['explore_city', 'scenic_views'],
-    fallbackIntents: ['nature', 'relaxing'],
+    editorialIntents: ['explore_city'],
+    fallbackIntents: [],
     categorySlugs: ['gallery', 'museum', 'art', 'culture', 'landmark'],
-    tags: ['gallery', 'art', 'museum', 'culture', 'contemporary', 'exhibition', 'design', 'heritage', 'monument'],
+    tags: ['gallery', 'art', 'museum', 'culture', 'contemporary', 'exhibition', 'heritage', 'monument'],
     preferredTimeOfDay: ['morning', 'afternoon'],
-    keywords: ['gallery', 'art', 'museum', 'culture', 'exhibition', 'contemporary', 'design'],
+    keywords: ['gallery', 'art', 'museum', 'culture', 'exhibition', 'contemporary'],
     priority: 5,
   },
   {
@@ -192,29 +218,99 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     labels: ['Curated selection'],
     placeTypes: ['shop'],
     editorialIntents: ['concept_store', 'luxury_shopping', 'local_shops'],
-    fallbackIntents: ['explore_city'],
+    fallbackIntents: [],
     categorySlugs: ['boutique', 'design', 'fashion', 'shop', 'concept-store'],
     tags: ['boutique', 'design', 'fashion', 'concept-store', 'independent', 'shopping'],
     preferredTimeOfDay: ['morning', 'afternoon'],
     keywords: ['shop', 'shopping', 'boutique', 'fashion', 'design', 'concept store', 'buy'],
     priority: 4,
   },
+
+  // ── Night / Outdoors ───────────────────────────────────────────────────
   {
-    id: 'relaxed_walk',
-    title: 'Relaxed walk',
-    subtitle: 'Beautiful stops along the way',
-    icon: 'directions_walk',
-    labels: ['Perfect for strolling'],
-    placeTypes: ['landmark', 'museum', 'activity', 'beach', 'cafe'],
-    editorialIntents: ['explore_city', 'scenic_views'],
-    fallbackIntents: ['nature', 'relaxing', 'coffee_shop'],
-    categorySlugs: ['viewpoint', 'culture', 'garden', 'park', 'nature'],
-    tags: ['viewpoint', 'culture', 'local-secret', 'sunset', 'family', 'wellness'],
-    preferredTimeOfDay: ['morning', 'afternoon', 'evening'],
-    keywords: ['walk', 'stroll', 'paseo', 'tranquilo', 'quiet walk', 'relax walk', 'caminar', 'passear', 'descobrir'],
-    priority: 7,
+    id: 'night_walk',
+    title: 'Night walk',
+    subtitle: 'The city after dark, on foot',
+    icon: 'explore',
+    labels: ['After hours'],
+    placeTypes: ['landmark', 'beach', 'activity'],
+    editorialIntents: ['viewpoint', 'scenic_walk'],
+    fallbackIntents: [],
+    categorySlugs: ['viewpoint', 'park', 'bridge', 'promenade', 'plaza'],
+    tags: ['viewpoint', 'night-walk', 'scenic', 'city-lights', 'waterfront'],
+    preferredTimeOfDay: ['evening', 'late_evening', 'deep_night'],
+    keywords: ['night walk', 'city lights', 'walk', 'stroll', 'paseo', 'promenade', 'viewpoint at night'],
+    priority: 5,
+  },
+
+  // ── Daytime casual ─────────────────────────────────────────────────────
+  {
+    id: 'coffee_and_work',
+    title: 'Coffee & work',
+    subtitle: 'Thoughtfully brewed and quiet',
+    icon: 'coffee',
+    labels: ['Perfect for mornings'],
+    placeTypes: ['cafe'],
+    editorialIntents: ['coffee_shop', 'work_friendly', 'breakfast'],
+    fallbackIntents: ['brunch'],
+    categorySlugs: ['cafe', 'coffee', 'specialty-coffee'],
+    tags: ['coffee', 'specialty-coffee', 'wifi', 'work', 'cafe', 'espresso'],
+    preferredTimeOfDay: ['morning', 'afternoon'],
+    keywords: ['coffee', 'cafe', 'espresso', 'work', 'laptop', 'breakfast', 'brunch', 'morning'],
+    priority: 5,
   },
 ]
+
+// ─── Intent conflict pairs (never show together in bootstrap) ────────────
+//
+// Each pair represents intents that are too similar in results to appear as
+// separate pills in the same bootstrap set. Used by getBootstrapIntents()
+// and getDynamicFallbackIntents() to guarantee editorial diversity.
+
+export const INTENT_CONFLICTS: [string, string][] = [
+  ['cocktail_bars',     'after_dinner_drinks'],   // both: drinks at a bar
+  ['cocktail_bars',     'late_night_drinks'],      // both: drinks late
+  ['quiet_wine_bar',    'after_dinner_drinks'],    // both: quiet drinks
+  ['beautiful_spots',   'hidden_gems'],            // both: discover places
+  ['romantic_dinner',   'quiet_wine_bar'],         // both: intimate dining/drinking
+  ['sunset_drinks',     'beautiful_spots'],        // both: scenic places
+  ['gallery_afternoon', 'beautiful_spots'],        // both: cultural/scenic
+  ['late_night_drinks', 'late_night_jazz'],         // both: late night out
+]
+
+// ─── Bootstrap editorial matrix ──────────────────────────────────────────
+//
+// Curated sets of 3 pills per time slot. The first set is preferred;
+// fallback sets are tried if the primary set lacks viable intents in the city.
+// No two conflicting intents ever appear in the same set.
+
+export const BOOTSTRAP_MATRIX: Record<TimeOfDay, string[][]> = {
+  morning: [
+    ['coffee_and_work', 'beautiful_spots', 'gallery_afternoon'],
+    ['coffee_and_work', 'hidden_gems', 'design_shopping'],
+    ['coffee_and_work', 'beautiful_spots', 'design_shopping'],
+  ],
+  afternoon: [
+    ['long_lunch', 'beautiful_spots', 'design_shopping'],
+    ['long_lunch', 'gallery_afternoon', 'hidden_gems'],
+    ['long_lunch', 'beautiful_spots', 'gallery_afternoon'],
+  ],
+  evening: [
+    ['sunset_drinks', 'romantic_dinner', 'quiet_wine_bar'],
+    ['sunset_drinks', 'romantic_dinner', 'cocktail_bars'],
+    ['romantic_dinner', 'cocktail_bars', 'quiet_wine_bar'],
+  ],
+  late_evening: [
+    ['cocktail_bars', 'after_dinner_drinks', 'late_night_jazz'],
+    ['cocktail_bars', 'romantic_dinner', 'late_night_jazz'],
+    ['cocktail_bars', 'romantic_dinner', 'quiet_wine_bar'],
+  ],
+  deep_night: [
+    ['late_night_drinks', 'late_night_jazz', 'night_walk'],
+    ['late_night_drinks', 'night_walk', 'cocktail_bars'],
+    ['late_night_drinks', 'late_night_jazz', 'cocktail_bars'],
+  ],
+}
 
 // Fast lookup by id
 export const INTENT_MAP = new Map<string, ConciergeIntent>(
@@ -277,6 +373,16 @@ const INTENT_LABELS_I18N: Record<string, Partial<Record<string, IntentLabels>>> 
     pt: { title: 'Digestivos',            subtitle: 'Um final refinado para a noite',        labels: ['Essencial à noite'] },
     es: { title: 'Copas después de cenar', subtitle: 'Un final refinado para la noche',      labels: ['Esencial nocturno'] },
   },
+  night_walk: {
+    en: { title: 'Night walk',             subtitle: 'The city after dark, on foot',          labels: ['After hours'] },
+    pt: { title: 'Passeio noturno',        subtitle: 'A cidade depois de escurecer, a pé',   labels: ['Depois da hora'] },
+    es: { title: 'Paseo nocturno',         subtitle: 'La ciudad de noche, a pie',             labels: ['Fuera de horario'] },
+  },
+  late_night_drinks: {
+    en: { title: 'Late-night drinks',      subtitle: 'The bar is still open',                 labels: ['Night owl'] },
+    pt: { title: 'Drinks de madrugada',    subtitle: 'O bar ainda está aberto',               labels: ['Noctívago'] },
+    es: { title: 'Copas de madrugada',     subtitle: 'El bar aún está abierto',               labels: ['Noctámbulo'] },
+  },
   coffee_and_work: {
     en: { title: 'Coffee & work',         subtitle: 'Thoughtfully brewed and quiet',         labels: ['Perfect for mornings'] },
     pt: { title: 'Café & trabalho',       subtitle: 'Café de especialidade e tranquilidade', labels: ['Perfeito de manhã'] },
@@ -292,10 +398,10 @@ const INTENT_LABELS_I18N: Record<string, Partial<Record<string, IntentLabels>>> 
     pt: { title: 'Compras de design',     subtitle: 'Boutiques e lojas independentes',       labels: ['Seleção curada'] },
     es: { title: 'Compras de diseño',     subtitle: 'Boutiques y tiendas independientes',     labels: ['Selección curada'] },
   },
-  relaxed_walk: {
-    en: { title: 'Relaxed walk',          subtitle: 'Beautiful stops along the way',          labels: ['Perfect for strolling'] },
-    pt: { title: 'Passeio tranquilo',     subtitle: 'Paragens bonitas pelo caminho',          labels: ['Perfeito para passear'] },
-    es: { title: 'Paseo tranquilo',       subtitle: 'Paradas bonitas por el camino',          labels: ['Perfecto para pasear'] },
+  beautiful_spots: {
+    en: { title: 'Beautiful spots',        subtitle: 'Scenic and elegant places worth discovering',         labels: ['Visually stunning'] },
+    pt: { title: 'Lugares bonitos',        subtitle: 'Lugares com beleza e carácter que valem a visita',    labels: ['Visualmente marcantes'] },
+    es: { title: 'Lugares bonitos',        subtitle: 'Lugares con belleza y carácter que merecen la visita', labels: ['Visualmente memorables'] },
   },
 }
 

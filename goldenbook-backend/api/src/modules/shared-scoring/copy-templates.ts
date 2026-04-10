@@ -217,15 +217,21 @@ const TAG_SUBTITLES: Record<string, Partial<Record<ContextTag, string[]>>> = {
 const TIME_FALLBACK_TITLES: Record<string, Record<NowTimeOfDay, string>> = {
   en: {
     morning: 'Good morning in {city}', midday: 'Lunchtime in {city}',
-    afternoon: 'This afternoon in {city}', evening: 'Tonight in {city}', night: 'Late night in {city}',
+    afternoon: 'This afternoon in {city}', evening: 'Tonight in {city}',
+    night: 'Late night in {city}', late_evening: 'The night is still young in {city}',
+    deep_night: 'After hours in {city}',
   },
   pt: {
     morning: 'Bom dia em {city}', midday: 'Hora do almoço em {city}',
-    afternoon: 'Esta tarde em {city}', evening: 'Esta noite em {city}', night: 'Noite em {city}',
+    afternoon: 'Esta tarde em {city}', evening: 'Esta noite em {city}',
+    night: 'Noite em {city}', late_evening: 'A noite ainda é jovem em {city}',
+    deep_night: 'De madrugada em {city}',
   },
   es: {
     morning: 'Buenos días en {city}', midday: 'Hora del almuerzo en {city}',
-    afternoon: 'Esta tarde en {city}', evening: 'Esta noche en {city}', night: 'Noche en {city}',
+    afternoon: 'Esta tarde en {city}', evening: 'Esta noche en {city}',
+    night: 'Noche en {city}', late_evening: 'La noche aún es joven en {city}',
+    deep_night: 'De madrugada en {city}',
   },
 }
 
@@ -259,25 +265,31 @@ const WEATHER_PHRASES: Record<string, Record<WeatherCondition, string[]>> = {
 
 const TIME_PHRASES: Record<string, Record<NowTimeOfDay, string[]>> = {
   en: {
-    morning:   ['this morning', 'to start your day'],
-    midday:    ['right now', 'for lunch'],
-    afternoon: ['this afternoon', 'right now'],
-    evening:   ['this evening', 'tonight'],
-    night:     ['tonight', 'for a late night'],
+    morning:      ['this morning', 'to start your day'],
+    midday:       ['right now', 'for lunch'],
+    afternoon:    ['this afternoon', 'right now'],
+    evening:      ['this evening', 'tonight'],
+    night:        ['tonight', 'for a late night'],
+    late_evening: ['right now', 'before the night ends'],
+    deep_night:   ['at this hour', 'while the city sleeps'],
   },
   pt: {
-    morning:   ['esta manhã', 'para começar o dia'],
-    midday:    ['agora mesmo', 'para o almoço'],
-    afternoon: ['esta tarde', 'agora mesmo'],
-    evening:   ['esta noite', 'hoje à noite'],
-    night:     ['esta noite', 'para uma noite tardia'],
+    morning:      ['esta manhã', 'para começar o dia'],
+    midday:       ['agora mesmo', 'para o almoço'],
+    afternoon:    ['esta tarde', 'agora mesmo'],
+    evening:      ['esta noite', 'hoje à noite'],
+    night:        ['esta noite', 'para uma noite tardia'],
+    late_evening: ['agora mesmo', 'antes da noite acabar'],
+    deep_night:   ['a esta hora', 'enquanto a cidade dorme'],
   },
   es: {
-    morning:   ['esta mañana', 'para empezar el día'],
-    midday:    ['ahora mismo', 'para el almuerzo'],
-    afternoon: ['esta tarde', 'ahora mismo'],
-    evening:   ['esta noche', 'hoy por la noche'],
-    night:     ['esta noche', 'para una noche tardía'],
+    morning:      ['esta mañana', 'para empezar el día'],
+    midday:       ['ahora mismo', 'para el almuerzo'],
+    afternoon:    ['esta tarde', 'ahora mismo'],
+    evening:      ['esta noche', 'hoy por la noche'],
+    night:        ['esta noche', 'para una noche tardía'],
+    late_evening: ['ahora mismo', 'antes de que acabe la noche'],
+    deep_night:   ['a esta hora', 'mientras la ciudad duerme'],
   },
 }
 
@@ -469,9 +481,9 @@ export function buildContextSummary(
   const label = bestTag ? getTagLabel(bestTag, locale).toLowerCase() : null
 
   const todMap: Record<string, Record<NowTimeOfDay, string>> = {
-    en: { morning: 'this morning', midday: 'this midday', afternoon: 'this afternoon', evening: 'this evening', night: 'tonight' },
-    pt: { morning: 'esta manhã', midday: 'este meio-dia', afternoon: 'esta tarde', evening: 'esta noite', night: 'esta noite' },
-    es: { morning: 'esta mañana', midday: 'este mediodía', afternoon: 'esta tarde', evening: 'esta noche', night: 'esta noche' },
+    en: { morning: 'this morning', midday: 'this midday', afternoon: 'this afternoon', evening: 'this evening', night: 'tonight', late_evening: 'tonight', deep_night: 'right now' },
+    pt: { morning: 'esta manhã', midday: 'este meio-dia', afternoon: 'esta tarde', evening: 'esta noite', night: 'esta noite', late_evening: 'esta noite', deep_night: 'agora' },
+    es: { morning: 'esta mañana', midday: 'este mediodía', afternoon: 'esta tarde', evening: 'esta noche', night: 'esta noche', late_evening: 'esta noche', deep_night: 'ahora' },
   }
 
   const subject = label ?? todMap[l][timeOfDay]
