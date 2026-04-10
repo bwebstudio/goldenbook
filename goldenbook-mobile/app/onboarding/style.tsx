@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore, ExplorationStyle } from '@/store/onboardingStore';
+import { useTranslation } from '@/i18n';
+import type { Translations } from '@/i18n/locales/en';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -24,37 +26,18 @@ const IVORY = '#FDFDFB';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const STYLES: { id: ExplorationStyle; icon: IoniconName; title: string; subtitle: string }[] = [
-  {
-    id: 'solo',
-    icon: 'person-outline',
-    title: 'Solo',
-    subtitle: 'Just me, my pace',
-  },
-  {
-    id: 'couple',
-    icon: 'heart-outline',
-    title: 'Couple',
-    subtitle: 'Romantic escape',
-  },
-  {
-    id: 'friends',
-    icon: 'people-outline',
-    title: 'Friends',
-    subtitle: 'Group adventure',
-  },
-  {
-    id: 'family',
-    icon: 'home-outline',
-    title: 'Family',
-    subtitle: 'With the family',
-  },
+const STYLE_KEYS: { id: ExplorationStyle; icon: IoniconName; titleKey: keyof Translations['onboarding']; subtitleKey: keyof Translations['onboarding'] }[] = [
+  { id: 'solo',    icon: 'person-outline', titleKey: 'styleSolo',    subtitleKey: 'styleSoloSub' },
+  { id: 'couple',  icon: 'heart-outline',  titleKey: 'styleCouple',  subtitleKey: 'styleCoupleSub' },
+  { id: 'friends', icon: 'people-outline', titleKey: 'styleFriends', subtitleKey: 'styleFriendsSub' },
+  { id: 'family',  icon: 'home-outline',   titleKey: 'styleFamily',  subtitleKey: 'styleFamilySub' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ExplorationStyleScreen() {
   const router              = useRouter();
+  const t                   = useTranslation();
   const interestsFromStore  = useOnboardingStore((s) => s.interests);
   const completeOnboarding  = useOnboardingStore((s) => s.completeOnboarding);
 
@@ -82,15 +65,15 @@ export default function ExplorationStyleScreen() {
           </View>
           <Text style={styles.wordmark}>GOLDENBOOK GO</Text>
           <View style={styles.accentRule} />
-          <Text style={styles.heading}>How do you{'\n'}usually explore?</Text>
+          <Text style={styles.heading}>{t.onboarding.styleHeading}</Text>
           <Text style={styles.subheading}>
-            We'll tailor your experience accordingly.
+            {t.onboarding.styleSubheading}
           </Text>
         </View>
 
         {/* ── Style cards ─────────────────────────────────────────────── */}
         <View style={styles.cardsGrid}>
-          {STYLES.map((item) => {
+          {STYLE_KEYS.map((item) => {
             const isSelected = selected === item.id;
             return (
               <TouchableOpacity
@@ -106,10 +89,10 @@ export default function ExplorationStyleScreen() {
                   style={styles.cardIcon}
                 />
                 <Text style={[styles.cardTitle, isSelected && styles.cardTitleSelected]}>
-                  {item.title}
+                  {t.onboarding[item.titleKey]}
                 </Text>
                 <Text style={[styles.cardSubtitle, isSelected && styles.cardSubtitleSelected]}>
-                  {item.subtitle}
+                  {t.onboarding[item.subtitleKey]}
                 </Text>
                 {isSelected && <View style={styles.cardCheckDot} />}
               </TouchableOpacity>
@@ -124,7 +107,7 @@ export default function ExplorationStyleScreen() {
           disabled={!selected}
           activeOpacity={0.82}
         >
-          <Text style={styles.btnText}>Enter Goldenbook Go</Text>
+          <Text style={styles.btnText}>{t.onboarding.enterApp}</Text>
         </TouchableOpacity>
 
         {/* ── Step indicator ──────────────────────────────────────────── */}

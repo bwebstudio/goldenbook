@@ -26,7 +26,9 @@ async function cleanupLocalState(set: (state: Partial<AuthState>) => void) {
     // Non-fatal — token key may already be absent
   }
   useAppStore.getState().resetLocalitySelection();
-  useOnboardingStore.getState().resetOnboarding();
+  // Onboarding preferences persist across sessions — the user should not
+  // have to redo the interests/style selection every time they sign out.
+  // useOnboardingStore.getState().resetOnboarding();
   set({ session: null, user: null });
 }
 
@@ -42,7 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.warn('[AuthStore] getSession error — clearing local state:', error.message);
+        if (__DEV__) console.warn('[AuthStore] getSession error — clearing local state:', error.message);
         await cleanupLocalState(set);
         return;
       }
@@ -53,7 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       set({ session, user: session?.user ?? null, isLoading: false });
     } catch (err) {
-      console.warn('[AuthStore] initialize failed:', err);
+      if (__DEV__) console.warn('[AuthStore] initialize failed:', err);
       set({ session: null, user: null, isLoading: false });
     }
 
@@ -81,7 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         ? serverBody.error
         : undefined;
 
-      console.warn('[signUp] register failed:', { status, serverError, raw: err?.message });
+      if (__DEV__) console.warn('[signUp] register failed:', { status, serverError, raw: err?.message });
 
       if (status === 409) {
         if (serverError === 'EMAIL_UNVERIFIED') {
@@ -138,7 +140,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       // For any other error (network, 404, etc.), allow login to proceed.
       // The verification check is best-effort — we don't want to block
       // users if the backend is temporarily down.
-      console.warn('[signIn] verification check failed, allowing login:', err?.message);
+      if (__DEV__) console.warn('[signIn] verification check failed, allowing login:', err?.message);
     }
 
     set({ session: data.session, user: data.user });
@@ -152,7 +154,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.warn('[AuthStore] signOut error (session may have already been invalidated):', err);
+      if (__DEV__) console.warn('[AuthStore] signOut error (session may have already been invalidated):', err);
     }
     await cleanupLocalState(set);
   },

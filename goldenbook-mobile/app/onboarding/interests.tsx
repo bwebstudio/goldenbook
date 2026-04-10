@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useTranslation } from '@/i18n';
+import type { Translations } from '@/i18n/locales/en';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -24,17 +26,17 @@ const IVORY = '#FDFDFB';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const INTERESTS: { id: string; label: string; icon: IoniconName }[] = [
-  { id: 'fine-dining',    label: 'Fine Dining',      icon: 'restaurant-outline'    },
-  { id: 'wine',           label: 'Wine & Tastings',  icon: 'wine-outline'          },
-  { id: 'culture',        label: 'Culture & Arts',   icon: 'color-palette-outline' },
-  { id: 'hidden-gems',    label: 'Hidden Gems',      icon: 'sparkles-outline'      },
-  { id: 'hotels',         label: 'Boutique Hotels',  icon: 'bed-outline'           },
-  { id: 'nature',         label: 'Nature & Coast',   icon: 'leaf-outline'          },
-  { id: 'nightlife',      label: 'Nightlife',        icon: 'moon-outline'          },
-  { id: 'wellness',       label: 'Spa & Wellness',   icon: 'water-outline'         },
-  { id: 'shopping',       label: 'Shopping',         icon: 'bag-outline'           },
-  { id: 'history',        label: 'Historic Sites',   icon: 'business-outline'      },
+const INTEREST_KEYS: { id: string; labelKey: keyof Translations['onboarding']; icon: IoniconName }[] = [
+  { id: 'fine-dining',    labelKey: 'interestFineDining',  icon: 'restaurant-outline'    },
+  { id: 'wine',           labelKey: 'interestWine',        icon: 'wine-outline'          },
+  { id: 'culture',        labelKey: 'interestCulture',     icon: 'color-palette-outline' },
+  { id: 'hidden-gems',    labelKey: 'interestHiddenGems',  icon: 'sparkles-outline'      },
+  { id: 'hotels',         labelKey: 'interestHotels',      icon: 'bed-outline'           },
+  { id: 'nature',         labelKey: 'interestNature',      icon: 'leaf-outline'          },
+  { id: 'nightlife',      labelKey: 'interestNightlife',   icon: 'moon-outline'          },
+  { id: 'wellness',       labelKey: 'interestWellness',    icon: 'water-outline'         },
+  { id: 'shopping',       labelKey: 'interestShopping',    icon: 'bag-outline'           },
+  { id: 'history',        labelKey: 'interestHistory',     icon: 'business-outline'      },
 ];
 
 const MIN_SELECTIONS = 2;
@@ -44,6 +46,7 @@ const MAX_SELECTIONS = 5;
 
 export default function InterestsScreen() {
   const router        = useRouter();
+  const t             = useTranslation();
   const setInterests  = useOnboardingStore((s) => s.setInterests);
 
   const [selected, setSelected] = useState<string[]>([]);
@@ -80,15 +83,15 @@ export default function InterestsScreen() {
           </View>
           <Text style={styles.wordmark}>GOLDENBOOK GO</Text>
           <View style={styles.accentRule} />
-          <Text style={styles.heading}>What would you{'\n'}love to discover?</Text>
+          <Text style={styles.heading}>{t.onboarding.interestsHeading}</Text>
           <Text style={styles.subheading}>
-            Pick at least {MIN_SELECTIONS}, up to {MAX_SELECTIONS}.
+            {t.onboarding.interestsSubheading}
           </Text>
         </View>
 
         {/* ── Chips ───────────────────────────────────────────────────── */}
         <View style={styles.chipsGrid}>
-          {INTERESTS.map((item) => {
+          {INTEREST_KEYS.map((item) => {
             const isSelected = selected.includes(item.id);
             const isDisabled = !isSelected && selected.length >= MAX_SELECTIONS;
             return (
@@ -108,7 +111,7 @@ export default function InterestsScreen() {
                   color={isSelected ? NAVY : 'rgba(253,253,251,0.75)'}
                 />
                 <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
-                  {item.label}
+                  {t.onboarding[item.labelKey]}
                 </Text>
               </TouchableOpacity>
             );
@@ -117,7 +120,7 @@ export default function InterestsScreen() {
 
         {/* ── Counter hint ────────────────────────────────────────────── */}
         <Text style={styles.hint}>
-          {selected.length} / {MAX_SELECTIONS} selected
+          {selected.length} / {MAX_SELECTIONS} {t.onboarding.selected}
         </Text>
 
         {/* ── CTA ─────────────────────────────────────────────────────── */}
@@ -127,7 +130,7 @@ export default function InterestsScreen() {
           disabled={!canContinue}
           activeOpacity={0.82}
         >
-          <Text style={styles.btnText}>Continue</Text>
+          <Text style={styles.btnText}>{t.onboarding.continue}</Text>
         </TouchableOpacity>
 
         {/* ── Step indicator ──────────────────────────────────────────── */}
