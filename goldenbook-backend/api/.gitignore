@@ -1,3 +1,6 @@
 node_modules
 .env
 dist
+
+# One-off generated reports
+*-report.json
