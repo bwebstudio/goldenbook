@@ -621,6 +621,22 @@ export function scoreConciergePlace(
     for (const catSlug of intent.categorySlugs) {
       if (contextSet.has(catSlug)) baseScore += 3
     }
+    // Canonical context tag alignment (24-tag system).
+    // NOTE: the live concierge.route.ts pipeline applies this same logic
+    // (including canonicalExcludeTags as a hard kill) — kept here for any
+    // future caller that uses scoreConciergePlace directly.
+    if (intent.canonicalTags?.length) {
+      let canonicalHits = 0
+      for (const tag of intent.canonicalTags) {
+        if (contextSet.has(tag)) canonicalHits++
+      }
+      baseScore += canonicalHits * 8
+    }
+    if (intent.canonicalExcludeTags?.length) {
+      for (const tag of intent.canonicalExcludeTags) {
+        if (contextSet.has(tag)) return Number.NEGATIVE_INFINITY
+      }
+    }
   }
 
   // 4. Time window boost

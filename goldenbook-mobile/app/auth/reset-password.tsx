@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslation } from '@/i18n';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -33,6 +34,7 @@ const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 export default function ResetPasswordScreen() {
   const router        = useRouter();
+  const t             = useTranslation();
   const resetPassword = useAuthStore((s) => s.resetPassword);
 
   const [email, setEmail]       = useState('');
@@ -50,8 +52,8 @@ export default function ResetPasswordScreen() {
     try {
       await resetPassword(email.trim().toLowerCase());
       setSent(true);
-    } catch (e: any) {
-      setError(e.message ?? 'Could not send reset email. Please try again.');
+    } catch {
+      setError(t.authErrors.resetFailed);
     } finally {
       setLoading(false);
     }
@@ -78,13 +80,13 @@ export default function ResetPasswordScreen() {
           </View>
 
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.successTitle}>Check your inbox</Text>
+          <Text style={styles.successTitle}>{t.auth.resetSentTitle}</Text>
           <Text style={styles.successBody}>
-            We've sent a password reset link to
+            {t.auth.resetSentBody}
           </Text>
           <Text style={styles.successEmail}>{email.trim().toLowerCase()}</Text>
           <Text style={styles.successHint}>
-            Follow the link in the email to set a new password.{'\n'}The link expires in 60 minutes.
+            {t.auth.resetSentHint}
           </Text>
 
           <View style={styles.goldRule} />
@@ -94,14 +96,14 @@ export default function ResetPasswordScreen() {
             onPress={() => router.replace('/auth/login')}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnText}>Back to sign in</Text>
+            <Text style={styles.btnText}>{t.auth.backToSignIn}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.resendBtn}
             onPress={() => setSent(false)}
           >
-            <Text style={styles.resendText}>Resend email</Text>
+            <Text style={styles.resendText}>{t.auth.resendEmail}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -134,9 +136,9 @@ export default function ResetPasswordScreen() {
           {/* ── Heading ───────────────────────────────────────────────── */}
           <View style={styles.headingBlock}>
             <Text style={styles.ornamentStar}>✦</Text>
-            <Text style={styles.heading}>Reset{'\n'}password.</Text>
+            <Text style={styles.heading}>{t.auth.resetHeading}</Text>
             <Text style={styles.subheading}>
-              Enter your email address and we'll send you a secure link to reset your password.
+              {t.auth.resetSubheading}
             </Text>
           </View>
 
@@ -152,13 +154,13 @@ export default function ResetPasswordScreen() {
 
           {/* ── Email ─────────────────────────────────────────────────── */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+            <Text style={styles.fieldLabel}>{t.auth.emailLabel}</Text>
             <View style={[styles.fieldBox, emailFocused && styles.fieldBoxFocused]}>
               <TextInput
                 style={styles.fieldInput}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="your@email.com"
+                placeholder={t.auth.emailPlaceholder}
                 placeholderTextColor="rgba(34,45,82,0.30)"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -180,7 +182,7 @@ export default function ResetPasswordScreen() {
             activeOpacity={0.82}
           >
             <Text style={styles.btnText}>
-              {loading ? 'Sending…' : 'Send reset link'}
+              {loading ? t.auth.sending : t.auth.sendResetLink}
             </Text>
           </TouchableOpacity>
 
@@ -190,7 +192,7 @@ export default function ResetPasswordScreen() {
             onPress={() => router.back()}
             disabled={loading}
           >
-            <Text style={styles.backToLoginText}>Back to sign in</Text>
+            <Text style={styles.backToLoginText}>{t.auth.backToSignIn}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

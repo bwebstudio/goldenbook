@@ -5,6 +5,8 @@
 //
 // V2 TODO: consider moving this to a DB table for admin editability.
 
+import type { ContextTag } from '../shared-scoring/context-tags'
+
 export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'late_evening' | 'deep_night'
 
 export interface ConciergeIntent {
@@ -25,6 +27,19 @@ export interface ConciergeIntent {
   categorySlugs: string[]
   /** Tags matched against short_description / editorial_summary for scoring */
   tags: string[]
+  /**
+   * Canonical context tags (subset of the 24 in shared-scoring/context-tags).
+   * Used by concierge.service.ts to score places against the place_now_tags
+   * table — gives a deterministic, structured signal on top of the legacy
+   * description text matching.
+   */
+  canonicalTags: ContextTag[]
+  /**
+   * Canonical tags whose presence DISQUALIFIES a place from this intent.
+   * E.g. `beautiful_spots` excludes places tagged dinner/lunch/cocktails so
+   * restaurants and bars never appear in that pill's results.
+   */
+  canonicalExcludeTags?: ContextTag[]
   /** Times of day where this intent is most appropriate */
   preferredTimeOfDay: TimeOfDay[]
   /** User-input keywords that map to this intent (order matters: earlier = higher weight) */
@@ -46,6 +61,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['fine_dining'],
     categorySlugs: ['restaurant', 'fine-dining', 'dinner'],
     tags: ['romantic', 'date-night', 'fine-dining', 'intimate', 'candlelit'],
+    canonicalTags: ['romantic', 'fine-dining', 'dinner'],
     preferredTimeOfDay: ['evening', 'late_evening'],
     keywords: ['romantic', 'romance', 'date', 'dinner', 'couple', 'anniversary', 'intimate'],
     priority: 9,
@@ -61,6 +77,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['fine_dining'],
     categorySlugs: ['restaurant', 'brasserie', 'bistro', 'lunch'],
     tags: ['lunch', 'leisurely', 'brasserie', 'bistro', 'midday', 'sunday-lunch'],
+    canonicalTags: ['lunch', 'brunch', 'sunday'],
     preferredTimeOfDay: ['morning', 'afternoon'],
     keywords: ['lunch', 'midday', 'afternoon dining', 'brasserie', 'bistro', 'leisurely'],
     priority: 6,
@@ -78,6 +95,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: [],
     categorySlugs: ['rooftop', 'terrace', 'bar'],
     tags: ['rooftop', 'terrace', 'sunset', 'outdoor', 'panoramic', 'golden-hour'],
+    canonicalTags: ['sunset', 'rooftop', 'terrace', 'cocktails', 'wine'],
     preferredTimeOfDay: ['afternoon', 'evening'],
     keywords: ['sunset', 'rooftop', 'terrace', 'view', 'outdoor', 'panoramic', 'golden hour'],
     priority: 8,
@@ -93,6 +111,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: [],
     categorySlugs: ['bar', 'wine-bar', 'wine'],
     tags: ['wine', 'wine-bar', 'natural-wine', 'sommelier', 'quiet'],
+    canonicalTags: ['wine'],
     preferredTimeOfDay: ['afternoon', 'evening', 'late_evening'],
     keywords: ['wine', 'wines', 'vino', 'winery', 'wine bar', 'natural wine'],
     priority: 7,
@@ -108,6 +127,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: [],
     categorySlugs: ['cocktail-bar', 'bar', 'speakeasy'],
     tags: ['cocktails', 'speakeasy', 'mixology', 'craft-drinks', 'spirits'],
+    canonicalTags: ['cocktails', 'late-night', 'rooftop'],
     preferredTimeOfDay: ['evening', 'late_evening'],
     keywords: ['cocktail', 'cocktails', 'drink', 'drinks', 'spirits', 'mixology', 'speakeasy'],
     priority: 7,
@@ -123,6 +143,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['hotel_bar'],
     categorySlugs: ['bar', 'lounge', 'whisky-bar', 'hotel-bar'],
     tags: ['digestif', 'lounge', 'after-dinner', 'whisky', 'nightcap', 'hotel-bar'],
+    canonicalTags: ['cocktails', 'wine', 'late-night'],
     preferredTimeOfDay: ['evening', 'late_evening'],
     keywords: ['after dinner', 'nightcap', 'lounge', 'digestif', 'late drinks', 'whisky', 'whiskey'],
     priority: 6,
@@ -138,6 +159,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['nightlife'],
     categorySlugs: ['bar', 'hotel-bar', 'lounge', 'nightclub'],
     tags: ['late-night', 'nightlife', 'lounge', 'hotel-bar'],
+    canonicalTags: ['late-night', 'cocktails', 'wine'],
     preferredTimeOfDay: ['late_evening', 'deep_night'],
     keywords: ['late drink', 'still open', 'bar open', 'nightcap', 'last drink', 'after hours'],
     priority: 7,
@@ -153,6 +175,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['nightlife'],
     categorySlugs: ['jazz', 'live-music', 'nightclub', 'music'],
     tags: ['jazz', 'live-music', 'music', 'nightlife', 'late-night', 'blues'],
+    canonicalTags: ['live-music', 'late-night', 'cocktails'],
     preferredTimeOfDay: ['evening', 'late_evening', 'deep_night'],
     keywords: ['jazz', 'music', 'live music', 'nightlife', 'night', 'blues', 'concert'],
     priority: 3,
@@ -170,6 +193,11 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['nature'],
     categorySlugs: ['viewpoint', 'garden', 'park', 'nature', 'landmark'],
     tags: ['viewpoint', 'scenic', 'panoramic', 'heritage', 'garden', 'architecture'],
+    canonicalTags: ['viewpoint', 'nature', 'sunset', 'terrace'],
+    // Hard exclusion: any of these tags removes the place from the candidate
+    // set entirely (applied as -1000 score in concierge.route.ts STEP 2f-bis,
+    // which gets dropped by the `score > 0` filter).
+    canonicalExcludeTags: ['dinner', 'lunch', 'fine-dining', 'cocktails', 'wine'],
     preferredTimeOfDay: ['morning', 'afternoon', 'evening'],
     keywords: [
       'beautiful', 'scenic', 'views', 'viewpoint', 'miradouro', 'bonito', 'bonita',
@@ -191,6 +219,7 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['concept_store'],
     categorySlugs: [],
     tags: ['hidden', 'secret', 'local', 'neighbourhood', 'off-the-beaten-path', 'undiscovered'],
+    canonicalTags: ['local-secret'],
     preferredTimeOfDay: ['morning', 'afternoon'],
     keywords: ['hidden', 'secret', 'local', 'gem', 'discover', 'undiscovered', 'off beaten'],
     priority: 5,
@@ -206,6 +235,8 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: [],
     categorySlugs: ['gallery', 'museum', 'art', 'culture', 'landmark'],
     tags: ['gallery', 'art', 'museum', 'culture', 'contemporary', 'exhibition', 'heritage', 'monument'],
+    canonicalTags: ['culture', 'rainy-day'],
+    canonicalExcludeTags: ['dinner', 'cocktails', 'late-night'],
     preferredTimeOfDay: ['morning', 'afternoon'],
     keywords: ['gallery', 'art', 'museum', 'culture', 'exhibition', 'contemporary'],
     priority: 5,
@@ -221,6 +252,8 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: [],
     categorySlugs: ['boutique', 'design', 'fashion', 'shop', 'concept-store'],
     tags: ['boutique', 'design', 'fashion', 'concept-store', 'independent', 'shopping'],
+    canonicalTags: ['shopping'],
+    canonicalExcludeTags: ['dinner', 'cocktails', 'late-night'],
     preferredTimeOfDay: ['morning', 'afternoon'],
     keywords: ['shop', 'shopping', 'boutique', 'fashion', 'design', 'concept store', 'buy'],
     priority: 4,
@@ -238,6 +271,8 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: [],
     categorySlugs: ['viewpoint', 'park', 'bridge', 'promenade', 'plaza'],
     tags: ['viewpoint', 'night-walk', 'scenic', 'city-lights', 'waterfront'],
+    canonicalTags: ['viewpoint', 'sunset', 'romantic', 'nature'],
+    canonicalExcludeTags: ['dinner', 'shopping'],
     preferredTimeOfDay: ['evening', 'late_evening', 'deep_night'],
     keywords: ['night walk', 'city lights', 'walk', 'stroll', 'paseo', 'promenade', 'viewpoint at night'],
     priority: 5,
@@ -255,6 +290,8 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     fallbackIntents: ['brunch'],
     categorySlugs: ['cafe', 'coffee', 'specialty-coffee'],
     tags: ['coffee', 'specialty-coffee', 'wifi', 'work', 'cafe', 'espresso'],
+    canonicalTags: ['coffee', 'brunch', 'quick-stop'],
+    canonicalExcludeTags: ['dinner', 'late-night', 'cocktails'],
     preferredTimeOfDay: ['morning', 'afternoon'],
     keywords: ['coffee', 'cafe', 'espresso', 'work', 'laptop', 'breakfast', 'brunch', 'morning'],
     priority: 5,

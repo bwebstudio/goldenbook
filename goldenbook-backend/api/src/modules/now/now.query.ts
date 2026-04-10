@@ -225,19 +225,10 @@ export async function getNowCandidates(
       AND p.status = 'published'
       AND p.is_active = true
       AND p.is_temporarily_closed = false
-      -- Eligibility: editorial tags OR auto-generated tags OR active paid placement
-      AND (
-        EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
-        OR p.context_tags_auto IS NOT NULL
-        OR EXISTS (
-          SELECT 1 FROM place_visibility pv
-          WHERE pv.place_id = p.id
-            AND pv.surface = 'now'
-            AND pv.is_active = true
-            AND (pv.starts_at IS NULL OR pv.starts_at <= now())
-            AND (pv.ends_at IS NULL OR pv.ends_at >= now())
-        )
-      )
+      -- Eligibility: every NOW candidate MUST have at least one editorial tag.
+      -- Paid placements (place_visibility) still need to satisfy this rule —
+      -- we never surface untagged places, even when they are sponsored.
+      AND EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
       -- Opening hours filter: exclude places that are closed RIGHT NOW
       -- If the place has opening_hours rows, check if current day+time falls within an open slot.
       -- If no opening_hours exist, don't exclude (we don't know their schedule).

@@ -76,22 +76,18 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
 
 // ─── Golden Picks variant: tall portrait card with overlay ───────────────────
 
-const PLACE_TYPE_LABELS: Record<string, string> = {
-  restaurant: 'Restaurant', cafe: 'Café', bar: 'Bar', hotel: 'Hotel',
-  museum: 'Museum', shop: 'Shop', landmark: 'Landmark', beach: 'Beach',
-  activity: 'Experience', venue: 'Venue',
-};
-
 function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCard; width?: number }) {
   const router = useRouter();
   const t = useTranslation();
   const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
   const CARD_HEIGHT = width * 1.5; // 2:3 ratio
 
-  // Build subtitle: placeType · cityName
-  const typeLabel = place.placeType ? (PLACE_TYPE_LABELS[place.placeType] ?? place.placeType) : null;
-  const subtitleParts = [typeLabel, place.cityName].filter(Boolean);
-  const subtitle = subtitleParts.join('  ·  ');
+  // Build subtitle: category · subcategory (city is redundant — already selected
+  // upstream). Falls back to category alone, then nothing — never the long
+  // description, which used to leak in for places without a placeType/city.
+  const subtitle = [place.categoryName, place.subcategoryName]
+    .filter(Boolean)
+    .join('  ·  ');
 
   return (
     <TouchableOpacity
@@ -153,13 +149,15 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
           >
             {place.name}
           </Text>
-          <Text
-            className="text-[9px] uppercase tracking-widest mt-1.5 font-bold"
-            style={{ color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}
-            numberOfLines={1}
-          >
-            {subtitle || place.shortDescription}
-          </Text>
+          {subtitle ? (
+            <Text
+              className="text-[9px] uppercase tracking-widest mt-1.5 font-bold"
+              style={{ color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}
+              numberOfLines={1}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
       </View>
     </TouchableOpacity>

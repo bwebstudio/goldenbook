@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '@/api/endpoints';
+import { useTranslation } from '@/i18n';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -23,10 +24,10 @@ const IVORY = '#FDFDFB';
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
+  const t      = useTranslation();
   const { token } = useLocalSearchParams<{ token?: string }>();
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'no_token'>('loading');
-  const [errorMessage, setErrorMessage] = useState('');
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
 
@@ -38,12 +39,8 @@ export default function VerifyEmailScreen() {
 
     api.verifyEmail(token)
       .then(() => setStatus('success'))
-      .catch((err) => {
+      .catch(() => {
         setStatus('error');
-        setErrorMessage(
-          err?.response?.data?.message ??
-          'This verification link is invalid or has expired.'
-        );
       });
   }, [token]);
 
@@ -64,7 +61,7 @@ export default function VerifyEmailScreen() {
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={GOLD} />
-          <Text style={styles.loadingText}>Verifying your email...</Text>
+          <Text style={styles.loadingText}>{t.auth.verifying}</Text>
         </View>
       </SafeAreaView>
     );
@@ -81,9 +78,9 @@ export default function VerifyEmailScreen() {
             </View>
           </View>
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.title}>Email verified</Text>
+          <Text style={styles.title}>{t.auth.emailVerifiedTitle}</Text>
           <Text style={styles.body}>
-            Your email has been verified.{'\n'}You now have full access to Goldenbook.
+            {t.auth.emailVerifiedBody}
           </Text>
           <View style={styles.goldRule} />
           <TouchableOpacity
@@ -91,7 +88,7 @@ export default function VerifyEmailScreen() {
             onPress={() => router.replace('/(tabs)')}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnText}>Continue</Text>
+            <Text style={styles.btnText}>{t.auth.continueCta}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -109,8 +106,8 @@ export default function VerifyEmailScreen() {
             </View>
           </View>
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.title}>Verification failed</Text>
-          <Text style={styles.body}>{errorMessage}</Text>
+          <Text style={styles.title}>{t.auth.verificationFailedTitle}</Text>
+          <Text style={styles.body}>{t.auth.invalidOrExpiredLink}</Text>
           <View style={styles.goldRule} />
           <TouchableOpacity
             style={styles.btnPrimary}
@@ -119,14 +116,14 @@ export default function VerifyEmailScreen() {
             activeOpacity={0.82}
           >
             <Text style={styles.btnText}>
-              {resent ? 'Email sent' : resending ? 'Sending...' : 'Resend verification email'}
+              {resent ? t.auth.emailSent : resending ? t.auth.sendingShort : t.auth.resendVerification}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backBtn}
             onPress={() => router.replace('/auth/login')}
           >
-            <Text style={styles.backText}>Back to sign in</Text>
+            <Text style={styles.backText}>{t.auth.backToSignIn}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -151,10 +148,9 @@ export default function VerifyEmailScreen() {
           </View>
         </View>
         <Text style={styles.ornamentStar}>✦</Text>
-        <Text style={styles.title}>Verify your email</Text>
+        <Text style={styles.title}>{t.auth.verifyYourEmailTitle}</Text>
         <Text style={styles.body}>
-          Check your inbox for a verification link.{'\n'}
-          Some features are restricted until your email is verified.
+          {t.auth.verifyYourEmailBody}
         </Text>
         <View style={styles.goldRule} />
         <TouchableOpacity
@@ -164,12 +160,12 @@ export default function VerifyEmailScreen() {
           activeOpacity={0.82}
         >
           <Text style={styles.btnText}>
-            {resent ? 'Email sent' : resending ? 'Sending...' : 'Resend verification email'}
+            {resent ? t.auth.emailSent : resending ? t.auth.sendingShort : t.auth.resendVerification}
           </Text>
         </TouchableOpacity>
         {resent && (
           <Text style={styles.resentHint}>
-            Check your inbox. The link expires in 24 hours.
+            {t.auth.checkInboxExpiresIn24h}
           </Text>
         )}
       </View>

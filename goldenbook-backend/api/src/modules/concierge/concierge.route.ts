@@ -535,17 +535,18 @@ export async function conciergeRoutes(app: FastifyInstance) {
           result.totalScore -= tagOverlap >= 2 ? 5 : tagOverlap === 1 ? 10 : 15
         }
 
-        // STEP 2b: Anti-repetition penalty (-20)
-        if (session.placeIds.has(place.id)) result.totalScore -= 20
+        // STEP 2b: Anti-repetition penalty (-40) — strengthened from -20 to
+        // guarantee fresh rotation across pill taps within a session
+        if (session.placeIds.has(place.id)) result.totalScore -= 40
 
-        // STEP 2c: Hero history penalty (-18, paid exempt)
-        if (!result.isSponsored && session.heroHistory.has(place.id)) result.totalScore -= 18
+        // STEP 2c: Hero history penalty (-30, paid exempt) — strengthened from -18
+        if (!result.isSponsored && session.heroHistory.has(place.id)) result.totalScore -= 30
 
         // STEP 2d: Hero rotation penalty (-12, paid exempt)
         if (previousHeroId && place.id === previousHeroId && !result.isSponsored) result.totalScore -= 12
 
-        // STEP 2e: Frequency cap penalty (-20, paid exempt)
-        if (!result.isSponsored && isOverExposed(sessionId, place.id)) result.totalScore -= 20
+        // STEP 2e: Frequency cap penalty (-40, paid exempt) — strengthened from -20
+        if (!result.isSponsored && isOverExposed(sessionId, place.id)) result.totalScore -= 40
 
         // STEP 2f: Refinement tag adjustments
         if (refinementAdj && place.context_tag_slugs?.length) {
@@ -555,6 +556,31 @@ export async function conciergeRoutes(app: FastifyInstance) {
           }
           for (const reduceTag of refinementAdj.reduce) {
             if (placeTags.has(reduceTag)) result.totalScore -= 6
+          }
+        }
+
+        // STEP 2f-bis: Canonical context tag alignment
+        // - Strong boost (+10) for each canonical tag from the intent that
+        //   the place actually carries (post-audit, this is the deterministic
+        //   signal — tags table > description text matching).
+        // - Hard exclusion (-1000) if the place carries any canonicalExcludeTag.
+        //   E.g. `beautiful_spots` excludes places tagged dinner/cocktails so
+        //   restaurants and bars never leak in.
+        if (resolvedIntent.canonicalTags?.length && place.context_tag_slugs?.length) {
+          const placeTagSet = new Set(place.context_tag_slugs)
+          let canonicalHits = 0
+          for (const t of resolvedIntent.canonicalTags) {
+            if (placeTagSet.has(t)) canonicalHits++
+          }
+          result.totalScore += canonicalHits * 10
+        }
+        if (resolvedIntent.canonicalExcludeTags?.length && place.context_tag_slugs?.length) {
+          const placeTagSet = new Set(place.context_tag_slugs)
+          for (const t of resolvedIntent.canonicalExcludeTags) {
+            if (placeTagSet.has(t)) {
+              result.totalScore -= 1000  // hard kill — dropped by `score > 0` filter
+              break
+            }
           }
         }
 

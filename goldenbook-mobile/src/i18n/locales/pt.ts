@@ -13,6 +13,7 @@ export const pt: Translations = {
     contentComingSoonSub: 'O conteúdo completo estará disponível\nnuma próxima atualização.',
     sponsored: 'Patrocinado',
     sponsoredGoldenbook: 'Patrocinado · Goldenbook',
+    error: 'Erro',
   },
 
   profile: {
@@ -36,6 +37,8 @@ export const pt: Translations = {
     deleteAccountFinalTitle: 'Tens a certeza absoluta?',
     deleteAccountFinalMessage: 'Esta é a tua última oportunidade. Todos os teus dados serão eliminados permanentemente.',
     deleteAccountSuccess: 'A tua conta foi eliminada.',
+    deleteAccountError: 'Não foi possível eliminar a tua conta. Tenta novamente ou contacta-nos em privacy@goldenbook.app.',
+    deleting: 'A eliminar\u2026',
     signOut: 'Terminar sessão',
     signOutTitle: 'Terminar sessão',
     signOutMessage: 'Tens a certeza que queres terminar sessão?',
@@ -139,7 +142,8 @@ export const pt: Translations = {
     supportingEvening: 'Aberto agora · Elegante · Esta noite',
     supportingNight: 'Aberto agora · Para a noite que se aproxima',
     seeAnother: 'Ver outra opção',
-    lookingForMore: 'Procura algo diferente?',
+    errorLoading: 'Não conseguimos carregar uma recomendação neste momento.',
+    lookingForMore: 'Procuras algo diferente?',
     openConcierge: 'Perguntar ao Concierge',
     exploreNow: 'EXPLORAR AGORA',
     adjustRelax: 'Mais tranquilo',
@@ -198,6 +202,8 @@ export const pt: Translations = {
     curatedNearby: 'Perto de Ti',
     moreFrom: 'Mais de',
     reserve: 'Reservar',
+    visitWebsite: 'Visitar website',
+    openWebsite: 'Abrir website',
     bookOnBooking: 'Reservar no Booking.com',
     reserveOnTheFork: 'Reservar no TheFork',
     checkAvailability: 'Ver disponibilidade',
@@ -237,12 +243,12 @@ export const pt: Translations = {
   },
 
   route: {
-    couldNotLoad: 'Não foi possível carregar esta rota.\nVerifique a sua ligação e tente novamente.',
+    couldNotLoad: 'Não foi possível carregar esta rota.\nVerifica a tua ligação e tenta novamente.',
   },
 
   onboarding: {
-    interestsHeading: 'O que gostaria\nde descobrir?',
-    interestsSubheading: 'Escolha pelo menos 2, até 5.',
+    interestsHeading: 'O que gostarias\nde descobrir?',
+    interestsSubheading: 'Escolhe pelo menos 2, até 5.',
     interestFineDining: 'Alta gastronomia',
     interestWine: 'Vinhos e provas',
     interestCulture: 'Cultura e artes',
@@ -253,10 +259,20 @@ export const pt: Translations = {
     interestWellness: 'Spa e bem-estar',
     interestShopping: 'Compras',
     interestHistory: 'Lugares históricos',
+    interestGastronomy: 'Gastronomia',
+    interestCocktails: 'Cocktails',
+    interestCafes: 'Cafés',
+    interestPastries: 'Pastelaria',
+    interestArt: 'Arte',
+    interestArchitecture: 'Arquitetura',
+    interestDesign: 'Design',
+    interestBeaches: 'Praias',
+    interestFamily: 'Em família',
+    interestRomantic: 'Romântico',
     selected: 'selecionados',
     continue: 'Continuar',
-    styleHeading: 'Como costuma\nexplorar?',
-    styleSubheading: 'Adaptaremos a sua experiência.',
+    styleHeading: 'Como costumas\nexplorar?',
+    styleSubheading: 'Adaptaremos a tua experiência.',
     styleSolo: 'Sozinho/a',
     styleSoloSub: 'Ao meu ritmo',
     styleCouple: 'A dois',
@@ -304,5 +320,127 @@ export const pt: Translations = {
     skipped: 'Saltados',
     total: 'Total',
     exploreMoreRoutes: 'Explorar Mais Rotas',
+  },
+
+  // ─── Autenticação ────────────────────────────────────────────────────────
+  auth: {
+    // ── Ecrã de entrada ──────────────────────────────────────────────────
+    entryHeadline: 'Descobre o melhor\nde Portugal.',
+    entrySubheadline: 'Restaurantes, hotéis e experiências\nselecionados com cuidado por todo o país.',
+    signIn: 'Entrar',
+    createAccount: 'Criar conta',
+    orContinueWith: 'OU CONTINUA COM',
+    continueWithGoogle: 'Continuar com Google',
+    continueWithApple: 'Continuar com Apple',
+    legalPrefix: 'Ao continuar aceitas os',
+    legalTerms: 'Termos de Serviço',
+    legalAnd: ' e a ',
+    legalPrivacy: 'Política de Privacidade',
+
+    // ── Início de sessão ─────────────────────────────────────────────────
+    loginHeading: 'Bem-vindo\nde volta.',
+    loginSubheading: 'Entra para continuares a descobrir Portugal.',
+    emailLabel: 'ENDEREÇO DE EMAIL',
+    emailPlaceholder: 'teu@email.com',
+    passwordLabel: 'PALAVRA-PASSE',
+    passwordPlaceholder: '••••••••',
+    showPassword: 'MOSTRAR',
+    hidePassword: 'OCULTAR',
+    forgotPassword: 'Esqueceste-te da palavra-passe?',
+    newToGoldenbook: 'NOVO NO GOLDENBOOK GO?',
+
+    // Aviso legacy (migração Firebase → Supabase)
+    migrationNoticeBefore: 'Se tinhas conta na versão anterior da app, ',
+    migrationNoticeLink: 'redefine a tua palavra-passe',
+    migrationNoticeAfter: ' para voltares a aceder.',
+
+    // Banner "verifica o email"
+    verifyBannerTitle: 'Verifica o teu email',
+    verifyBannerBody: 'A tua conta existe, mas o email ainda não foi verificado. Procura o link de confirmação na tua caixa de entrada.',
+    verifyBannerResend: 'Reenviar email de verificação',
+
+    // ── Registo ──────────────────────────────────────────────────────────
+    registerHeading: 'Criar\nconta.',
+    registerSubheading: 'Cria a tua conta e começa a descobrir\no melhor de Portugal.',
+    emailHint: 'Vamos enviar um link de confirmação para este endereço.',
+    passwordPlaceholderLong: 'Pelo menos 8 caracteres, com letras e números',
+    passwordHint: 'Mín. 8 caracteres · letras + números',
+    passwordTooShort: 'Usa pelo menos 8 caracteres.',
+    passwordNeedsLettersAndNumbers: 'Tem de incluir letras e números.',
+    confirmPasswordLabel: 'CONFIRMAR PALAVRA-PASSE',
+    confirmPasswordPlaceholder: 'Repete a palavra-passe',
+    passwordsDoNotMatch: 'As palavras-passe não coincidem',
+    creatingAccount: 'A criar conta\u2026',
+    alreadyAMember: 'JÁ TENS CONTA?',
+
+    // Registo — confirmação pendente
+    accountCreatedTitle: 'Conta\ncriada.',
+    accountCreatedBody: 'A tua conta foi criada.\nConfirma o teu email para continuares.',
+    accountCreatedHint: 'Verifica a tua caixa de entrada e a pasta de spam para encontrares o email de confirmação.',
+    resendConfirmation: 'Reenviar email de confirmação',
+
+    // Registo — verificação reenviada
+    verificationEmailSentTitle: 'Email de\nverificação enviado.',
+    verificationEmailSentBody1: 'Este email já está registado, mas ainda não foi verificado.',
+    verificationEmailSentBody2: 'Enviámos um novo email de confirmação para',
+    verificationEmailSentHint: 'Verifica a tua caixa de entrada e a pasta de spam.',
+    goToSignIn: 'Ir para iniciar sessão',
+
+    // ── Repor palavra-passe — pedido ─────────────────────────────────────
+    resetPasswordShort: 'Repor palavra-passe',
+    resetHeading: 'Repor\npalavra-passe.',
+    resetSubheading: 'Introduz o teu email e enviamos-te um link seguro para repores a palavra-passe.',
+    sendResetLink: 'Enviar link',
+    sending: 'A enviar\u2026',
+    backToSignIn: 'Voltar a iniciar sessão',
+
+    // Repor palavra-passe — sucesso
+    resetSentTitle: 'Verifica a tua caixa de entrada',
+    resetSentBody: 'Enviámos um link para repores a palavra-passe para',
+    resetSentHint: 'Segue o link no email para definires uma nova palavra-passe.\nO link expira dentro de 60 minutos.',
+    resendEmail: 'Reenviar email',
+
+    // ── Repor palavra-passe — confirmar ──────────────────────────────────
+    resetConfirmHeading: 'Nova\npalavra-passe.',
+    resetConfirmSubheading: 'Escolhe uma nova palavra-passe para a tua conta.',
+    newPasswordLabel: 'NOVA PALAVRA-PASSE',
+    resetting: 'A atualizar\u2026',
+    resetSuccessTitle: 'Palavra-passe atualizada',
+    resetSuccessBody: 'A tua palavra-passe foi atualizada.\nJá podes iniciar sessão com a nova.',
+    resetConfirmButton: 'Guardar palavra-passe',
+    invalidLinkTitle: 'Link inválido',
+    invalidLinkBody: 'Este link para repor a palavra-passe é inválido ou já expirou.',
+    requestNewLink: 'Pedir um novo link',
+
+    // ── Verificar email ──────────────────────────────────────────────────
+    verifying: 'A verificar o teu email\u2026',
+    emailVerifiedTitle: 'Email verificado',
+    emailVerifiedBody: 'O teu email foi verificado.\nJá tens acesso completo ao Goldenbook.',
+    continueCta: 'Continuar',
+    verificationFailedTitle: 'Verificação falhou',
+    invalidOrExpiredLink: 'Este link de verificação é inválido ou já expirou.',
+    verifyYourEmailTitle: 'Verifica o teu email',
+    verifyYourEmailBody: 'Procura o link de verificação na tua caixa de entrada.\nAlgumas funcionalidades estão limitadas até o email ser verificado.',
+    resendVerification: 'Reenviar email de verificação',
+    sendingShort: 'A enviar\u2026',
+    emailSent: 'Email enviado',
+    checkInboxExpiresIn24h: 'Verifica a tua caixa de entrada. O link expira em 24 horas.',
+  },
+
+  // ─── Erros de autenticação ───────────────────────────────────────────────
+  authErrors: {
+    signInFailedGeneric: 'Não foi possível iniciar sessão. Verifica as tuas credenciais.',
+    invalidCredentials: 'O email ou a palavra-passe estão incorretos.',
+    createAccountFailed: 'Não conseguimos criar a tua conta agora. Tenta novamente.',
+    emailAlreadyExists: 'Já existe uma conta com este email. Inicia sessão ou repõe a palavra-passe.',
+    passwordPolicy: 'A palavra-passe tem de ter pelo menos 8 caracteres e incluir letras e números.',
+    resetFailed: 'Não foi possível enviar o email de reposição. Tenta novamente.',
+    resetConfirmFailed: 'Não foi possível repor a palavra-passe.',
+  },
+
+  // ─── Error boundary global ───────────────────────────────────────────────
+  errorBoundary: {
+    title: 'Algo correu mal',
+    body: 'Fecha a app e volta a abri-la. Se o problema persistir, contacta o suporte.',
   },
 };

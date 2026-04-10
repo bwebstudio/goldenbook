@@ -9,7 +9,7 @@
 
 import type { NowTimeOfDay, WeatherCondition } from './types'
 
-// ─── The 23 dashboard context tags ──────────────────────────────────────────
+// ─── The 24 dashboard context tags ──────────────────────────────────────────
 
 export const CONTEXT_TAGS = [
   'brunch',
@@ -24,6 +24,7 @@ export const CONTEXT_TAGS = [
   'live-music',
   'local-secret',
   'lunch',
+  'nature',
   'quick-stop',
   'rainy-day',
   'romantic',
@@ -53,6 +54,7 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'brunch':      1.0,
     'culture':     0.8,    // museums, municipalities, galleries — great morning visits
     'viewpoint':   0.8,    // miradouros, scenic walks
+    'nature':      0.8,    // gardens, beaches, parks at start of day
     'quick-stop':  0.8,
     'family':      0.7,    // family-friendly daytime activities
     'wellness':    0.6,
@@ -69,6 +71,7 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'coffee':      0.7,
     'terrace':     0.6,
     'viewpoint':   0.6,
+    'nature':      0.6,
     'family':      0.6,
     'shopping':    0.5,
     'wine':        0.4,
@@ -82,6 +85,7 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'sunset':      0.6,
     'wellness':    0.6,
     'viewpoint':   0.6,
+    'nature':      0.6,
     'rooftop':     0.5,
     'wine':        0.5,
     'quick-stop':  0.5,
@@ -148,6 +152,7 @@ export const WEATHER_TAG_BOOSTS: Record<WeatherCondition, Partial<Record<Context
     'rooftop':     0.4,
     'sunset':      0.3,
     'viewpoint':   0.3,
+    'nature':      0.3,
     'coffee':      0.1,
     'quick-stop':  0.1,
     'rainy-day':  -0.4,   // less relevant when sunny, but NOT removed
@@ -168,6 +173,7 @@ export const WEATHER_TAG_BOOSTS: Record<WeatherCondition, Partial<Record<Context
     'terrace':    -0.3,   // less appealing in rain
     'rooftop':    -0.3,
     'viewpoint':  -0.2,
+    'nature':     -0.3,
     'sunset':     -0.2,
   },
   hot: {
@@ -215,6 +221,7 @@ export const TAG_LABELS: Record<ContextTag, Record<string, string>> = {
   'live-music':   { en: 'Live Music',     pt: 'Música ao vivo',         es: 'Música en vivo' },
   'local-secret': { en: 'Local Secret',   pt: 'Segredo local',          es: 'Secreto local' },
   'lunch':        { en: 'Lunch',          pt: 'Almoço',                 es: 'Almuerzo' },
+  'nature':       { en: 'Nature',         pt: 'Natureza',               es: 'Naturaleza' },
   'quick-stop':   { en: 'Quick Stop',     pt: 'Paragem rápida',         es: 'Parada rápida' },
   'rainy-day':    { en: 'Rainy Day',      pt: 'Dia de chuva',           es: 'Día de lluvia' },
   'romantic':     { en: 'Romantic',        pt: 'Romântico',              es: 'Romántico' },

@@ -18,26 +18,14 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useTranslation } from '@/i18n';
-import type { Translations } from '@/i18n/locales/en';
+import { ONBOARDING_INTERESTS } from '@/config/interests';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
 const IVORY = '#FDFDFB';
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
-const INTEREST_KEYS: { id: string; labelKey: keyof Translations['onboarding']; icon: IoniconName }[] = [
-  { id: 'fine-dining',    labelKey: 'interestFineDining',  icon: 'restaurant-outline'    },
-  { id: 'wine',           labelKey: 'interestWine',        icon: 'wine-outline'          },
-  { id: 'culture',        labelKey: 'interestCulture',     icon: 'color-palette-outline' },
-  { id: 'hidden-gems',    labelKey: 'interestHiddenGems',  icon: 'sparkles-outline'      },
-  { id: 'hotels',         labelKey: 'interestHotels',      icon: 'bed-outline'           },
-  { id: 'nature',         labelKey: 'interestNature',      icon: 'leaf-outline'          },
-  { id: 'nightlife',      labelKey: 'interestNightlife',   icon: 'moon-outline'          },
-  { id: 'wellness',       labelKey: 'interestWellness',    icon: 'water-outline'         },
-  { id: 'shopping',       labelKey: 'interestShopping',    icon: 'bag-outline'           },
-  { id: 'history',        labelKey: 'interestHistory',     icon: 'business-outline'      },
-];
+// Curated subset shared with Preferences — see src/config/interests.ts
+const INTEREST_KEYS = ONBOARDING_INTERESTS;
 
 const MIN_SELECTIONS = 2;
 const MAX_SELECTIONS = 5;

@@ -1,6 +1,7 @@
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from '@/i18n';
 import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
 import {
@@ -17,7 +18,9 @@ import {
 
 export default function PlaceDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { data, isLoading, isError } = usePlaceDetail(slug ?? '');
+  const router = useRouter();
+  const t = useTranslation();
+  const { data, isLoading, isError, refetch, isFetching } = usePlaceDetail(slug ?? '');
   const { isSaved, toggle: toggleSave } = useSavePlace(data?.id ?? '');
 
   if (isLoading) {
@@ -29,11 +32,40 @@ export default function PlaceDetailScreen() {
   }
 
   if (isError || !data) {
+    const handleBack = () => {
+      if (router.canGoBack()) router.back();
+      else router.replace('/(tabs)' as any);
+    };
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm">
-          Could not load this place.{'\n'}Check your connection and try again.
+        <Text className="text-navy/40 text-center text-sm mb-6">
+          {t.place.couldNotLoad}
         </Text>
+        <View className="flex-row gap-3">
+          <TouchableOpacity
+            onPress={handleBack}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            className="items-center justify-center rounded-full border border-navy/15 px-6"
+            style={{ height: 44, minWidth: 120 }}
+          >
+            <Text className="text-navy text-xs font-bold uppercase tracking-widest">
+              {t.common.goBack}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => { void refetch(); }}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            disabled={isFetching}
+            className="items-center justify-center rounded-full bg-navy px-6"
+            style={{ height: 44, minWidth: 120, opacity: isFetching ? 0.6 : 1 }}
+          >
+            <Text className="text-ivory text-xs font-bold uppercase tracking-widest">
+              {t.common.retry}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -57,8 +89,11 @@ export default function PlaceDetailScreen() {
 
         {/* 3. Actions: reserve / map / save / website */}
         <PlaceActions
+          placeId={data.id}
           actions={data.actions}
+          booking={data.booking}
           location={data.location}
+          city={data.city.slug}
           isSaved={isSaved}
           onSave={toggleSave}
         />

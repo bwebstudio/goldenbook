@@ -170,13 +170,19 @@ export async function getCuratedRouteById(
   id: string,
   locale: string,
 ): Promise<CuratedRouteWithStops | null> {
+  // Translation keys are stored as the language code only (`'pt'`, `'es'`),
+  // matching the JSON shape produced by createCuratedRoute / seed scripts.
+  // Fallback chain: requested locale → English (raw `title` / `summary` columns).
+  const lang = locale.split('-')[0]
   const { rows: routeRows } = await db.query<Record<string, unknown>>(
     `SELECT id, city_slug, route_type, template_type, sponsor_place_id,
-            title, summary, starts_at, expires_at, is_active
+            COALESCE(NULLIF(title_translations   ->> $2, ''), title)   AS title,
+            COALESCE(NULLIF(summary_translations ->> $2, ''), summary) AS summary,
+            starts_at, expires_at, is_active
      FROM   curated_routes
      WHERE  id = $1
      LIMIT  1`,
-    [id],
+    [id, lang],
   )
 
   if (!routeRows[0]) return null

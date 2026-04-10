@@ -140,6 +140,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
         cityName={cityName}
         liveTime={liveTime}
         t={t}
+        isError={error}
         onRetry={reload}
         onConcierge={() => navigateToConcierge()}
       />
@@ -368,14 +369,20 @@ interface NowEditorialFallbackProps {
   cityName: string
   liveTime: string
   t: any
+  isError?: boolean
   onRetry: () => void
   onConcierge: () => void
 }
 
-function NowEditorialFallback({ cityName, liveTime, t, onRetry, onConcierge }: NowEditorialFallbackProps) {
+function NowEditorialFallback({ cityName, liveTime, t, isError = false, onRetry, onConcierge }: NowEditorialFallbackProps) {
   const timeSegment = getClientTimeSegment()
   const headlineKey = `headline${capitalize(timeSegment)}`
-  const headline: string = (t.now as any)[headlineKey] ?? t.now.headlineMorning
+  // When the API actually errored, use the error copy so users understand
+  // why the section is in fallback mode. Otherwise show the time-of-day
+  // editorial headline as a soft fallback.
+  const headline: string = isError
+    ? ((t.now as any).errorLoading ?? t.now.headlineMorning)
+    : ((t.now as any)[headlineKey] ?? t.now.headlineMorning)
 
   return (
     <View>

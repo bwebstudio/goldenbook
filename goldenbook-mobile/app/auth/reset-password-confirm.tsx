@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '@/api/endpoints';
+import { useTranslation } from '@/i18n';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -26,6 +27,7 @@ const IVORY = '#FDFDFB';
 
 export default function ResetPasswordConfirmScreen() {
   const router = useRouter();
+  const t      = useTranslation();
   const { token } = useLocalSearchParams<{ token?: string }>();
 
   const [password, setPassword] = useState('');
@@ -38,8 +40,16 @@ export default function ResetPasswordConfirmScreen() {
   const [passFocused, setPassFocused] = useState(false);
   const [confFocused, setConfFocused] = useState(false);
 
+  // Password policy: at least 8 chars, must contain at least one letter AND one digit.
+  const isValidPassword = (pw: string) =>
+    pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
+
+  const passwordValid    = isValidPassword(password);
+  const passwordTooShort = password.length > 0 && password.length < 8;
+  const passwordWeak     = password.length >= 8 && !passwordValid;
+
   const passwordsMatch = password === confirm;
-  const canSubmit = password.length >= 8 && passwordsMatch && !loading && !!token;
+  const canSubmit = passwordValid && passwordsMatch && !loading && !!token;
 
   const handleReset = async () => {
     if (!canSubmit || !token) return;
@@ -48,9 +58,8 @@ export default function ResetPasswordConfirmScreen() {
     try {
       await api.resetPassword(token, password);
       setSuccess(true);
-    } catch (e: any) {
-      const msg = e?.response?.data?.message ?? e.message ?? 'Could not reset password.';
-      setError(msg);
+    } catch {
+      setError(t.authErrors.resetConfirmFailed);
     } finally {
       setLoading(false);
     }
@@ -66,16 +75,16 @@ export default function ResetPasswordConfirmScreen() {
             </View>
           </View>
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.title}>Invalid link</Text>
+          <Text style={styles.title}>{t.auth.invalidLinkTitle}</Text>
           <Text style={styles.body}>
-            This password reset link is missing or invalid.
+            {t.auth.invalidLinkBody}
           </Text>
           <TouchableOpacity
             style={styles.btnPrimary}
             onPress={() => router.replace('/auth/reset-password')}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnText}>Request a new link</Text>
+            <Text style={styles.btnText}>{t.auth.requestNewLink}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -92,9 +101,9 @@ export default function ResetPasswordConfirmScreen() {
             </View>
           </View>
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.title}>Password reset</Text>
+          <Text style={styles.title}>{t.auth.resetSuccessTitle}</Text>
           <Text style={styles.body}>
-            Your password has been updated.{'\n'}You can now sign in with your new password.
+            {t.auth.resetSuccessBody}
           </Text>
           <View style={styles.goldRule} />
           <TouchableOpacity
@@ -102,7 +111,7 @@ export default function ResetPasswordConfirmScreen() {
             onPress={() => router.replace('/auth/login')}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnText}>Sign in</Text>
+            <Text style={styles.btnText}>{t.auth.signIn}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -132,9 +141,9 @@ export default function ResetPasswordConfirmScreen() {
 
           <View style={styles.headingBlock}>
             <Text style={styles.ornamentStar}>✦</Text>
-            <Text style={styles.heading}>New{'\n'}password.</Text>
+            <Text style={styles.heading}>{t.auth.resetConfirmHeading}</Text>
             <Text style={styles.subheading}>
-              Choose a new password for your account.
+              {t.auth.resetConfirmSubheading}
             </Text>
           </View>
 
@@ -147,13 +156,17 @@ export default function ResetPasswordConfirmScreen() {
           )}
 
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>NEW PASSWORD</Text>
-            <View style={[styles.fieldBox, passFocused && styles.fieldBoxFocused]}>
+            <Text style={styles.fieldLabel}>{t.auth.newPasswordLabel}</Text>
+            <View style={[
+              styles.fieldBox,
+              passFocused && styles.fieldBoxFocused,
+              (passwordTooShort || passwordWeak) && styles.fieldBoxError,
+            ]}>
               <TextInput
                 style={[styles.fieldInput, { flex: 1 }]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Min. 8 characters"
+                placeholder={t.auth.passwordPlaceholderLong}
                 placeholderTextColor="rgba(34,45,82,0.30)"
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
@@ -167,13 +180,20 @@ export default function ResetPasswordConfirmScreen() {
                 onPress={() => setShowPass((v) => !v)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.showHide}>{showPass ? 'HIDE' : 'SHOW'}</Text>
+                <Text style={styles.showHide}>{showPass ? t.auth.hidePassword : t.auth.showPassword}</Text>
               </TouchableOpacity>
             </View>
+            {passwordTooShort ? (
+              <Text style={styles.fieldError}>{t.auth.passwordTooShort}</Text>
+            ) : passwordWeak ? (
+              <Text style={styles.fieldError}>{t.auth.passwordNeedsLettersAndNumbers}</Text>
+            ) : (
+              <Text style={styles.fieldHint}>{t.auth.passwordHint}</Text>
+            )}
           </View>
 
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
+            <Text style={styles.fieldLabel}>{t.auth.confirmPasswordLabel}</Text>
             <View style={[
               styles.fieldBox,
               confFocused && styles.fieldBoxFocused,
@@ -183,7 +203,7 @@ export default function ResetPasswordConfirmScreen() {
                 style={[styles.fieldInput, { flex: 1 }]}
                 value={confirm}
                 onChangeText={setConfirm}
-                placeholder="Repeat password"
+                placeholder={t.auth.confirmPasswordPlaceholder}
                 placeholderTextColor="rgba(34,45,82,0.30)"
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
@@ -196,7 +216,7 @@ export default function ResetPasswordConfirmScreen() {
               />
             </View>
             {confirm.length > 0 && !passwordsMatch && (
-              <Text style={styles.fieldError}>Passwords do not match</Text>
+              <Text style={styles.fieldError}>{t.auth.passwordsDoNotMatch}</Text>
             )}
           </View>
 
@@ -207,7 +227,7 @@ export default function ResetPasswordConfirmScreen() {
             activeOpacity={0.82}
           >
             <Text style={styles.btnText}>
-              {loading ? 'Resetting...' : 'Reset password'}
+              {loading ? t.auth.resetting : t.auth.resetConfirmButton}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -295,6 +315,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
     color: '#B93131',
+    marginTop: 6,
+  },
+  fieldHint: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: 'rgba(34,45,82,0.45)',
     marginTop: 6,
   },
   fieldBox: {

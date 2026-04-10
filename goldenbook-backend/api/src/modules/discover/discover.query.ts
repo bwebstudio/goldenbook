@@ -138,8 +138,36 @@ export interface PlaceCardRow {
   short_description: string | null
   place_type: string | null
   city_name: string | null
+  /** Localized name of the place's primary category (e.g. "Gastronomía") */
+  category_name: string | null
+  /** Localized name of the place's primary subcategory (e.g. "Cocina internacional") */
+  subcategory_name: string | null
   is_sponsored?: boolean
 }
+
+// Reusable LATERAL fragment that resolves the localized primary category +
+// subcategory for a place. Assumes parent query has `p` (places) in scope and
+// uses `$2` as the locale parameter — keep these conventions when adding new
+// queries that return PlaceCardRow.
+const PRIMARY_CATEGORY_LATERAL = /* sql */ `
+LEFT JOIN LATERAL (
+  SELECT
+    COALESCE(NULLIF(ct.name,''), NULLIF(ct_lang.name,''), NULLIF(ct_fb.name,''), c.slug)         AS category_name,
+    COALESCE(NULLIF(sct.name,''), NULLIF(sct_lang.name,''), NULLIF(sct_fb.name,''), s.slug)      AS subcategory_name
+  FROM   place_categories pc
+  JOIN   categories c                  ON c.id = pc.category_id
+  LEFT   JOIN subcategories s          ON s.id = pc.subcategory_id
+  LEFT   JOIN category_translations ct      ON ct.category_id      = c.id AND ct.locale      = $2
+  LEFT   JOIN category_translations ct_lang ON ct_lang.category_id = c.id AND ct_lang.locale = split_part($2,'-',1) AND $2 LIKE '%-%'
+  LEFT   JOIN category_translations ct_fb   ON ct_fb.category_id   = c.id AND ct_fb.locale   = 'en'
+  LEFT   JOIN subcategory_translations sct      ON sct.subcategory_id      = s.id AND sct.locale      = $2
+  LEFT   JOIN subcategory_translations sct_lang ON sct_lang.subcategory_id = s.id AND sct_lang.locale = split_part($2,'-',1) AND $2 LIKE '%-%'
+  LEFT   JOIN subcategory_translations sct_fb   ON sct_fb.subcategory_id   = s.id AND sct_fb.locale   = 'en'
+  WHERE  pc.place_id = p.id
+  ORDER  BY pc.is_primary DESC, pc.sort_order ASC
+  LIMIT  1
+) prim_cat ON true
+`
 
 // ─── Editorial collection places (editors_picks, hidden_spots, etc.) ──────────
 
@@ -159,7 +187,9 @@ async function getCollectionPlaces(
       hero_img.path                                                                                AS hero_path,
       COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
       p.place_type,
-      d.name AS city_name
+      d.name                AS city_name,
+      prim_cat.category_name,
+      prim_cat.subcategory_name
     FROM editorial_collections ec
     JOIN destinations d
            ON d.id = ec.destination_id AND d.slug = $1
@@ -182,6 +212,7 @@ async function getCollectionPlaces(
       ORDER  BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
       LIMIT  1
     ) hero_img ON true
+    ${PRIMARY_CATEGORY_LATERAL}
     WHERE ec.collection_type = $3
       AND ec.is_active = true
     ORDER BY eci.sort_order ASC
@@ -209,7 +240,9 @@ async function getPlacesFallback(
       hero_img.path                                                                                AS hero_path,
       COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
       p.place_type,
-      d.name AS city_name
+      d.name                AS city_name,
+      prim_cat.category_name,
+      prim_cat.subcategory_name
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
@@ -227,6 +260,7 @@ async function getPlacesFallback(
       ORDER  BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
       LIMIT  1
     ) hero_img ON true
+    ${PRIMARY_CATEGORY_LATERAL}
     WHERE p.status = 'published'
       AND hero_img.bucket IS NOT NULL
     ORDER BY p.featured DESC, p.created_at ASC
@@ -256,7 +290,11 @@ async function getVisibilityPlaces(
         p.id, p.slug,
         COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name) AS name,
         hero_img.bucket AS hero_bucket, hero_img.path AS hero_path,
-        COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
+        COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
+        p.place_type,
+        d.name                AS city_name,
+        prim_cat.category_name,
+        prim_cat.subcategory_name
       FROM places p
       JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
       LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $2
@@ -267,6 +305,7 @@ async function getVisibilityPlaces(
         WHERE pi.place_id = p.id AND pi.image_role IN ('hero','cover')
         ORDER BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC LIMIT 1
       ) hero_img ON true
+      ${PRIMARY_CATEGORY_LATERAL}
       WHERE p.id = ANY($3) AND p.status = 'published'
     `, [citySlug, locale, placeIds])
 
@@ -338,7 +377,9 @@ export async function getNewPlaces(
       hero_img.path                                                                                AS hero_path,
       COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
       p.place_type,
-      d.name AS city_name
+      d.name                AS city_name,
+      prim_cat.category_name,
+      prim_cat.subcategory_name
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
@@ -356,6 +397,7 @@ export async function getNewPlaces(
       ORDER  BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
       LIMIT  1
     ) hero_img ON true
+    ${PRIMARY_CATEGORY_LATERAL}
     WHERE p.status = 'published'
     ORDER BY p.published_at DESC NULLS LAST, p.created_at DESC
     LIMIT $3

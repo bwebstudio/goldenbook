@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslation } from '@/i18n';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -27,6 +28,7 @@ const IVORY = '#FDFDFB';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const t      = useTranslation();
   const signIn = useAuthStore((s) => s.signIn);
 
   const [email, setEmail]       = useState('');
@@ -55,9 +57,9 @@ export default function LoginScreen() {
       if (code === 'EMAIL_NOT_VERIFIED') {
         setNeedsVerification(true);
       } else if (e.message?.toLowerCase().includes('invalid login credentials')) {
-        setError('The email or password is incorrect.');
+        setError(t.authErrors.invalidCredentials);
       } else {
-        setError('Sign in failed. Please check your credentials.');
+        setError(t.authErrors.signInFailedGeneric);
       }
     } finally {
       setLoading(false);
@@ -89,9 +91,9 @@ export default function LoginScreen() {
           {/* ── Heading ─────────────────────────────────────────────── */}
           <View style={styles.headingBlock}>
             <Text style={styles.ornamentStar}>✦</Text>
-            <Text style={styles.heading}>Welcome{'\n'}back.</Text>
+            <Text style={styles.heading}>{t.auth.loginHeading}</Text>
             <Text style={styles.subheading}>
-              Sign in to continue exploring Portugal.
+              {t.auth.loginSubheading}
             </Text>
           </View>
 
@@ -101,15 +103,15 @@ export default function LoginScreen() {
           {/* ── Verification needed banner ──────────────────────────────── */}
           {needsVerification && (
             <View style={styles.verifyBanner}>
-              <Text style={styles.verifyTitle}>Please verify your email</Text>
+              <Text style={styles.verifyTitle}>{t.auth.verifyBannerTitle}</Text>
               <Text style={styles.verifyText}>
-                Your account exists but your email has not been verified yet. Check your inbox for the confirmation link.
+                {t.auth.verifyBannerBody}
               </Text>
               <TouchableOpacity
                 style={styles.verifyResendBtn}
                 onPress={() => router.push('/auth/verify-email')}
               >
-                <Text style={styles.verifyResendText}>Resend verification email</Text>
+                <Text style={styles.verifyResendText}>{t.auth.verifyBannerResend}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -123,13 +125,13 @@ export default function LoginScreen() {
 
           {/* ── Email ───────────────────────────────────────────────── */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+            <Text style={styles.fieldLabel}>{t.auth.emailLabel}</Text>
             <View style={[styles.fieldBox, emailFocused && styles.fieldBoxFocused]}>
               <TextInput
                 style={styles.fieldInput}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="your@email.com"
+                placeholder={t.auth.emailPlaceholder}
                 placeholderTextColor="rgba(34,45,82,0.28)"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -144,13 +146,13 @@ export default function LoginScreen() {
 
           {/* ── Password ─────────────────────────────────────────────── */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>PASSWORD</Text>
+            <Text style={styles.fieldLabel}>{t.auth.passwordLabel}</Text>
             <View style={[styles.fieldBox, passwordFocused && styles.fieldBoxFocused]}>
               <TextInput
                 style={[styles.fieldInput, { flex: 1 }]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="••••••••"
+                placeholder={t.auth.passwordPlaceholder}
                 placeholderTextColor="rgba(34,45,82,0.28)"
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
@@ -165,10 +167,24 @@ export default function LoginScreen() {
                 onPress={() => setShowPass((v) => !v)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.showHide}>{showPass ? 'HIDE' : 'SHOW'}</Text>
+                <Text style={styles.showHide}>{showPass ? t.auth.hidePassword : t.auth.showPassword}</Text>
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* ── Migration notice (Firebase → Supabase) ──────────────────
+              Subtle hint for users coming from the previous app version
+              whose passwords could not be carried over. */}
+          <Text style={styles.migrationNotice}>
+            {t.auth.migrationNoticeBefore}
+            <Text
+              style={styles.migrationNoticeLink}
+              onPress={() => router.push('/auth/reset-password')}
+            >
+              {t.auth.migrationNoticeLink}
+            </Text>
+            {t.auth.migrationNoticeAfter}
+          </Text>
 
           {/* ── Forgot password ──────────────────────────────────────── */}
           <TouchableOpacity
@@ -176,7 +192,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/auth/reset-password')}
             disabled={loading}
           >
-            <Text style={styles.forgotText}>Forgot password?</Text>
+            <Text style={styles.forgotText}>{t.auth.forgotPassword}</Text>
           </TouchableOpacity>
 
           {/* ── Sign in CTA ──────────────────────────────────────────── */}
@@ -189,14 +205,14 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator size="small" color={IVORY} />
             ) : (
-              <Text style={styles.btnPrimaryText}>Sign in</Text>
+              <Text style={styles.btnPrimaryText}>{t.auth.signIn}</Text>
             )}
           </TouchableOpacity>
 
           {/* ── Divider ──────────────────────────────────────────────── */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>NEW TO GOLDENBOOK GO?</Text>
+            <Text style={styles.dividerLabel}>{t.auth.newToGoldenbook}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -207,7 +223,7 @@ export default function LoginScreen() {
             disabled={loading}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnSecondaryText}>Create account</Text>
+            <Text style={styles.btnSecondaryText}>{t.auth.createAccount}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -356,6 +372,22 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: 'rgba(34,45,82,0.33)',
     marginLeft: 12,
+  },
+
+  // Migration notice (Firebase → Supabase)
+  migrationNotice: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    lineHeight: 16,
+    color: 'rgba(34,45,82,0.50)',
+    marginTop: 4,
+    marginBottom: 10,
+    letterSpacing: 0.1,
+  },
+  migrationNoticeLink: {
+    fontFamily: 'Inter_500Medium',
+    color: GOLD,
+    textDecorationLine: 'underline',
   },
 
   // Forgot password

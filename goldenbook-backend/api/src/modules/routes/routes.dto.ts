@@ -48,6 +48,10 @@ export interface RoutePlaceDTO {
   id: string
   slug: string
   name: string
+  /** Localized short description of the place itself (from place_translations).
+   *  Always falls back through requested locale → en → original column. */
+  shortDescription: string | null
+  /** Curator's editorial note for this stop on this specific route. */
   note: string | null
   stayMinutes: number | null
   sortOrder: number
@@ -92,6 +96,7 @@ export function toRouteDetailDTO(
       id: p.id,
       slug: p.slug,
       name: p.name,
+      shortDescription: p.short_description,
       note: p.note,
       stayMinutes: p.stay_minutes,
       sortOrder: p.sort_order,

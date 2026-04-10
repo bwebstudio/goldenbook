@@ -56,6 +56,10 @@ function curatedToDetail(cr: CuratedRouteWithStops): RouteDetailDTO {
       id: s.placeId,
       slug: s.placeSlug,
       name: s.placeName,
+      // Localized place description (already locale-resolved by the SQL
+      // COALESCE chain in curated-routes STOPS_SELECT). Falls back to the
+      // curator's editorial note on the client when this is empty.
+      shortDescription: s.shortDescription,
       note: s.editorialNote,
       stayMinutes: 30,
       sortOrder: s.stopOrder,

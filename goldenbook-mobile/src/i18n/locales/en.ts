@@ -11,6 +11,7 @@ export const en = {
     contentComingSoonSub: 'Full content will be available\nin an upcoming update.',
     sponsored: 'Sponsored',
     sponsoredGoldenbook: 'Sponsored · Goldenbook',
+    error: 'Error',
   },
 
   profile: {
@@ -34,6 +35,8 @@ export const en = {
     deleteAccountFinalTitle: 'Are you absolutely sure?',
     deleteAccountFinalMessage: 'This is your last chance. All your data will be permanently deleted.',
     deleteAccountSuccess: 'Your account has been deleted.',
+    deleteAccountError: 'We couldn\u2019t delete your account. Please try again, or contact us at privacy@goldenbook.app.',
+    deleting: 'Deleting\u2026',
     signOut: 'Sign out',
     signOutTitle: 'Sign out',
     signOutMessage: 'Are you sure you want to sign out?',
@@ -137,6 +140,7 @@ export const en = {
     supportingEvening: 'Open now · Elegant · Tonight',
     supportingNight: 'Open now · For the night ahead',
     seeAnother: 'See another option',
+    errorLoading: "We couldn't load a recommendation right now.",
     lookingForMore: 'Looking for something else?',
     openConcierge: 'Ask the Concierge',
     exploreNow: 'EXPLORE NOW',
@@ -196,6 +200,8 @@ export const en = {
     curatedNearby: 'Curated Nearby',
     moreFrom: 'More from',
     reserve: 'Reserve',
+    visitWebsite: 'Visit website',
+    openWebsite: 'Open website',
     bookOnBooking: 'Book on Booking.com',
     reserveOnTheFork: 'Reserve on TheFork',
     checkAvailability: 'Check availability',
@@ -241,6 +247,7 @@ export const en = {
   onboarding: {
     interestsHeading: 'What would you\nlove to discover?',
     interestsSubheading: 'Pick at least 2, up to 5.',
+    // Core 10 interests used by onboarding
     interestFineDining: 'Fine Dining',
     interestWine: 'Wine & Tastings',
     interestCulture: 'Culture & Arts',
@@ -251,6 +258,17 @@ export const en = {
     interestWellness: 'Spa & Wellness',
     interestShopping: 'Shopping',
     interestHistory: 'Historic Sites',
+    // Extended interests — used by the Preferences screen (superset)
+    interestGastronomy: 'Gastronomy',
+    interestCocktails: 'Cocktails',
+    interestCafes: 'Cafés',
+    interestPastries: 'Pastries',
+    interestArt: 'Art',
+    interestArchitecture: 'Architecture',
+    interestDesign: 'Design',
+    interestBeaches: 'Beaches',
+    interestFamily: 'Family Friendly',
+    interestRomantic: 'Romantic',
     selected: 'selected',
     continue: 'Continue',
     styleHeading: 'How do you\nusually explore?',
@@ -307,6 +325,130 @@ export const en = {
     skipped: 'Skipped',
     total: 'Total',
     exploreMoreRoutes: 'Explore More Routes',
+  },
+
+  // ─── Authentication ───────────────────────────────────────────────────────
+  auth: {
+    // ── Auth entry screen ────────────────────────────────────────────────
+    entryHeadline: "Discover Portugal's\nfinest places.",
+    entrySubheadline: 'Curated restaurants, hotels and experiences\nhandpicked across Portugal.',
+    signIn: 'Sign in',
+    createAccount: 'Create account',
+    orContinueWith: 'OR CONTINUE WITH',
+    continueWithGoogle: 'Continue with Google',
+    continueWithApple: 'Continue with Apple',
+    legalPrefix: "By continuing you agree to Goldenbook Go's",
+    legalTerms: 'Terms of Service',
+    legalAnd: ' and ',
+    legalPrivacy: 'Privacy Policy',
+
+    // ── Login ────────────────────────────────────────────────────────────
+    loginHeading: 'Welcome\nback.',
+    loginSubheading: 'Sign in to continue exploring Portugal.',
+    emailLabel: 'EMAIL ADDRESS',
+    emailPlaceholder: 'your@email.com',
+    passwordLabel: 'PASSWORD',
+    passwordPlaceholder: '••••••••',
+    showPassword: 'SHOW',
+    hidePassword: 'HIDE',
+    forgotPassword: 'Forgot password?',
+    newToGoldenbook: 'NEW TO GOLDENBOOK GO?',
+
+    // Legacy-account hint shown under the login form.
+    // Users coming from the previous Firebase-based version need to reset
+    // their password once to be able to sign in with Supabase.
+    migrationNoticeBefore: 'If you had an account in the previous version of the app, please ',
+    migrationNoticeLink: 'reset your password',
+    migrationNoticeAfter: ' to access your account.',
+
+    // Verify-your-email banner (on login screen)
+    verifyBannerTitle: 'Please verify your email',
+    verifyBannerBody: 'Your account exists but your email has not been verified yet. Check your inbox for the confirmation link.',
+    verifyBannerResend: 'Resend verification email',
+
+    // ── Register ─────────────────────────────────────────────────────────
+    registerHeading: 'Create\naccount.',
+    registerSubheading: 'Create your account and start discovering\nthe finest of Portugal.',
+    emailHint: 'We\u2019ll send a confirmation link to this address.',
+    passwordPlaceholderLong: 'At least 8 characters, with letters and numbers',
+    passwordHint: 'Min. 8 characters · letters + numbers',
+    passwordTooShort: 'Use at least 8 characters.',
+    passwordNeedsLettersAndNumbers: 'Must include both letters and numbers.',
+    confirmPasswordLabel: 'CONFIRM PASSWORD',
+    confirmPasswordPlaceholder: 'Repeat password',
+    passwordsDoNotMatch: 'Passwords do not match',
+    creatingAccount: 'Creating account\u2026',
+    alreadyAMember: 'ALREADY A MEMBER?',
+
+    // Register — confirmation pending state
+    accountCreatedTitle: 'Account\ncreated.',
+    accountCreatedBody: 'Your account has been created.\nPlease confirm your email to continue.',
+    accountCreatedHint: 'Check your inbox and spam folder for the confirmation email.',
+    resendConfirmation: 'Resend confirmation email',
+
+    // Register — verification-resent state (email already exists, unverified)
+    verificationEmailSentTitle: 'Verification\nemail sent.',
+    verificationEmailSentBody1: 'This email is already registered but not yet verified.',
+    verificationEmailSentBody2: 'We\u2019ve sent a new confirmation email to',
+    verificationEmailSentHint: 'Check your inbox and spam folder.',
+    goToSignIn: 'Go to sign in',
+
+    // ── Reset password — request ─────────────────────────────────────────
+    resetPasswordShort: 'Reset password',
+    resetHeading: 'Reset\npassword.',
+    resetSubheading: 'Enter your email address and we\u2019ll send you a secure link to reset your password.',
+    sendResetLink: 'Send reset link',
+    sending: 'Sending\u2026',
+    backToSignIn: 'Back to sign in',
+
+    // Reset password — success state
+    resetSentTitle: 'Check your inbox',
+    resetSentBody: 'We\u2019ve sent a password reset link to',
+    resetSentHint: 'Follow the link in the email to set a new password.\nThe link expires in 60 minutes.',
+    resendEmail: 'Resend email',
+
+    // ── Reset password — confirm (set new password) ──────────────────────
+    resetConfirmHeading: 'New\npassword.',
+    resetConfirmSubheading: 'Choose a new password for your account.',
+    newPasswordLabel: 'NEW PASSWORD',
+    resetting: 'Resetting\u2026',
+    resetSuccessTitle: 'Password reset',
+    resetSuccessBody: 'Your password has been updated.\nYou can now sign in with your new password.',
+    resetConfirmButton: 'Reset password',
+    invalidLinkTitle: 'Invalid link',
+    invalidLinkBody: 'This password reset link is missing or invalid.',
+    requestNewLink: 'Request a new link',
+
+    // ── Verify email ─────────────────────────────────────────────────────
+    verifying: 'Verifying your email\u2026',
+    emailVerifiedTitle: 'Email verified',
+    emailVerifiedBody: 'Your email has been verified.\nYou now have full access to Goldenbook.',
+    continueCta: 'Continue',
+    verificationFailedTitle: 'Verification failed',
+    invalidOrExpiredLink: 'This verification link is invalid or has expired.',
+    verifyYourEmailTitle: 'Verify your email',
+    verifyYourEmailBody: 'Check your inbox for a verification link.\nSome features are restricted until your email is verified.',
+    resendVerification: 'Resend verification email',
+    sendingShort: 'Sending\u2026',
+    emailSent: 'Email sent',
+    checkInboxExpiresIn24h: 'Check your inbox. The link expires in 24 hours.',
+  },
+
+  // ─── Auth-related errors (shown in red banners / alerts) ─────────────────
+  authErrors: {
+    signInFailedGeneric: 'Sign in failed. Please check your credentials.',
+    invalidCredentials: 'The email or password is incorrect.',
+    createAccountFailed: 'We couldn\u2019t create your account right now. Please try again.',
+    emailAlreadyExists: 'An account with this email already exists. Sign in or reset your password.',
+    passwordPolicy: 'Password must be at least 8 characters and include both letters and numbers.',
+    resetFailed: 'Could not send reset email. Please try again.',
+    resetConfirmFailed: 'Could not reset password.',
+  },
+
+  // ─── Global error boundary (caught render errors) ────────────────────────
+  errorBoundary: {
+    title: 'Something went wrong',
+    body: 'Please close and reopen the app. If the issue persists, contact support.',
   },
 };
 

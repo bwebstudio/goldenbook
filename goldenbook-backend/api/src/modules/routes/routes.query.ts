@@ -136,6 +136,7 @@ export interface RoutePlaceRow {
   id: string
   slug: string
   name: string
+  short_description: string | null
   note: string | null
   stay_minutes: number | null
   sort_order: number
@@ -156,6 +157,12 @@ export async function getRoutePlaces(
       p.id,
       p.slug,
       COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)          AS name,
+      COALESCE(
+        NULLIF(pt.short_description,''),
+        NULLIF(pt_lang.short_description,''),
+        NULLIF(pt_fb.short_description,''),
+        p.short_description
+      ) AS short_description,
       COALESCE(NULLIF(rpt.note,''), NULLIF(rpt_lang.note,''), rp.note)                    AS note,
       rp.stay_minutes,
       rp.sort_order,

@@ -1,0 +1,4454 @@
+{
+  "generated_at": "2026-04-10T16:26:51.681Z",
+  "total": 327,
+  "by_city": {
+    "algarve": {
+      "count": 51,
+      "places": [
+        {
+          "slug": "a-lagosteira-algarve",
+          "name": "A LAGOSTEIRA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "acosta-by-olivier-algarve",
+          "name": "ÀCOSTA BY OLIVIER",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "adega-do-cantor-algarve",
+          "name": "ADEGA DO CANTOR",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "al-quimia-algarve",
+          "name": "AL QUIMIA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "al-sud-algarve",
+          "name": "AL SUD",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "algar-seco-algarve",
+          "name": "Algar Seco",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "amara-restaurant-algarve",
+          "name": "AMARA RESTAURANT",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "amendoeira-golf-resort-algarve",
+          "name": "AMENDOEIRA GOLF RESORT",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "alojamento",
+            "experiences"
+          ],
+          "subcategories": [
+            "desporto",
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "atlantico-algarve",
+          "name": "ATLÂNTICO",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "away-spa-algarve",
+          "name": "AWAY SPA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "benagil-cave-algarve",
+          "name": "Benagil Cave",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "local-secret"
+          ]
+        },
+        {
+          "slug": "cacela-velha-algarve",
+          "name": "Cacela Velha",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "local-secret",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "cafeteria-algarve",
+          "name": "CAFETERIA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "churrasqueira-oriq-algarve",
+          "name": "CHURRASQUEIRA ORIQ",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "cva-comissao-vitivinicola-do-algarve-algarve",
+          "name": "CVA – Comissão Vitivinícola do Algarve",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "local-secret",
+            "wine"
+          ]
+        },
+        {
+          "slug": "david-rosas-algarve",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "ecosuncharters-algarve",
+          "name": "ECOSUNCHARTERS",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "forum-algarve-algarve",
+          "name": "FORUM ALGARVE",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "centros-comerciais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "hilton-vilamoura-algarve",
+          "name": "HILTON VILAMOURA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "alojamento",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "hoteis",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "interforma-algarve",
+          "name": "INTERFORMA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "irish-pub-vilamoura-algarve",
+          "name": "IRISH PUB VILAMOURA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "la-cigale-algarve",
+          "name": "LA CIGALE",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "la-fragata-algarve",
+          "name": "LÁ FRAGATA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "lighthouse-carvoeiro-algarve",
+          "name": "LIGHTHOUSE CARVOEIRO",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "marina-com-noelia-algarve",
+          "name": "MARINA COM NOÉLIA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "miradouro-da-praia-da-marinha-algarve",
+          "name": "Miradouro da Praia da Marinha",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "miradouros"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "nataliya-roso-properties-algarve",
+          "name": "NATALIYA ROSO PROPERTIES",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "imobiliario"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "o-marinheiro-algarve",
+          "name": "O MARINHEIRO",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "old-navy-algarve",
+          "name": "OLD NAVY",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "olive-algarve",
+          "name": "OLIVE",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "parrilla-natural-algarve",
+          "name": "PARRILLA NATURAL",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "passadicos-da-praia-da-falesia-algarve",
+          "name": "Passadiços da Praia da Falésia",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "passadicos-de-alvor-algarve",
+          "name": "Passadiços de Alvor",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "local-secret",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "paulo-miranda-joalheiro-algarve",
+          "name": "PAULO MIRANDA JOALHEIRO",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "joalharia"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pinetrees-riding-centre-algarve",
+          "name": "PINETREES RIDING CENTRE",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "desporto",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "ponta-da-piedade-algarve",
+          "name": "Ponta da Piedade",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "marinha-beach-algarve",
+          "name": "Praia da Marinha",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "praia-do-camilo-algarve",
+          "name": "Praia do Camilo",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "praia-do-carvalho-algarve",
+          "name": "Praia do Carvalho",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "local-secret",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "primavera-ristorante-trattoria-algarve",
+          "name": "PRIMAVERA RISTORANTE TRATTORIA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "privaty-luxury-collection-algarve",
+          "name": "PRIVATY LUXURY COLLECTION",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "imobiliario"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quinta-de-faro-algarve",
+          "name": "QUINTA DE FARO",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "imobiliario"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quinta-dos-sentidos-algarve",
+          "name": "QUINTA DOS SENTIDOS",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "sand-city-algarve",
+          "name": "SAND CITY",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences",
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "parques"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "sensorial-spa-algarve",
+          "name": "SENSORIAL SPA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "seven-spa-vilamoura-algarve",
+          "name": "SEVEN SPA VILAMOURA",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "uddo-algarve",
+          "name": "UDDO",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vale-da-lapa-village-resort-algarve",
+          "name": "VALE DA LAPA VILLAGE RESORT",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vila-vita-collection-algarve",
+          "name": "VILA VITA COLLECTION",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "well-vale-do-lobo-restaurante-beach-club-algarve",
+          "name": "WELL VALE DO LOBO RESTAURANTE & BEACH CLUB",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "alojamento",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "hoteis",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "willies-algarve",
+          "name": "WILLIE’S",
+          "status": "published",
+          "city": "Algarve",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        }
+      ]
+    },
+    "lisboa": {
+      "count": 66,
+      "places": [
+        {
+          "slug": "5-oceanos-lisboa",
+          "name": "5 OCEANOS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "adega-do-convento-lisboa",
+          "name": "ADEGA DO CONVENTO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "alexandra-matias-lisboa",
+          "name": "ALEXANDRA MATIAS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "armazens-do-chiado-lisboa",
+          "name": "ARMAZENS DO CHIADO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "centros-comerciais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "arneiro-1969-lisboa",
+          "name": "Arneiro 1969",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "local-secret",
+            "shopping"
+          ]
+        },
+        {
+          "slug": "arribas-sintra-hotel-lisboa",
+          "name": "ARRIBAS SINTRA HOTEL",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "alojamento",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "bairro-do-avillez",
+          "name": "BAIRRO DO AVILLEZ",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "barbour-lisboa",
+          "name": "BARBOUR",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "be-we-concept",
+          "name": "BE WE CONCEPT",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "bettina-corallo-lisboa",
+          "name": "BETTINA CORALLO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "bico-cultura-do-vinho-lisboa",
+          "name": "BICO CULTURA DO VINHO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "calouste-gulbenkian-museum-lisboa",
+          "name": "Calouste Gulbenkian Museum",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "casa-da-guia-lisboa",
+          "name": "CASA DA GUIA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy",
+            "retail"
+          ],
+          "subcategories": [
+            "bares",
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "centro-comercial-colombo-lisboa",
+          "name": "CENTRO COMERCIAL COLOMBO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "centros-comerciais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "centro-vasco-da-gama",
+          "name": "CENTRO VASCO DA GAMA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "experiences",
+            "retail"
+          ],
+          "subcategories": [
+            "centros-comerciais",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "confeitaria-nacional",
+          "name": "CONFEITARIA NACIONAL",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "cafes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "conserveira-de-lisboa-lisboa",
+          "name": "CONSERVEIRA DE LISBOA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "david-rosas-liberdade-lisboa",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "david-rosas-el-corte-ingles-lisboa",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "el-corte-ingles",
+          "name": "EL CORTE INGLÉS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy",
+            "retail"
+          ],
+          "subcategories": [
+            "centros-comerciais",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "elements-7580-lisboa-lisboa",
+          "name": "ELEMENTS 75’80 LISBOA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "elevador-restaurante-lisboa",
+          "name": "ELEVADOR RESTAURANTE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "embassy",
+          "name": "EMBASSY",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "estrela-do-mar-lisboa",
+          "name": "ESTRELA DO MAR",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fashion-clinic-men-lisboa",
+          "name": "FASHION CLINIC MEN",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fashion-clinic-women-lisboa",
+          "name": "FASHION CLINIC WOMEN",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "federico-lisboa",
+          "name": "FEDERICO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fundacao-amalia-rodrigues-lisboa",
+          "name": "FUNDAÇÃO AMÁLIA RODRIGUES",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture",
+            "experiences"
+          ],
+          "subcategories": [
+            "eventos",
+            "experiencias-unicas",
+            "museus"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "granado-lisboa",
+          "name": "GRANADO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lembracas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "hotel-dos-templarios-lisboa",
+          "name": "HOTEL DOS TEMPLÁRIOS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "jardim-da-estrela-lisboa",
+          "name": "Jardim da Estrela",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "jardins"
+          ],
+          "tags": [
+            "family",
+            "romantic"
+          ]
+        },
+        {
+          "slug": "jardim-do-torel-lisboa",
+          "name": "Jardim do Torel",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": [
+            "culture",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "joalharia-ferreira-marques",
+          "name": "JOALHARIA FERREIRA MARQUES",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lembracas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "karater-taste-of-georgia",
+          "name": "KARATER – TASTE OF GEORGIA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "lisboa-a-noite-lisboa",
+          "name": "LISBOA À NOITE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "loja-das-meias-lisboa-lisboa",
+          "name": "LOJA DAS MEIAS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "loja-das-meias-cascais-lisboa",
+          "name": "LOJA DAS MEIAS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "lx-factory-lisboa",
+          "name": "LX Factory",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "coffee",
+            "culture",
+            "shopping"
+          ]
+        },
+        {
+          "slug": "machado-joalheiro-lisboa",
+          "name": "MACHADO JOALHEIRO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "mar-do-inferno-restaurante-lisboa",
+          "name": "MAR DO INFERNO RESTAURANTE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "marlene-vieira-lisboa",
+          "name": "MARLENE VIEIRA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "miradouro-da-senhora-do-monte-lisboa",
+          "name": "Miradouro da Senhora do Monte",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "miradouros"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "miradouro-de-santa-catarina-lisboa",
+          "name": "Miradouro de Santa Catarina",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": [
+            "local-secret",
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "municipio-de-almada-lisboa",
+          "name": "MUNICÍPIO DE ALMADA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-sintra-lisboa",
+          "name": "MUNICÍPIO DE SINTRA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "n50-store-lisboa",
+          "name": "N.50 STORE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "nameza-restaurante-lisboa",
+          "name": "NAMEZA RESTAURANTE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "nicolau-cascais-lisboa",
+          "name": "NICOLAU CASCAIS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "cafes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "optica-jomil-lisboa",
+          "name": "ÓPTICA JOMIL",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "palacio-biester",
+          "name": "PALÁCIO BIESTER",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "museus"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "palacio-chiado-lisboa",
+          "name": "Palácio Chiado",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "romantic"
+          ]
+        },
+        {
+          "slug": "palacio-estoril-hotel-golf-wellness-lisboa",
+          "name": "PALÁCIO ESTORIL HOTEL, GOLF & WELLNESS",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": [
+            "cocktails",
+            "fine-dining",
+            "romantic"
+          ]
+        },
+        {
+          "slug": "patek-philippe",
+          "name": "PATEK PHILIPPE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "relojoaria"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pomellato-lisboa",
+          "name": "POMELLATO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "porto-santa-maria-lisboa",
+          "name": "PORTO SANTA MARIA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "praia-da-ursa-lisboa",
+          "name": "Praia da Ursa",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "local-secret",
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "praia-do-guincho-lisboa",
+          "name": "Praia do Guincho",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "refuse-lisboa",
+          "name": "REFUSE",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-88",
+          "name": "RESTAURANTE 88",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "roberto-coin-lisboa",
+          "name": "ROBERTO COIN",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "romaria-de-baco-lisboa",
+          "name": "ROMARIA DE BACO",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "sala-lisboa",
+          "name": "SÁLA",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "tacho-real-lisboa",
+          "name": "TACHO REAL",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "tudor-lisboa-lisboa",
+          "name": "TUDOR",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "world-trg",
+          "name": "WORLD TRG",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "imobiliario"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "xerjoff-boutique-lisboa",
+          "name": "XERJOFF  – Boutique Lisboa",
+          "status": "published",
+          "city": "Lisboa",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        }
+      ]
+    },
+    "madeira": {
+      "count": 88,
+      "places": [
+        {
+          "slug": "1811-bistro-restaurante-madeira",
+          "name": "1811 BISTRÔ RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "adega-do-pomar-madeira",
+          "name": "ADEGA DO POMAR",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "as-vides-madeira",
+          "name": "AS VIDES",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "as-vistas-restaurant-madeira",
+          "name": "AS VISTAS RESTAURANT",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "atlantic-rentacar-madeira",
+          "name": "ATLANTIC RENT-A-CAR",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "mobilidade"
+          ],
+          "subcategories": [
+            "rent-a-car"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "atlantic-restaurante-madeira",
+          "name": "ATLANTIC RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "binter-linhas-aereas-das-canarias-madeira",
+          "name": "BINTER LINHAS AÉREAS DAS CANÁRIAS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "mobilidade"
+          ],
+          "subcategories": [
+            "aeroporto"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "blandys-wine-lodge-madeira",
+          "name": "BLANDY’S WINE LODGE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "brasa-fire-cocktails-madeira",
+          "name": "BRASA – FIRE & COCKTAILS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "brilhivitrine-madeira",
+          "name": "BRILHIVITRINE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "cabo-girao-madeira",
+          "name": "Cabo Girão",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "cabriolet-experiences-madeira",
+          "name": "CABRIOLET EXPERIENCES",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "miradouros"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "cafe-do-teatro-madeira",
+          "name": "CAFÉ DO TEATRO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "casal-da-penha-restaurante-madeira",
+          "name": "CASAL DA PENHA RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "castanheiro-boutique-hotel-madeira",
+          "name": "CASTANHEIRO BOUTIQUE HOTEL",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "coachella-restaurant-madeira",
+          "name": "COACHELLA RESTAURANT",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "convento-das-vinhas-madeira",
+          "name": "CONVENTO DAS VINHAS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "david-rosas-madeira",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "dermalaser-madeira",
+          "name": "Dermalaser",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [],
+          "tags": [
+            "wellness"
+          ]
+        },
+        {
+          "slug": "desarma-restaurante-madeira",
+          "name": "DESARMA RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "engenhos-do-norte-madeira",
+          "name": "ENGENHOS DO NORTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "enseada-food-and-drinks-madeira",
+          "name": "ENSEADA FOOD AND DRINKS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fabrica-do-ribeiro-seco-madeira",
+          "name": "FÁBRICA DO RIBEIRO SÊCO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lembracas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fabrica-sto-antonio-madeira",
+          "name": "FÁBRICA STO ANTÓNIO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-tradicionais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fanal-forest-madeira",
+          "name": "Fanal Forest",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "local-secret"
+          ]
+        },
+        {
+          "slug": "forest-food-madeira",
+          "name": "Forest Food",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [],
+          "tags": [
+            "family",
+            "local-secret",
+            "lunch",
+            "terrace"
+          ]
+        },
+        {
+          "slug": "frente-mar-funchal-barreirinha-madeira",
+          "name": "FRENTE MAR FUNCHAL – BARREIRINHA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "frente-mar-funchal-doca-do-cavacas-madeira",
+          "name": "FRENTE MAR FUNCHAL – DOCA DO CAVACAS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "frente-mar-funchal-lido-madeira",
+          "name": "FRENTE MAR FUNCHAL – LIDO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "frente-mar-funchal-ponta-gorda-madeira",
+          "name": "FRENTE MAR FUNCHAL – PONTA GORDA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "green-devil-safari-madeira",
+          "name": "GREEN DEVIL SAFARI",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "desporto",
+            "experiencias-unicas",
+            "praias"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "henriques-henriques-madeira",
+          "name": "HENRIQUES & HENRIQUES",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "jacaranda-chafariz-madeira",
+          "name": "JACARANDÁ- CHAFARIZ",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "justinos-madeira-wines-madeira",
+          "name": "JUSTINO’S MADEIRA WINES",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "la-ao-fundo-restaurante-madeira",
+          "name": "LÁ AO FUNDO RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "loja-do-cha-madeira-madeira",
+          "name": "LOJA DO CHÁ MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "cafes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "loja-do-cha-madeira-plaza-madeira-madeira",
+          "name": "LOJA DO CHÁ MADEIRA – PLAZA MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "cafes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "loja-dos-vinhos-madeira",
+          "name": "LOJA DOS VINHOS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy",
+            "retail"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas",
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "lume-pizzeria-napoletana-madeira",
+          "name": "LUME PIZZERIA NAPOLETANA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "madeira-exquisite-food-on-foot-tours-madeira",
+          "name": "MADEIRA EXQUISITE – FOOD ON FOOT TOURS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "madeira-legacy-madeira",
+          "name": "MADEIRA LEGACY",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "imobiliario"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "madeira-radical-madeira",
+          "name": "MADEIRA RADICAL",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "madpoint-madeira",
+          "name": "MADPOINT",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "mobilidade"
+          ],
+          "subcategories": [
+            "rent-a-car"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "makan-madeira-madeira",
+          "name": "MAKAN MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "melia-madeira-mare-madeira",
+          "name": "MELIÁ MADEIRA MARE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "miradouro-da-ponta-do-rosto-madeira",
+          "name": "Miradouro da Ponta do Rosto",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "miradouros"
+          ],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "miradouro-do-guindaste-madeira",
+          "name": "Miradouro do Guindaste",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "miradouros"
+          ],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "monte-palace-madeira-madeira",
+          "name": "MONTE PALACE MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "jardins"
+          ],
+          "tags": [
+            "culture",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "municipio-da-calheta-madeira",
+          "name": "MUNICÍPIO DA CALHETA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-camara-de-lobos-madeira",
+          "name": "MUNICÍPIO DE CÂMARA DE LOBOS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-porto-moniz-madeira",
+          "name": "MUNICÍPIO DE PORTO MONIZ",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-santa-cruz-madeira",
+          "name": "MUNICÍPIO DE SANTA CRUZ",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-do-funchal-madeira",
+          "name": "MUNICÍPIO DO FUNCHAL",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "optica-da-se-madeira",
+          "name": "ÓPTICA DA SÉ",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "orquestra-classica-da-madeira-madeira",
+          "name": "ORQUESTRA CLÁSSICA DA MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "eventos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "palm-spot-restaurant-madeira",
+          "name": "PALM SPOT RESTAURANT",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "patisserie-francaise-novos-sabores-madeira",
+          "name": "PÂTISSERIE FRANÇAISE – NOVOS SABORES",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "cafes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "peixaria-na-avenida-madeira",
+          "name": "PEIXARIA NA AVENIDA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "peixaria-no-mercado-madeira",
+          "name": "PEIXARIA NO MERCADO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pereira-d-oliveiravinhos-madeira",
+          "name": "PEREIRA D’ OLIVEIRA(VINHOS)",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pico-dos-barcelos-viewpoint-madeira",
+          "name": "Pico dos Barcelos viewpoint",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "poncha-da-imperatriz-wine-food-madeira",
+          "name": "PONCHA DA IMPERATRIZ – WINE & FOOD",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "ponta-de-sao-lourenco-madeira",
+          "name": "Ponta de São Lourenço",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "portaliano-madeira",
+          "name": "PORTALIANO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "porto-santo-line-madeira",
+          "name": "PORTO SANTO LINE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "praia-de-porto-santo-madeira",
+          "name": "Praia de Porto Santo",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "praia-do-seixal-madeira",
+          "name": "Praia do Seixal",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "local-secret",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "prima-caju-madeira",
+          "name": "PRIMA CAJU",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quinta-da-moscadinha-madeira",
+          "name": "QUINTA DA MOSCADINHA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quinta-magnolia-madeira",
+          "name": "Quinta Magnólia",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "family",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "restaurante-dos-combatentes-madeira",
+          "name": "RESTAURANTE DOS COMBATENTES",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-pvp-pao-vinho-e-petiscos-madeira",
+          "name": "RESTAURANTE PVP – PÃO VINHO E PETISCOS",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "rolex-madeira",
+          "name": "ROLEX",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "relojoaria"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "seapleasure-madeira",
+          "name": "Seapleasure",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [],
+          "tags": [
+            "family",
+            "local-secret"
+          ]
+        },
+        {
+          "slug": "sense-of-madeira-madeira",
+          "name": "SENSE OF MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lembracas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "sidra-quinta-da-moscadinha-madeira",
+          "name": "SIDRA – QUINTA DA MOSCADINHA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "sol-poente-restaurante-madeira",
+          "name": "SOL POENTE RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "sun-spot-cafe-madeira",
+          "name": "SUN SPOT CAFÉ",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "taj-mahal-indian-restaurant-madeira",
+          "name": "TAJ MAHAL INDIAN RESTAURANT",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "teleferico-do-jardim-botanico-madeira",
+          "name": "TELEFÉRICO DO JARDIM BOTÂNICO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": [
+            "culture",
+            "family",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "tipografia-restaurante-mediterraneo-madeira",
+          "name": "TIPOGRAFIA – RESTAURANTE MEDITERRÂNEO",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "universo-de-memorias-joao-carlos-abreu-madeira",
+          "name": "UNIVERSO DE MEMÓRIAS JOÃO CARLOS ABREU",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "culture",
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "museus"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "varilux-essilor-madeira",
+          "name": "VARILUX ESSILOR",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "victoria-restaurante-madeira",
+          "name": "VICTORIA RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vila-da-carne-restaurante-madeira",
+          "name": "VILA DA CARNE RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vila-do-peixe-restaurante-madeira",
+          "name": "VILA DO PEIXE RESTAURANTE",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vmtmadeira-madeira",
+          "name": "VMT-MADEIRA",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "winetours-madeira",
+          "name": "Winetours",
+          "status": "published",
+          "city": "Madeira",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [],
+          "tags": [
+            "culture",
+            "local-secret",
+            "wine"
+          ]
+        }
+      ]
+    },
+    "porto": {
+      "count": 122,
+      "places": [
+        {
+          "slug": "a-cozinha-por-antonio-loureiro-porto",
+          "name": "A COZINHA POR ANTÓNIO LOUREIRO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "a-marisqueira-de-matosinhos-porto",
+          "name": "A MARISQUEIRA DE MATOSINHOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "acqua-restaurant-hotel-ga-palace-porto",
+          "name": "ACQUA RESTAURANT HOTEL GA PALACE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "adega-sao-nicolau-porto",
+          "name": "ADEGA SÃO NICOLAU",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "comida-tipica"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "alcino-cardosas-store-porto",
+          "name": "ALCINO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "alcino-flores-store-porto",
+          "name": "ALCINO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "alcino-workshop-store-porto",
+          "name": "ALCINO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "almada-terrace-porto",
+          "name": "ALMADA TERRACE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "arouca-geopark-porto",
+          "name": "AROUCA GEOPARK",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture",
+            "experiences",
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "desporto",
+            "experiencias-unicas",
+            "monumentos",
+            "praias"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "arquinho-do-castelo-porto",
+          "name": "ARQUINHO DO CASTELO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "asia-connection-porto",
+          "name": "ASIA CONNECTION",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "atrevo-porto",
+          "name": "ATREVO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "barbour-loios-porto",
+          "name": "BARBOUR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "barbour-norteshopping-porto",
+          "name": "BARBOUR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "bierhaus-porto",
+          "name": "BIERHAUS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "caminhos-cruzados-porto",
+          "name": "CAMINHOS CRUZADOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "casa-da-musica-porto",
+          "name": "CASA DA MÚSICA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "eventos"
+          ],
+          "tags": [
+            "culture"
+          ]
+        },
+        {
+          "slug": "casa-de-cha-da-boa-nova-porto",
+          "name": "CASA DE CHÁ DA BOA NOVA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "casa-do-livro-porto",
+          "name": "CASA DO LIVRO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares",
+            "vida-noturna"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "a-casa-vegetariana",
+          "name": "CASA VEGETARIANA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "casarao-do-castelo-porto",
+          "name": "CASARÃO DO CASTELO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "coquine-porto",
+          "name": "COQUINE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "culto-ao-bacalhau-porto",
+          "name": "CULTO AO BACALHAU",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "david-rosas-boavista-porto",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "david-rosas-aliados-porto",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "david-rosas-norteshopping-porto",
+          "name": "DAVID ROSAS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "divany-divani-porto",
+          "name": "DIVANY & DIVANI PORTO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "decoracao"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "divino-restaurant-lounge-porto",
+          "name": "DIVINO RESTAURANT & LOUNGE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "dona-maria-restaurante-porto",
+          "name": "DONA MARIA RESTAURANTE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "dop-restaurant-porto",
+          "name": "DOP RESTAURANT",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "elements-7580-matosinhos-porto",
+          "name": "ELEMENTS 75’80 MATOSINHOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "elements-7580-porto-porto",
+          "name": "ELEMENTS 75’80 PORTO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "elements-7580-sedeheadquarters-porto",
+          "name": "ELEMENTS 75’80 SEDE/HEADQUARTERS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "escama-porto",
+          "name": "ESCAMA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "escondidinho-restaurante-porto",
+          "name": "ESCONDIDINHO RESTAURANTE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fado-no-porto-porto",
+          "name": "FADO NO PORTO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fe-wine-club-porto",
+          "name": "FÉ WINE & CLUB",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares",
+            "vida-noturna"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "federica-porto",
+          "name": "FEDERICA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "foz-do-douro-promenade-porto",
+          "name": "Foz do Douro Promenade",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "fred-perry-porto",
+          "name": "FRED PERRY",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "fundacao-de-serralves-porto",
+          "name": "FUNDAÇÃO DE SERRALVES",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture",
+            "experiences"
+          ],
+          "subcategories": [
+            "eventos",
+            "experiencias-unicas",
+            "museus"
+          ],
+          "tags": [
+            "culture",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "galeria-fernando-santos-porto",
+          "name": "GALERIA FERNANDO SANTOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture",
+            "experiences"
+          ],
+          "subcategories": [
+            "eventos",
+            "galerias"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "habitat-terra-e-fogo-porto",
+          "name": "HABITAT TERRA E FOGO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "herdade-1980-porto",
+          "name": "HERDADE 1980",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "hool-porto",
+          "name": "HOOL",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "alojamento",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "hoteis",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "imobiliaria-ka-porto",
+          "name": "Imobiliária KA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [],
+          "tags": [
+            "local-secret"
+          ]
+        },
+        {
+          "slug": "ines-barbosa",
+          "name": "INÊS BARBOSA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "joalharia"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "infinity-haus-real-estate-design-porto",
+          "name": "INFINITY HAUS – Real Estate & Design",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "imobiliario"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "jangal-gastro-bar",
+          "name": "JANGAL GASTRO BAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "jardim-do-morro-porto",
+          "name": "Jardim do Morro",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "jardins-do-palacio-de-cristal-porto",
+          "name": "Jardins do Palácio de Cristal",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "just-porto",
+          "name": "JUST",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "legoist-porto",
+          "name": "L'ÉGOÏST",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "lapa-lapa-porto",
+          "name": "LAPA LAPA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "lider-restaurante-bar-porto",
+          "name": "LIDER RESTAURANTE BAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "livraria-lello-porto",
+          "name": "Livraria Lello",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": [
+            "culture"
+          ]
+        },
+        {
+          "slug": "loja-das-tabuas-porto",
+          "name": "LOJA DAS TÁBUAS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "machado-joalheiro-porto",
+          "name": "MACHADO JOALHEIRO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "mae-porto",
+          "name": "MÃE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "marcolino-porto",
+          "name": "MARCOLINO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "mariscar-porto",
+          "name": "MARISCAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "mercado-do-bom-sucesso-porto",
+          "name": "MERCADO BOM SUCESSO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy",
+            "retail"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "lembracas",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "miradouro-das-virtudes-porto",
+          "name": "Miradouro das Virtudes",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "miradouros"
+          ],
+          "tags": [
+            "local-secret",
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "montblanc-porto",
+          "name": "MONTBLANC",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "joalharia"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "mud-factory-under-design-porto",
+          "name": "MUD – FACTORY UNDER DESIGN",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "lojas-locais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-aveiro-porto",
+          "name": "MUNICÍPIO DE AVEIRO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-barcelos-porto",
+          "name": "MUNICÍPIO DE BARCELOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-gondomar-porto",
+          "name": "MUNICÍPIO DE GONDOMAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-guimaraes-porto",
+          "name": "MUNICÍPIO DE GUIMARÃES",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-matosinhos-porto",
+          "name": "MUNICÍPIO DE MATOSINHOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-santa-maria-da-feira-porto",
+          "name": "MUNICÍPIO DE SANTA MARIA DA FEIRA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-vila-do-conde-porto",
+          "name": "MUNICÍPIO DE VILA DO CONDE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "municipio-de-vila-nova-de-gaia-porto",
+          "name": "MUNICÍPIO DE VILA NOVA DE GAIA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "norma-porto",
+          "name": "NORMA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "norteshopping-porto",
+          "name": "NORTESHOPPING",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "centros-comerciais"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "novo-casarao-do-castelo-porto",
+          "name": "NOVO CASARÃO DO CASTELO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "o-gaveto-restaurante-porto",
+          "name": "O GAVETO RESTAURANTE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "palacio-da-bolsa-porto",
+          "name": "PALÁCIO DA BOLSA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture",
+            "experiences"
+          ],
+          "subcategories": [
+            "eventos",
+            "sitios-historicos"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "palatial",
+          "name": "PALATIAL RESTAURANT",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "palatial-restaurant-suites",
+          "name": "PALATIAL RESTAURANT & SUITES",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "panamar-porto",
+          "name": "PANAMAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "passeio-das-virtudes-porto",
+          "name": "Passeio das Virtudes",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "culture"
+          ],
+          "subcategories": [],
+          "tags": [
+            "local-secret",
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "passeio-dos-clerigos-porto",
+          "name": "PASSEIO DOS CLÉRIGOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pedro-lemos",
+          "name": "PEDRO LEMOS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "peixe-no-mercado",
+          "name": "PEIXE NO MERCADO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pires-joalheiros-porto",
+          "name": "PIRES JOALHEIROS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "pomellato-porto",
+          "name": "POMELLATO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "joalharia"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "portovella-lodges-bungalows-porto",
+          "name": "PORTOVELLA – LODGES & BUNGALOWS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "praca-boavista-porto",
+          "name": "PRAÇA BOAVISTA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "praia-da-luz-restaurante-porto",
+          "name": "Praia da Luz",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "praia-do-senhor-da-pedra-porto",
+          "name": "Praia do Senhor da Pedra",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "natureza-outdoor"
+          ],
+          "subcategories": [
+            "praias"
+          ],
+          "tags": [
+            "sunset",
+            "viewpoint"
+          ]
+        },
+        {
+          "slug": "pregar-porto",
+          "name": "PRÉGAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "projeto-vimoc-porto",
+          "name": "PROJETO VIMOC",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quinta-da-roeda-porto",
+          "name": "QUINTA DA ROÊDA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "adegas",
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quinta-do-panascal",
+          "name": "QUINTA DO PANASCAL",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "quintas-farm-houses-porto",
+          "name": "QUINTÃS FARM HOUSES",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "reitoria-porto",
+          "name": "REITORIA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-antiqvvm-porto",
+          "name": "RESTAURANTE ANTIQVVM",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-doc-porto",
+          "name": "RESTAURANTE DOC",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-emotivo-porto",
+          "name": "RESTAURANTE EMOTIVO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-panoramico-do-hotel-elevador-porto",
+          "name": "RESTAURANTE PANORÂMICO DO HOTEL ELEVADOR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "restaurante-terreiro-porto",
+          "name": "RESTAURANTE TERREIRO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "rolex-porto",
+          "name": "ROLEX",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "santo-pizzaria-steakhouse",
+          "name": "SANTO PIZZARIA & STEAKHOUSE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "solar-moinho-de-vento-porto",
+          "name": "SOLAR MOINHO DE VENTO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "taberna-rio-porto",
+          "name": "TABERNA RIO",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "terra-nova-porto",
+          "name": "TERRA NOVA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-porto",
+          "name": "THE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-gastronomic-restaurant-porto",
+          "name": "THE GASTRONOMIC RESTAURANT",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-gin-house-porto",
+          "name": "THE GIN HOUSE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares",
+            "vida-noturna"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-manor-house-celeiros",
+          "name": "THE MANOR HOUSE CELEIRÓS",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-royal-cocktail-club-porto",
+          "name": "THE ROYAL COCKTAIL CLUB",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "bares",
+            "vida-noturna"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-vintage-house-porto",
+          "name": "THE VINTAGE HOUSE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "the-yeatman-wine-spa-porto",
+          "name": "THE YEATMAN WINE SPA",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences"
+          ],
+          "subcategories": [
+            "experiencias-unicas"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "tudor-porto",
+          "name": "TUDOR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "relojoaria"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "uva-by-calem-porto",
+          "name": "UVA BY CALÉM",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vermuteria-gastro-bar-porto",
+          "name": "VERMUTERIA GASTRO BAR",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "experiences",
+            "gastronomy"
+          ],
+          "subcategories": [
+            "experiencias-unicas",
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vidago-palace-porto",
+          "name": "VIDAGO PALACE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "alojamento"
+          ],
+          "subcategories": [
+            "hoteis"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "vinha-restaurant-porto",
+          "name": "VINHA RESTAURANT",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "wish-restaurant-sushi-porto",
+          "name": "WISH RESTAURANT & SUSHI",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "zapata-by-chakall-porto",
+          "name": "ZAPATA BY CHAKALL",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "gastronomy"
+          ],
+          "subcategories": [
+            "restaurantes"
+          ],
+          "tags": []
+        },
+        {
+          "slug": "zoah-store-porto",
+          "name": "ZOAH STORE",
+          "status": "published",
+          "city": "Porto",
+          "categories": [
+            "retail"
+          ],
+          "subcategories": [
+            "moda"
+          ],
+          "tags": []
+        }
+      ]
+    }
+  }
+}

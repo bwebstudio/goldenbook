@@ -17,6 +17,9 @@ interface RoutePlaceCardProps {
 export const RoutePlaceCard = React.memo(function RoutePlaceCard({ place, index, isLast }: RoutePlaceCardProps) {
   const router = useRouter();
   const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // Prefer the place's localized short description; fall back to the
+  // curator's editorial note when no description is available.
+  const description = place.shortDescription || place.note;
 
   return (
     <View className="flex-row px-6">
@@ -79,9 +82,9 @@ export const RoutePlaceCard = React.memo(function RoutePlaceCard({ place, index,
               <Ionicons name="chevron-forward" size={14} color="#D2B68A" />
             </View>
 
-            {place.note && (
+            {description && (
               <Text className="text-xs text-navy/50 italic" numberOfLines={2}>
-                {place.note}
+                {description}
               </Text>
             )}
 

@@ -29,39 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useTranslation } from '@/i18n';
 import { colors, typography, spacing, radius } from '@/design/tokens';
-
-// ─── Interest catalogue ───────────────────────────────────────────────────────
-// IDs are designed to be stable and backend-compatible.
-// The Discover API already consumes interest slugs from onboardingStore.
-
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
-interface Interest {
-  id: string;
-  label: string;
-  icon: IoniconName;
-}
-
-const INTERESTS: Interest[] = [
-  { id: 'gastronomy',    label: 'Gastronomy',       icon: 'restaurant-outline'    },
-  { id: 'fine-dining',   label: 'Fine Dining',       icon: 'wine-outline'          },
-  { id: 'wine',          label: 'Wine',              icon: 'wine-outline'          },
-  { id: 'cocktails',     label: 'Cocktails',         icon: 'beer-outline'          },
-  { id: 'cafes',         label: 'Cafés',             icon: 'cafe-outline'          },
-  { id: 'pastries',      label: 'Pastries',          icon: 'color-palette-outline' },
-  { id: 'culture',       label: 'Culture',           icon: 'color-palette-outline' },
-  { id: 'art',           label: 'Art',               icon: 'brush-outline'         },
-  { id: 'architecture',  label: 'Architecture',      icon: 'business-outline'      },
-  { id: 'design',        label: 'Design',            icon: 'grid-outline'          },
-  { id: 'nature',        label: 'Nature',            icon: 'leaf-outline'          },
-  { id: 'beaches',       label: 'Beaches',           icon: 'sunny-outline'         },
-  { id: 'wellness',      label: 'Wellness',          icon: 'water-outline'         },
-  { id: 'shopping',      label: 'Shopping',          icon: 'bag-outline'           },
-  { id: 'nightlife',     label: 'Nightlife',         icon: 'moon-outline'          },
-  { id: 'hidden-gems',   label: 'Hidden Gems',       icon: 'sparkles-outline'      },
-  { id: 'family',        label: 'Family Friendly',   icon: 'people-outline'        },
-  { id: 'romantic',      label: 'Romantic',          icon: 'heart-outline'         },
-];
+import { INTERESTS } from '@/config/interests';
 
 // ─── SavedBadge ───────────────────────────────────────────────────────────────
 
@@ -178,7 +146,7 @@ export default function PreferencesScreen() {
                   color={isSelected ? colors.navy.DEFAULT : `${colors.navy.DEFAULT}50`}
                 />
                 <Text style={[styles.chipLabel, isSelected && styles.chipLabelSelected]}>
-                  {item.label}
+                  {t.onboarding[item.labelKey]}
                 </Text>
               </TouchableOpacity>
             );

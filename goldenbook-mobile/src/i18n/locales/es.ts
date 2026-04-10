@@ -13,6 +13,7 @@ export const es: Translations = {
     contentComingSoonSub: 'El contenido completo estará disponible\nen una próxima actualización.',
     sponsored: 'Patrocinado',
     sponsoredGoldenbook: 'Patrocinado · Goldenbook',
+    error: 'Error',
   },
 
   profile: {
@@ -36,6 +37,8 @@ export const es: Translations = {
     deleteAccountFinalTitle: '¿Estás completamente seguro?',
     deleteAccountFinalMessage: 'Esta es tu última oportunidad. Todos tus datos serán eliminados permanentemente.',
     deleteAccountSuccess: 'Tu cuenta ha sido eliminada.',
+    deleteAccountError: 'No pudimos eliminar tu cuenta. Inténtalo de nuevo o escríbenos a privacy@goldenbook.app.',
+    deleting: 'Eliminando\u2026',
     signOut: 'Cerrar sesión',
     signOutTitle: 'Cerrar sesión',
     signOutMessage: '¿Seguro que quieres cerrar sesión?',
@@ -139,6 +142,7 @@ export const es: Translations = {
     supportingEvening: 'Abierto ahora · Elegante · Esta noche',
     supportingNight: 'Abierto ahora · Para la noche que viene',
     seeAnother: 'Ver otra opción',
+    errorLoading: 'No pudimos cargar una recomendación ahora mismo.',
     lookingForMore: '¿Buscas algo distinto?',
     openConcierge: 'Preguntar al Concierge',
     exploreNow: 'EXPLORAR AHORA',
@@ -198,6 +202,8 @@ export const es: Translations = {
     curatedNearby: 'Cerca de Ti',
     moreFrom: 'Más de',
     reserve: 'Reservar',
+    visitWebsite: 'Visitar sitio web',
+    openWebsite: 'Abrir sitio web',
     bookOnBooking: 'Reservar en Booking.com',
     reserveOnTheFork: 'Reservar en TheFork',
     checkAvailability: 'Ver disponibilidad',
@@ -253,6 +259,16 @@ export const es: Translations = {
     interestWellness: 'Spa y bienestar',
     interestShopping: 'Compras',
     interestHistory: 'Lugares históricos',
+    interestGastronomy: 'Gastronomía',
+    interestCocktails: 'Coctelería',
+    interestCafes: 'Cafés',
+    interestPastries: 'Pastelería',
+    interestArt: 'Arte',
+    interestArchitecture: 'Arquitectura',
+    interestDesign: 'Diseño',
+    interestBeaches: 'Playas',
+    interestFamily: 'En familia',
+    interestRomantic: 'Romántico',
     selected: 'seleccionados',
     continue: 'Continuar',
     styleHeading: '¿Cómo sueles\nexplorar?',
@@ -304,5 +320,127 @@ export const es: Translations = {
     skipped: 'Saltados',
     total: 'Total',
     exploreMoreRoutes: 'Explorar Más Rutas',
+  },
+
+  // ─── Autenticación ───────────────────────────────────────────────────────
+  auth: {
+    // ── Pantalla de entrada ──────────────────────────────────────────────
+    entryHeadline: 'Descubre lo mejor\nde Portugal.',
+    entrySubheadline: 'Restaurantes, hoteles y experiencias\nseleccionados con mimo por toda Portugal.',
+    signIn: 'Iniciar sesión',
+    createAccount: 'Crear cuenta',
+    orContinueWith: 'O CONTINÚA CON',
+    continueWithGoogle: 'Continuar con Google',
+    continueWithApple: 'Continuar con Apple',
+    legalPrefix: 'Al continuar aceptas los',
+    legalTerms: 'Términos del servicio',
+    legalAnd: ' y la ',
+    legalPrivacy: 'Política de privacidad',
+
+    // ── Inicio de sesión ─────────────────────────────────────────────────
+    loginHeading: 'Hola\nde nuevo.',
+    loginSubheading: 'Inicia sesión para seguir descubriendo Portugal.',
+    emailLabel: 'CORREO ELECTRÓNICO',
+    emailPlaceholder: 'tu@email.com',
+    passwordLabel: 'CONTRASEÑA',
+    passwordPlaceholder: '••••••••',
+    showPassword: 'VER',
+    hidePassword: 'OCULTAR',
+    forgotPassword: '¿Olvidaste tu contraseña?',
+    newToGoldenbook: '¿NUEVO EN GOLDENBOOK GO?',
+
+    // Aviso legacy (migración Firebase → Supabase)
+    migrationNoticeBefore: 'Si tenías cuenta en la versión anterior de la app, ',
+    migrationNoticeLink: 'restablece tu contraseña',
+    migrationNoticeAfter: ' para poder acceder de nuevo.',
+
+    // Banner "verifica tu email"
+    verifyBannerTitle: 'Verifica tu correo',
+    verifyBannerBody: 'Tu cuenta existe, pero aún no has verificado el correo. Revisa tu bandeja de entrada para confirmarlo.',
+    verifyBannerResend: 'Reenviar correo de verificación',
+
+    // ── Registro ─────────────────────────────────────────────────────────
+    registerHeading: 'Crea\ntu cuenta.',
+    registerSubheading: 'Crea tu cuenta y empieza a descubrir\nlo mejor de Portugal.',
+    emailHint: 'Te enviaremos un enlace de confirmación a este correo.',
+    passwordPlaceholderLong: 'Al menos 8 caracteres, con letras y números',
+    passwordHint: 'Mín. 8 caracteres · letras + números',
+    passwordTooShort: 'Usa al menos 8 caracteres.',
+    passwordNeedsLettersAndNumbers: 'Debe incluir letras y números.',
+    confirmPasswordLabel: 'CONFIRMAR CONTRASEÑA',
+    confirmPasswordPlaceholder: 'Repite la contraseña',
+    passwordsDoNotMatch: 'Las contraseñas no coinciden',
+    creatingAccount: 'Creando cuenta\u2026',
+    alreadyAMember: '¿YA TIENES CUENTA?',
+
+    // Registro — confirmación pendiente
+    accountCreatedTitle: 'Cuenta\ncreada.',
+    accountCreatedBody: 'Tu cuenta ha sido creada.\nConfirma tu correo para continuar.',
+    accountCreatedHint: 'Revisa tu bandeja de entrada y la carpeta de spam para encontrar el correo de confirmación.',
+    resendConfirmation: 'Reenviar correo de confirmación',
+
+    // Registro — verificación reenviada
+    verificationEmailSentTitle: 'Correo de\nverificación enviado.',
+    verificationEmailSentBody1: 'Este correo ya está registrado, pero aún no verificado.',
+    verificationEmailSentBody2: 'Hemos enviado un nuevo correo de confirmación a',
+    verificationEmailSentHint: 'Revisa tu bandeja de entrada y la carpeta de spam.',
+    goToSignIn: 'Ir a iniciar sesión',
+
+    // ── Restablecer contraseña — solicitud ───────────────────────────────
+    resetPasswordShort: 'Restablecer contraseña',
+    resetHeading: 'Restablecer\ncontraseña.',
+    resetSubheading: 'Introduce tu correo y te enviaremos un enlace seguro para restablecer tu contraseña.',
+    sendResetLink: 'Enviar enlace',
+    sending: 'Enviando\u2026',
+    backToSignIn: 'Volver a iniciar sesión',
+
+    // Restablecer — éxito
+    resetSentTitle: 'Revisa tu bandeja',
+    resetSentBody: 'Hemos enviado un enlace para restablecer tu contraseña a',
+    resetSentHint: 'Sigue el enlace del correo para elegir una contraseña nueva.\nEl enlace caduca en 60 minutos.',
+    resendEmail: 'Reenviar correo',
+
+    // ── Restablecer contraseña — confirmar ───────────────────────────────
+    resetConfirmHeading: 'Nueva\ncontraseña.',
+    resetConfirmSubheading: 'Elige una nueva contraseña para tu cuenta.',
+    newPasswordLabel: 'NUEVA CONTRASEÑA',
+    resetting: 'Actualizando\u2026',
+    resetSuccessTitle: 'Contraseña actualizada',
+    resetSuccessBody: 'Tu contraseña se ha actualizado.\nYa puedes iniciar sesión con la nueva.',
+    resetConfirmButton: 'Guardar contraseña',
+    invalidLinkTitle: 'Enlace no válido',
+    invalidLinkBody: 'Este enlace de restablecimiento no es válido o ha caducado.',
+    requestNewLink: 'Solicitar un nuevo enlace',
+
+    // ── Verificar correo ─────────────────────────────────────────────────
+    verifying: 'Verificando tu correo\u2026',
+    emailVerifiedTitle: 'Correo verificado',
+    emailVerifiedBody: 'Tu correo ha sido verificado.\nYa tienes acceso completo a Goldenbook.',
+    continueCta: 'Continuar',
+    verificationFailedTitle: 'No se pudo verificar',
+    invalidOrExpiredLink: 'Este enlace de verificación no es válido o ha caducado.',
+    verifyYourEmailTitle: 'Verifica tu correo',
+    verifyYourEmailBody: 'Revisa tu bandeja de entrada para encontrar el enlace de verificación.\nAlgunas funciones están limitadas hasta que lo confirmes.',
+    resendVerification: 'Reenviar correo de verificación',
+    sendingShort: 'Enviando\u2026',
+    emailSent: 'Correo enviado',
+    checkInboxExpiresIn24h: 'Revisa tu bandeja de entrada. El enlace caduca en 24 horas.',
+  },
+
+  // ─── Errores relacionados con auth ───────────────────────────────────────
+  authErrors: {
+    signInFailedGeneric: 'No se pudo iniciar sesión. Revisa tus credenciales.',
+    invalidCredentials: 'El correo o la contraseña no son correctos.',
+    createAccountFailed: 'No pudimos crear tu cuenta ahora mismo. Inténtalo de nuevo.',
+    emailAlreadyExists: 'Ya existe una cuenta con este correo. Inicia sesión o restablece tu contraseña.',
+    passwordPolicy: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números.',
+    resetFailed: 'No pudimos enviar el correo de restablecimiento. Inténtalo de nuevo.',
+    resetConfirmFailed: 'No se pudo restablecer la contraseña.',
+  },
+
+  // ─── Error boundary global ───────────────────────────────────────────────
+  errorBoundary: {
+    title: 'Algo ha ido mal',
+    body: 'Cierra la app y vuelve a abrirla. Si el problema persiste, contacta con soporte.',
   },
 };

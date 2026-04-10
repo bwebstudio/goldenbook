@@ -7,6 +7,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useTranslation } from '@/i18n';
+import * as Localization from 'expo-localization';
 import { useFonts } from 'expo-font';
 import {
   PlayfairDisplay_400Regular,
@@ -28,6 +30,24 @@ SplashScreen.preventAutoHideAsync();
 
 // ─── Error Boundary ─────────────────────────────────────────────────────────
 // Catches unhandled rendering errors so the app shows a message instead of crashing.
+//
+// The fallback UI is a separate functional component so it can subscribe to
+// the settings store and show the translated copy — a class component can't
+// call hooks directly.
+
+function ErrorFallback() {
+  const t = useTranslation();
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#161E38', padding: 32 }}>
+      <Text style={{ color: '#D2B68A', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
+        {t.errorBoundary.title}
+      </Text>
+      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center' }}>
+        {t.errorBoundary.body}
+      </Text>
+    </View>
+  );
+}
 
 class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -45,16 +65,7 @@ class AppErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.hasError) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#161E38', padding: 32 }}>
-          <Text style={{ color: '#D2B68A', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
-            Something went wrong
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center' }}>
-            Please close and reopen the app. If the issue persists, contact support.
-          </Text>
-        </View>
-      );
+      return <ErrorFallback />;
     }
     return this.props.children;
   }
@@ -121,11 +132,12 @@ function useNavigationGuard(ready: boolean) {
 // ─── Root layout ──────────────────────────────────────────────────────────────
 
 export default function RootLayout() {
-  const initialize         = useAuthStore((s) => s.initialize);
-  const authLoading        = useAuthStore((s) => s.isLoading);
-  const isHydrated         = useAppStore((s) => s.isHydrated);
-  const onboardingHydrated = useOnboardingStore((s) => s.isHydrated);
-  const settingsHydrated   = useSettingsStore((s) => s.isHydrated);
+  const initialize          = useAuthStore((s) => s.initialize);
+  const authLoading         = useAuthStore((s) => s.isLoading);
+  const isHydrated          = useAppStore((s) => s.isHydrated);
+  const onboardingHydrated  = useOnboardingStore((s) => s.isHydrated);
+  const settingsHydrated    = useSettingsStore((s) => s.isHydrated);
+  const setLocaleFromDevice = useSettingsStore((s) => s.setLocaleFromDevice);
 
   // True once the GoldenAtlasSplash exit-animation finishes.
   const [animationDone, setAnimationDone] = useState(false);
@@ -149,6 +161,20 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) initialize();
   }, [fontsLoaded]);
+
+  // ── Device language detection ───────────────────────────────────────────
+  // Runs once, as soon as the settings store has rehydrated from SecureStore.
+  // If the user previously picked a language from the Language screen,
+  // `localeIsExplicit` is true in the persisted state and setLocaleFromDevice
+  // is a no-op — their choice is preserved across launches.
+  // Otherwise we map the device's preferred language family (pt-* → pt,
+  // es-* → es, anything else → en) and update the store synchronously, so
+  // the locale is already correct by the time the splash exits.
+  useEffect(() => {
+    if (!settingsHydrated) return;
+    const tag = Localization.getLocales?.()[0]?.languageTag ?? Localization.locale;
+    setLocaleFromDevice(tag);
+  }, [settingsHydrated, setLocaleFromDevice]);
 
   // Hide the native Expo splash the moment our custom splash mounts.
   const onLayoutSplash = useCallback(async () => {

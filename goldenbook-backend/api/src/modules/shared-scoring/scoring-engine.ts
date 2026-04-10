@@ -294,6 +294,21 @@ function isEligibleForTimeWindow(
   const tags = place.context_tag_slugs ?? []
   const hasTag = (t: string) => tags.includes(t)
 
+  // ── Untagged restaurants: assume dinner-only ──────────────────────────
+  // A restaurant with zero context tags has no editorial signal about when
+  // it's appropriate. Default to dinner-only behaviour: block from
+  // morning / midday / afternoon to prevent leaking dinner venues into
+  // daytime NOW results. (Also blocked from deep_night below.)
+  if (pt === 'restaurant' && tags.length === 0) {
+    if (
+      timeOfDay === 'morning' ||
+      timeOfDay === 'midday' ||
+      timeOfDay === 'afternoon'
+    ) {
+      return false
+    }
+  }
+
   // ── Shopping curfew: most shops close 19:00–20:00 ─────────────────────
   // Exclude from evening onwards. A few design shops stay open later but
   // the general rule is: no shops after 18:00 for recommendation purposes.

@@ -29,7 +29,7 @@ export function CategoryPlaceCard({ place }: CategoryPlaceCardProps) {
           {place.cityName}
         </Text>
         <Text
-          className="text-navy font-bold text-sm leading-snug"
+          className="text-navy font-bold text-sm leading-snug uppercase"
           style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
           numberOfLines={2}
         >

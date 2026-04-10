@@ -107,10 +107,7 @@ export default function ProfileScreen() {
                   Alert.alert('', t.profile.deleteAccountSuccess);
                   await signOut();
                 } catch {
-                  Alert.alert(
-                    'Error',
-                    'Could not delete account. Please try again or contact support at privacy@goldenbook.app.',
-                  );
+                  Alert.alert(t.common.error, t.profile.deleteAccountError);
                 } finally {
                   setDeleting(false);
                 }
@@ -273,7 +270,7 @@ export default function ProfileScreen() {
               <View style={[styles.row, styles.rowDivider]}>
                 <ActivityIndicator size="small" color="#B94040" />
                 <Text style={[styles.rowLabel, styles.rowLabelDestructive, { marginLeft: spacing.sm }]}>
-                  Deleting...
+                  {t.profile.deleting}
                 </Text>
               </View>
             ) : (

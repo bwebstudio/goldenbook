@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/i18n';
 import { useRouteDetail } from '@/features/routes/hooks/useRouteDetail';
 import { useSaveRoute } from '@/features/saved/hooks/useSaveRoute';
 import { RouteHero, RoutePlacesTimeline } from '@/features/routes/components';
@@ -9,6 +10,7 @@ import { RouteHero, RoutePlacesTimeline } from '@/features/routes/components';
 export default function RouteDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
+  const t = useTranslation();
   const { data, isLoading, isError } = useRouteDetail(slug ?? '');
   const { isSaved, toggle: toggleSave, isPending } = useSaveRoute(data?.id ?? '');
 
@@ -71,7 +73,7 @@ export default function RouteDetailScreen() {
             onPress={() => router.push(`/journey/${slug}`)}
           >
             <Text className="text-primary text-[11px] uppercase tracking-widest font-bold">
-              Start Route
+              {t.routes.startRoute}
             </Text>
             <Text className="text-primary text-sm font-bold">→</Text>
           </TouchableOpacity>

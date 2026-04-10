@@ -73,6 +73,22 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
     else if (actions.reservationPhone) openUrl(`tel:${actions.reservationPhone}`);
   };
 
+  // ── CTA label resolver ──────────────────────────────────────────────────
+  // We currently have NO active affiliate / partner integration. Labels must
+  // describe what the link actually does, without implying a partnership:
+  //   • "Reserve"        → only when the URL is clearly a reservation flow
+  //                        for this venue (contact-to-reserve, tel:).
+  //   • "Visit website"  → the venue's own website / own booking page.
+  //   • "Open website"   → any other generic external page.
+  const resolveBookingLabel = (c: BookingCTA): string => {
+    if (c.platform === 'website') return t.place.visitWebsite;
+    if (c.platform === 'contact') return t.place.reserve;
+    // booking / thefork / viator / getyourguide and any unknown platform:
+    // we cannot claim this is a reservation flow we operate, so we just
+    // describe it as a generic external page.
+    return t.place.openWebsite;
+  };
+
   const handleMap = () => {
     if (location?.latitude && location?.longitude) {
       router.push(`/map?lat=${location.latitude}&lng=${location.longitude}` as any);
@@ -83,79 +99,89 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
 
   const canShowMap = !!(location?.latitude && location?.longitude) || !!actions.navigateUrl;
 
+  // Legacy reserve label: tel: link is a clear reservation flow → "Reserve".
+  // A bookingUrl in the legacy path is the venue's own page → "Visit website".
+  const legacyReserveLabel = actions.reservationPhone && !actions.bookingUrl
+    ? t.place.reserve
+    : t.place.visitWebsite;
+
   return (
-    <View className="flex-row gap-3 px-8 pt-6 pb-2">
-      {/* Booking CTA — primary action */}
-      {hasBookingCTA && cta && (
-        <TouchableOpacity
-          onPress={handleBookingCTA}
-          activeOpacity={0.85}
-          className="items-center justify-center bg-navy rounded-full"
-          style={{ flex: 1.5, height: 48 }}
-        >
-          <Text className="text-ivory text-xs font-bold uppercase tracking-widest">
-            {t.place.reserve}
-          </Text>
-        </TouchableOpacity>
-      )}
+    <View className="px-8 pt-6 pb-2">
+      <View className="flex-row gap-3">
+        {/* Primary CTA — label depends on what the link actually opens */}
+        {hasBookingCTA && cta && (
+          <TouchableOpacity
+            onPress={handleBookingCTA}
+            activeOpacity={0.85}
+            className="items-center justify-center bg-navy rounded-full"
+            style={{ flex: 1.5, height: 48 }}
+            accessibilityRole="link"
+          >
+            <Text className="text-ivory text-xs font-bold uppercase tracking-widest">
+              {resolveBookingLabel(cta)}
+            </Text>
+          </TouchableOpacity>
+        )}
 
-      {/* Legacy reserve */}
-      {canLegacyReserve && (
-        <TouchableOpacity
-          onPress={handleLegacyReserve}
-          activeOpacity={0.85}
-          className="items-center justify-center bg-navy rounded-full"
-          style={{ flex: 1.5, height: 48 }}
-        >
-          <Text className="text-ivory text-xs font-bold uppercase tracking-widest">{t.place.reserve}</Text>
-        </TouchableOpacity>
-      )}
+        {/* Legacy reserve / website */}
+        {canLegacyReserve && (
+          <TouchableOpacity
+            onPress={handleLegacyReserve}
+            activeOpacity={0.85}
+            className="items-center justify-center bg-navy rounded-full"
+            style={{ flex: 1.5, height: 48 }}
+            accessibilityRole="link"
+          >
+            <Text className="text-ivory text-xs font-bold uppercase tracking-widest">{legacyReserveLabel}</Text>
+          </TouchableOpacity>
+        )}
 
-      {/* Map */}
-      {canShowMap && (
-        <TouchableOpacity
-          onPress={handleMap}
-          activeOpacity={0.85}
-          className="flex-row items-center justify-center gap-2 rounded-full border border-navy/5"
-          style={{
-            flex: 1, height: 48, backgroundColor: '#FDFDFB',
-            shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
-          }}
-        >
-          <Ionicons name="navigate-outline" size={18} color="#D2B68A" />
-          <Text className="text-navy text-xs font-bold uppercase tracking-widest">{t.place.map}</Text>
-        </TouchableOpacity>
-      )}
+        {/* Map */}
+        {canShowMap && (
+          <TouchableOpacity
+            onPress={handleMap}
+            activeOpacity={0.85}
+            className="flex-row items-center justify-center gap-2 rounded-full border border-navy/5"
+            style={{
+              flex: 1, height: 48, backgroundColor: '#FDFDFB',
+              shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
+            }}
+          >
+            <Ionicons name="navigate-outline" size={18} color="#D2B68A" />
+            <Text className="text-navy text-xs font-bold uppercase tracking-widest">{t.place.map}</Text>
+          </TouchableOpacity>
+        )}
 
-      {/* Save */}
-      {actions.canSave && (
-        <TouchableOpacity
-          onPress={onSave ?? (() => {})}
-          activeOpacity={0.8}
-          className="items-center justify-center rounded-full border border-navy/5"
-          style={{
-            width: 48, height: 48, backgroundColor: '#FDFDFB',
-            shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
-          }}
-        >
-          <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={20} color="#222D52" />
-        </TouchableOpacity>
-      )}
+        {/* Save */}
+        {actions.canSave && (
+          <TouchableOpacity
+            onPress={onSave ?? (() => {})}
+            activeOpacity={0.8}
+            className="items-center justify-center rounded-full border border-navy/5"
+            style={{
+              width: 48, height: 48, backgroundColor: '#FDFDFB',
+              shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
+            }}
+          >
+            <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={20} color="#222D52" />
+          </TouchableOpacity>
+        )}
 
-      {/* Website — only when no booking CTA is active (avoid two URL buttons) */}
-      {!hasBookingCTA && actions.websiteUrl && (
-        <TouchableOpacity
-          onPress={() => openUrl(actions.websiteUrl!)}
-          activeOpacity={0.8}
-          className="items-center justify-center rounded-full border border-navy/5"
-          style={{
-            width: 48, height: 48, backgroundColor: '#FDFDFB',
-            shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
-          }}
-        >
-          <Ionicons name="globe-outline" size={20} color="#222D52" />
-        </TouchableOpacity>
-      )}
+        {/* Website — only when no booking CTA is active (avoid two URL buttons) */}
+        {!hasBookingCTA && actions.websiteUrl && (
+          <TouchableOpacity
+            onPress={() => openUrl(actions.websiteUrl!)}
+            activeOpacity={0.8}
+            className="items-center justify-center rounded-full border border-navy/5"
+            style={{
+              width: 48, height: 48, backgroundColor: '#FDFDFB',
+              shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
+            }}
+          >
+            <Ionicons name="globe-outline" size={20} color="#222D52" />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }

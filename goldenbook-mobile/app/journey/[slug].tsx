@@ -215,11 +215,14 @@ function ActiveCard({
   onSkip: () => void;
 }) {
   const t = useTranslation();
+  // Prefer the place's localized short description (always available for
+  // active places) and fall back to the curator's editorial note.
+  const description = place.shortDescription || place.note;
   return (
     <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 24 }}>
-      {place.note ? (
+      {description ? (
         <Text className="text-navy/60 text-sm leading-relaxed flex-1">
-          {place.note}
+          {description}
         </Text>
       ) : (
         <View style={{ flex: 1 }} />
@@ -277,6 +280,8 @@ function ArrivedCard({
 }) {
   const t = useTranslation();
   const stayTime = formatStayTime(place.stayMinutes);
+  // Prefer localized place description, fall back to curator note.
+  const description = place.shortDescription || place.note;
 
   return (
     <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 24 }}>
@@ -289,9 +294,9 @@ function ArrivedCard({
         {t.journey.youveArrived}
       </Text>
 
-      {place.note ? (
+      {description ? (
         <Text className="text-navy/55 text-sm leading-relaxed text-center">
-          {place.note}
+          {description}
         </Text>
       ) : null}
 

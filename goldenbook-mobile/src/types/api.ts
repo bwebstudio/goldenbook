@@ -168,6 +168,8 @@ export interface DiscoverPlaceCard {
   shortDescription: string | null;
   placeType: string | null;
   cityName: string | null;
+  categoryName: string | null;
+  subcategoryName: string | null;
   isSponsored?: boolean;
 }
 
@@ -293,6 +295,10 @@ export interface RoutePlaceDTO {
   id: string;
   slug: string;
   name: string;
+  /** Localized short description of the place itself.
+   *  Resolved server-side via the locale → en → original fallback chain. */
+  shortDescription: string | null;
+  /** Curator's editorial annotation for this stop on this specific route. */
   note: string | null;
   stayMinutes: number | null;
   sortOrder: number;

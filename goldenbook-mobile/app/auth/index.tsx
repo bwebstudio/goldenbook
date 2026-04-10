@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useGoogleSignIn, useAppleSignIn } from '@/hooks/useSocialAuth';
+import { useTranslation } from '@/i18n';
 
 const { height: H } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ const IVORY = '#FDFDFB';
 
 export default function AuthEntryScreen() {
   const router = useRouter();
+  const t      = useTranslation();
 
   const { signIn: googleSignIn, loading: googleLoading, error: googleError } = useGoogleSignIn();
   const { signIn: appleSignIn,  loading: appleLoading,  error: appleError  } = useAppleSignIn();
@@ -69,12 +71,12 @@ export default function AuthEntryScreen() {
 
           {/* Headline */}
           <Text style={styles.headline}>
-            Discover Portugal's{'\n'}finest places.
+            {t.auth.entryHeadline}
           </Text>
 
           {/* Subheadline */}
           <Text style={styles.subheadline}>
-            Curated restaurants, hotels and experiences{'\n'}handpicked across Portugal.
+            {t.auth.entrySubheadline}
           </Text>
         </View>
 
@@ -95,7 +97,7 @@ export default function AuthEntryScreen() {
             disabled={isBusy}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnPrimaryText}>Sign in</Text>
+            <Text style={styles.btnPrimaryText}>{t.auth.signIn}</Text>
           </TouchableOpacity>
 
           <View style={{ height: 12 }} />
@@ -107,13 +109,13 @@ export default function AuthEntryScreen() {
             disabled={isBusy}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnGhostText}>Create account</Text>
+            <Text style={styles.btnGhostText}>{t.auth.createAccount}</Text>
           </TouchableOpacity>
 
           {/* Social divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>OR CONTINUE WITH</Text>
+            <Text style={styles.dividerLabel}>{t.auth.orContinueWith}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -129,7 +131,7 @@ export default function AuthEntryScreen() {
             ) : (
               <>
                 <Text style={styles.googleG}>G</Text>
-                <Text style={styles.btnSocialGoogleText}>Continue with Google</Text>
+                <Text style={styles.btnSocialGoogleText}>{t.auth.continueWithGoogle}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -147,7 +149,7 @@ export default function AuthEntryScreen() {
               ) : (
                 <>
                   <Ionicons name="logo-apple" size={18} color={IVORY} />
-                  <Text style={styles.btnSocialAppleText}>Continue with Apple</Text>
+                  <Text style={styles.btnSocialAppleText}>{t.auth.continueWithApple}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -155,19 +157,19 @@ export default function AuthEntryScreen() {
 
           {/* Legal */}
           <Text style={styles.legal}>
-            By continuing you agree to Goldenbook Go's{'\n'}
+            {t.auth.legalPrefix}{'\n'}
             <Text
               style={styles.legalLink}
               onPress={() => router.push({ pathname: '/info', params: { contentKey: 'terms' } })}
             >
-              Terms of Service
+              {t.auth.legalTerms}
             </Text>
-            {' and '}
+            {t.auth.legalAnd}
             <Text
               style={styles.legalLink}
               onPress={() => router.push({ pathname: '/info', params: { contentKey: 'privacy' } })}
             >
-              Privacy Policy
+              {t.auth.legalPrivacy}
             </Text>
             .
           </Text>

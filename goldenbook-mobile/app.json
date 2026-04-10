@@ -40,7 +40,8 @@
           "locationAlwaysAndWhenInUsePermission": "Your location is used to show nearby places and local recommendations.",
           "locationWhenInUsePermission": "Your location is used to show nearby places and local recommendations."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "scheme": "goldenbook",
     "experiments": {

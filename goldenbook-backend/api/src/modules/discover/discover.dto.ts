@@ -12,25 +12,46 @@ import {
 } from '../../shared/ranking/place.ranking'
 
 // ─── Time segment ─────────────────────────────────────────────────────────────
+//
+// Canonical NOW time windows (matches now.scoring.ts + audit eligibility matrix):
+//   morning      08–11
+//   midday       11–15
+//   afternoon    15–18
+//   evening      18–23
+//   late_evening 23–02
+//   deep_night   02–07
+//
+// Legacy `night` is kept for backwards compatibility with older callers.
 
-export type TimeSegment = 'morning' | 'midday' | 'afternoon' | 'evening' | 'late_evening' | 'deep_night' | 'night'
+export type TimeSegment =
+  | 'morning'
+  | 'midday'
+  | 'afternoon'
+  | 'evening'
+  | 'late_evening'
+  | 'deep_night'
+  | 'night'
 
 export function getTimeSegment(hour: number): TimeSegment {
-  if (hour >= 6 && hour <= 10) return 'morning'
-  if (hour >= 11 && hour <= 14) return 'midday'
-  if (hour >= 15 && hour <= 18) return 'afternoon'
-  if (hour >= 19 && hour <= 21) return 'evening'
-  return 'night'
+  if (hour >= 8  && hour < 11) return 'morning'
+  if (hour >= 11 && hour < 15) return 'midday'
+  if (hour >= 15 && hour < 18) return 'afternoon'
+  if (hour >= 18 && hour < 23) return 'evening'
+  if (hour >= 23 || hour < 2)  return 'late_evening'
+  if (hour >= 2  && hour < 7)  return 'deep_night'
+  return 'morning' // 07–08 transition
 }
 
 // Category slugs that resonate for each time segment.
 // Must match real DB values: activities, beaches, culture, events, gastronomy, shops, sports, transport
 const SEGMENT_CATEGORIES: Record<TimeSegment, string[]> = {
-  morning:   ['sports', 'activities', 'beaches', 'culture'],
-  midday:    ['gastronomy', 'culture', 'activities', 'events'],
-  afternoon: ['shops', 'gastronomy', 'culture', 'events'],
-  evening:   ['gastronomy', 'events', 'activities', 'culture'],
-  night:     ['gastronomy', 'events', 'activities'],
+  morning:      ['sports', 'activities', 'beaches', 'culture'],
+  midday:       ['gastronomy', 'culture', 'activities', 'events'],
+  afternoon:    ['shops', 'gastronomy', 'culture', 'events'],
+  evening:      ['gastronomy', 'events', 'activities', 'culture'],
+  late_evening: ['gastronomy', 'events', 'activities'],
+  deep_night:   ['gastronomy', 'events'],
+  night:        ['gastronomy', 'events', 'activities'],
 }
 
 function scoreNowCandidate(
@@ -84,6 +105,8 @@ interface PlaceCardDTO {
   shortDescription: string | null
   placeType: string | null
   cityName: string | null
+  categoryName: string | null
+  subcategoryName: string | null
   isSponsored?: boolean
 }
 
@@ -96,6 +119,8 @@ function toPlaceCard(row: PlaceCardRow): PlaceCardDTO {
     shortDescription: row.short_description,
     placeType: row.place_type ?? null,
     cityName: row.city_name ?? null,
+    categoryName: row.category_name ?? null,
+    subcategoryName: row.subcategory_name ?? null,
   }
   if (row.is_sponsored) dto.isSponsored = true
   return dto

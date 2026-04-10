@@ -21,6 +21,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '@/store/authStore';
+import { useTranslation } from '@/i18n';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -32,6 +33,7 @@ const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 export default function RegisterScreen() {
   const router  = useRouter();
+  const t       = useTranslation();
   const signUp  = useAuthStore((s) => s.signUp);
 
   const [email, setEmail]       = useState('');
@@ -41,6 +43,12 @@ export default function RegisterScreen() {
   const [showConf, setShowConf] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
+  /**
+   * Tracks *why* the current error is shown, so we can decide whether to
+   * render the "Sign in / Reset password" action row without relying on
+   * matching the translated error string.
+   */
+  const [errorKind, setErrorKind] = useState<'none' | 'exists' | 'other'>('none');
   const [registered, setRegistered] = useState(false);
   const [verificationResent, setVerificationResent] = useState(false);
 
@@ -48,16 +56,26 @@ export default function RegisterScreen() {
   const [passFocused, setPassFocused]   = useState(false);
   const [confFocused, setConfFocused]   = useState(false);
 
+  // Password policy: at least 8 chars, must contain at least one letter AND one digit.
+  // Mirrors the Supabase Auth password strength rules.
+  const isValidPassword = (pw: string) =>
+    pw.length >= 8 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
+
+  const passwordValid    = isValidPassword(password);
+  const passwordTooShort = password.length > 0 && password.length < 8;
+  const passwordWeak     = password.length >= 8 && !passwordValid;
+
   const passwordsMatch = password === confirm;
   const canSubmit =
     isValidEmail(email) &&
-    password.length >= 8 &&
+    passwordValid &&
     passwordsMatch &&
     !loading;
 
   const handleRegister = async () => {
     if (!canSubmit) return;
     setError('');
+    setErrorKind('none');
     setVerificationResent(false);
     setLoading(true);
     try {
@@ -65,17 +83,26 @@ export default function RegisterScreen() {
       setRegistered(true);
     } catch (e: any) {
       const code = e?.code ?? e?.message;
+      const msg  = (e?.message ?? '').toString().toLowerCase();
 
-      switch (code) {
-        case 'EMAIL_UNVERIFIED':
-          setVerificationResent(true);
-          break;
-        case 'EMAIL_ALREADY_EXISTS':
-          setError('An account with this email already exists. Sign in or reset your password.');
-          break;
-        default:
-          setError('We couldn\u2019t create your account right now. Please try again.');
-          break;
+      // Supabase password policy rejections — surface a clear message
+      if (msg.includes('password') && (msg.includes('weak') || msg.includes('characters') || msg.includes('letter') || msg.includes('digit') || msg.includes('strength'))) {
+        setError(t.authErrors.passwordPolicy);
+        setErrorKind('other');
+      } else {
+        switch (code) {
+          case 'EMAIL_UNVERIFIED':
+            setVerificationResent(true);
+            break;
+          case 'EMAIL_ALREADY_EXISTS':
+            setError(t.authErrors.emailAlreadyExists);
+            setErrorKind('exists');
+            break;
+          default:
+            setError(t.authErrors.createAccountFailed);
+            setErrorKind('other');
+            break;
+        }
       }
     } finally {
       setLoading(false);
@@ -102,16 +129,16 @@ export default function RegisterScreen() {
           </View>
 
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.successTitle}>Verification{'\n'}email sent.</Text>
+          <Text style={styles.successTitle}>{t.auth.verificationEmailSentTitle}</Text>
           <Text style={styles.successBody}>
-            This email is already registered but not yet verified.
+            {t.auth.verificationEmailSentBody1}
           </Text>
           <Text style={[styles.successBody, { marginTop: 8, marginBottom: 0 }]}>
-            We've sent a new confirmation email to
+            {t.auth.verificationEmailSentBody2}
           </Text>
           <Text style={styles.successEmail}>{email.trim().toLowerCase()}</Text>
           <Text style={styles.successHint}>
-            Check your inbox and spam folder.
+            {t.auth.verificationEmailSentHint}
           </Text>
 
           <View style={styles.goldRule} />
@@ -121,7 +148,7 @@ export default function RegisterScreen() {
             onPress={() => router.replace('/auth/login')}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnText}>Go to sign in</Text>
+            <Text style={styles.btnText}>{t.auth.goToSignIn}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -148,12 +175,12 @@ export default function RegisterScreen() {
           </View>
 
           <Text style={styles.ornamentStar}>✦</Text>
-          <Text style={styles.successTitle}>Account{'\n'}created.</Text>
+          <Text style={styles.successTitle}>{t.auth.accountCreatedTitle}</Text>
           <Text style={styles.successBody}>
-            Your account has been created.{'\n'}Please confirm your email to continue.
+            {t.auth.accountCreatedBody}
           </Text>
           <Text style={styles.successHint}>
-            Check your inbox and spam folder for the confirmation email.
+            {t.auth.accountCreatedHint}
           </Text>
 
           <View style={styles.goldRule} />
@@ -163,14 +190,14 @@ export default function RegisterScreen() {
             onPress={() => router.replace('/auth/login')}
             activeOpacity={0.82}
           >
-            <Text style={styles.btnText}>Sign in</Text>
+            <Text style={styles.btnText}>{t.auth.signIn}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.resendBtn}
             onPress={() => router.push('/auth/verify-email')}
           >
-            <Text style={styles.resendText}>Resend confirmation email</Text>
+            <Text style={styles.resendText}>{t.auth.resendConfirmation}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -203,9 +230,9 @@ export default function RegisterScreen() {
           {/* ── Heading ───────────────────────────────────────────────── */}
           <View style={styles.headingBlock}>
             <Text style={styles.ornamentStar}>✦</Text>
-            <Text style={styles.heading}>Create{'\n'}account.</Text>
+            <Text style={styles.heading}>{t.auth.registerHeading}</Text>
             <Text style={styles.subheading}>
-              Create your account and start discovering{'\n'}the finest of Portugal.
+              {t.auth.registerSubheading}
             </Text>
           </View>
 
@@ -216,14 +243,14 @@ export default function RegisterScreen() {
           {!!error && (
             <View style={styles.errorBanner}>
               <Text style={styles.errorText}>{error}</Text>
-              {error.includes('already exists') && (
+              {errorKind === 'exists' && (
                 <View style={styles.errorActions}>
                   <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                    <Text style={styles.errorLink}>Sign in</Text>
+                    <Text style={styles.errorLink}>{t.auth.signIn}</Text>
                   </TouchableOpacity>
                   <Text style={styles.errorDot}> · </Text>
                   <TouchableOpacity onPress={() => router.push('/auth/reset-password')}>
-                    <Text style={styles.errorLink}>Reset password</Text>
+                    <Text style={styles.errorLink}>{t.auth.resetPasswordShort}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -232,13 +259,13 @@ export default function RegisterScreen() {
 
           {/* ── Email ─────────────────────────────────────────────────── */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
+            <Text style={styles.fieldLabel}>{t.auth.emailLabel}</Text>
             <View style={[styles.fieldBox, emailFocused && styles.fieldBoxFocused]}>
               <TextInput
                 style={styles.fieldInput}
                 value={email}
                 onChangeText={setEmail}
-                placeholder="your@email.com"
+                placeholder={t.auth.emailPlaceholder}
                 placeholderTextColor="rgba(34,45,82,0.30)"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -249,18 +276,22 @@ export default function RegisterScreen() {
                 returnKeyType="next"
               />
             </View>
-            <Text style={styles.fieldHint}>We'll send a confirmation link to this address.</Text>
+            <Text style={styles.fieldHint}>{t.auth.emailHint}</Text>
           </View>
 
           {/* ── Password ──────────────────────────────────────────────── */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>PASSWORD</Text>
-            <View style={[styles.fieldBox, passFocused && styles.fieldBoxFocused]}>
+            <Text style={styles.fieldLabel}>{t.auth.passwordLabel}</Text>
+            <View style={[
+              styles.fieldBox,
+              passFocused && styles.fieldBoxFocused,
+              (passwordTooShort || passwordWeak) && styles.fieldBoxError,
+            ]}>
               <TextInput
                 style={[styles.fieldInput, { flex: 1 }]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="Min. 8 characters"
+                placeholder={t.auth.passwordPlaceholderLong}
                 placeholderTextColor="rgba(34,45,82,0.30)"
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
@@ -274,14 +305,22 @@ export default function RegisterScreen() {
                 onPress={() => setShowPass((v) => !v)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.showHide}>{showPass ? 'HIDE' : 'SHOW'}</Text>
+                <Text style={styles.showHide}>{showPass ? t.auth.hidePassword : t.auth.showPassword}</Text>
               </TouchableOpacity>
             </View>
+            {/* Inline hint / error: helps the user meet the policy before submit */}
+            {passwordTooShort ? (
+              <Text style={styles.fieldError}>{t.auth.passwordTooShort}</Text>
+            ) : passwordWeak ? (
+              <Text style={styles.fieldError}>{t.auth.passwordNeedsLettersAndNumbers}</Text>
+            ) : (
+              <Text style={styles.fieldHint}>{t.auth.passwordHint}</Text>
+            )}
           </View>
 
           {/* ── Confirm password ──────────────────────────────────────── */}
           <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
+            <Text style={styles.fieldLabel}>{t.auth.confirmPasswordLabel}</Text>
             <View style={[
               styles.fieldBox,
               confFocused && styles.fieldBoxFocused,
@@ -291,7 +330,7 @@ export default function RegisterScreen() {
                 style={[styles.fieldInput, { flex: 1 }]}
                 value={confirm}
                 onChangeText={setConfirm}
-                placeholder="Repeat password"
+                placeholder={t.auth.confirmPasswordPlaceholder}
                 placeholderTextColor="rgba(34,45,82,0.30)"
                 secureTextEntry={!showConf}
                 autoCapitalize="none"
@@ -306,11 +345,11 @@ export default function RegisterScreen() {
                 onPress={() => setShowConf((v) => !v)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.showHide}>{showConf ? 'HIDE' : 'SHOW'}</Text>
+                <Text style={styles.showHide}>{showConf ? t.auth.hidePassword : t.auth.showPassword}</Text>
               </TouchableOpacity>
             </View>
             {confirm.length > 0 && !passwordsMatch && (
-              <Text style={styles.fieldError}>Passwords do not match</Text>
+              <Text style={styles.fieldError}>{t.auth.passwordsDoNotMatch}</Text>
             )}
           </View>
 
@@ -322,14 +361,14 @@ export default function RegisterScreen() {
             activeOpacity={0.82}
           >
             <Text style={styles.btnText}>
-              {loading ? 'Creating account…' : 'Create account'}
+              {loading ? t.auth.creatingAccount : t.auth.createAccount}
             </Text>
           </TouchableOpacity>
 
           {/* ── Divider ───────────────────────────────────────────────── */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>ALREADY A MEMBER?</Text>
+            <Text style={styles.dividerLabel}>{t.auth.alreadyAMember}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -340,7 +379,7 @@ export default function RegisterScreen() {
             disabled={loading}
             activeOpacity={0.82}
           >
-            <Text style={styles.secondaryBtnText}>Sign in</Text>
+            <Text style={styles.secondaryBtnText}>{t.auth.signIn}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

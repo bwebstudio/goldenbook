@@ -151,6 +151,32 @@ export interface NowScoreResult {
   breakdown: ScoreBreakdown
 }
 
+// ─── Defensive time-of-day safety penalty ────────────────────────────────────
+//
+// Reinforces the hard time-window filter from rankNowCandidates with a tag-
+// level safeguard: a place tagged dinner / fine-dining should never appear in
+// morning / midday / afternoon results, even if its editorial windows are
+// imperfect or its now_time_window_match leaks through.
+//
+// Applied as a post-score subtraction so it composes with the existing
+// proximity/moment/time/etc. signals without touching their weights.
+
+const DAYTIME_WINDOWS = new Set<NowTimeOfDay>(['morning', 'midday', 'afternoon'])
+const DINNER_ONLY_TAGS = new Set(['dinner', 'fine-dining'])
+
+function dinnerSafetyPenalty(place: NowScoredPlace, timeOfDay: NowTimeOfDay): number {
+  if (!DAYTIME_WINDOWS.has(timeOfDay)) return 0
+  const tags = place.context_tag_slugs ?? []
+  if (tags.length === 0) return 0
+  const isDinnerOnly = tags.some((t) => DINNER_ONLY_TAGS.has(t))
+  if (!isDinnerOnly) return 0
+  // If the place ALSO has a daytime tag (lunch / brunch), it's a dual-shift
+  // venue and should not be penalised.
+  const hasDaytimeTag = tags.some((t) => t === 'lunch' || t === 'brunch' || t === 'coffee')
+  if (hasDaytimeTag) return 0
+  return -50
+}
+
 export function scoreNowPlace(
   place: NowScoredPlace,
   timeOfDay: NowTimeOfDay,
@@ -166,6 +192,8 @@ export function scoreNowPlace(
   const isSponsored = paidPlaceIds.has(place.id)
   const commercialScore = scoreCommercial(isSponsored)
   const nowTagsScore = scoreNowTags(place)
+  // Defensive layer: dinner/fine-dining at daytime → -50 (see above)
+  const timeAdjustment = dinnerSafetyPenalty(place, timeOfDay)
 
   const nowTagsWeight = weights.now_tags ?? 0.20
   const totalScore =
@@ -175,7 +203,8 @@ export function scoreNowPlace(
     weights.weather       * weatherScore +
     weights.base_quality  * baseQualityScore +
     weights.commercial    * commercialScore +
-    nowTagsWeight         * nowTagsScore
+    nowTagsWeight         * nowTagsScore +
+    timeAdjustment
 
   const breakdown: ScoreBreakdown = {
     proximity:    { raw: proximityScore,    weighted: Math.round(weights.proximity * proximityScore * 100) / 100 },
@@ -205,10 +234,21 @@ export function scoreNowPlace(
  * Score, rank, and select top-3 candidates with weighted random selection.
  *
  * Rules:
+ *   - HARD time-window filter: places whose editorial windows don't include
+ *     the current time are excluded entirely (not just downranked). Places
+ *     with no editorial windows assigned fall through (now_time_window_match
+ *     defaults to `true` in the SQL).
  *   - Max 1 sponsored candidate in the top 3
- *   - Weighted random selection from the top candidates for variety
+ *   - Diversity quotas per time-of-day (max restaurants/bars, required scenic)
+ *   - Editorial fallback when all top results are gastronomic — swap one for
+ *     a scenic/culture pick.
+ *   - Weighted random selection within the candidate window for variety
  *   - Hard gate: momentScore > 0 (no place passes without valid moment)
  */
+/** Hard cap on the scoring pool. Above this size we trim by popularity_score
+ *  to avoid wasting CPU on long-tail candidates that won't make the top 3. */
+const MAX_SCORING_POOL = 150
+
 export function rankNowCandidates(
   candidates: NowScoredPlace[],
   timeOfDay: NowTimeOfDay,
@@ -217,53 +257,205 @@ export function rankNowCandidates(
   excludeIds: Set<string>,
   weights: NowWeights = DEFAULT_WEIGHTS,
 ): NowScoreResult[] {
-  const scored = candidates
+  // Hard filters first (cheap)
+  const filtered = candidates
     .filter((p) => !excludeIds.has(p.id))
+    // HARD time-window filter — see now_time_window_match SQL fallback
+    .filter((p) => p.now_time_window_match !== false)
+
+  // Performance cap: if the post-filter pool is huge, keep the top 150 by
+  // popularity_score (NULLS treated as 0) before running full scoring. This
+  // bounds work without changing ranking quality — long-tail candidates
+  // wouldn't have made the top 3 anyway.
+  const pool =
+    filtered.length > MAX_SCORING_POOL
+      ? [...filtered]
+          .sort((a, b) => (b.popularity_score ?? 0) - (a.popularity_score ?? 0))
+          .slice(0, MAX_SCORING_POOL)
+      : filtered
+
+  const scored = pool
     .map((place) => scoreNowPlace(place, timeOfDay, weather, paidPlaceIds, weights))
     .filter((r) => r.momentScore > 0 && r.bestMoment !== null)
     .sort((a, b) => b.totalScore - a.totalScore)
 
   if (scored.length === 0) return []
 
-  // Select top 3 with weighted random + max 1 sponsored
-  return selectTop3WithSponsoredCap(scored)
+  // Select top 3 with sponsored cap + diversity quotas + editorial fallback
+  return selectTop3WithSponsoredCap(scored, timeOfDay)
+}
+
+// ─── Diversity quotas per time-of-day ────────────────────────────────────────
+
+interface DiversityLimits {
+  /** Max places with place_type = 'restaurant' allowed in the top 3 */
+  maxRestaurants: number
+  /** Max places with place_type = 'bar' allowed in the top 3 */
+  maxBars: number
+  /** Top 3 must include at least one place tagged scenic/culture/nature */
+  requireScenic: boolean
+  /** Top 3 must include at least one place tagged drinks OR scenic */
+  requireDrinksOrScenic: boolean
+  /** Prefer bars/viewpoints in late_evening/deep_night */
+  preferBarsAndViewpoints: boolean
+}
+
+const SCENIC_TAGS = new Set(['viewpoint', 'nature', 'sunset', 'culture', 'rooftop'])
+const DRINKS_OR_SCENIC_TAGS = new Set([
+  'cocktails', 'wine', 'rooftop', 'viewpoint', 'sunset', 'nature',
+])
+
+function getDiversityLimits(timeOfDay: NowTimeOfDay): DiversityLimits {
+  switch (timeOfDay) {
+    case 'morning':
+      return { maxRestaurants: 1, maxBars: 0, requireScenic: false, requireDrinksOrScenic: false, preferBarsAndViewpoints: false }
+    case 'midday':
+      return { maxRestaurants: 2, maxBars: 0, requireScenic: false, requireDrinksOrScenic: false, preferBarsAndViewpoints: false }
+    case 'afternoon':
+      return { maxRestaurants: 1, maxBars: 1, requireScenic: true,  requireDrinksOrScenic: false, preferBarsAndViewpoints: false }
+    case 'evening':
+      return { maxRestaurants: 2, maxBars: 2, requireScenic: false, requireDrinksOrScenic: true,  preferBarsAndViewpoints: false }
+    case 'late_evening':
+    case 'night':
+    case 'deep_night':
+      return { maxRestaurants: 1, maxBars: 3, requireScenic: false, requireDrinksOrScenic: true,  preferBarsAndViewpoints: true }
+  }
+}
+
+function isScenic(r: NowScoreResult): boolean {
+  const tags = r.place.context_tag_slugs ?? []
+  return tags.some((t) => SCENIC_TAGS.has(t))
+}
+
+function isDrinksOrScenic(r: NowScoreResult): boolean {
+  const tags = r.place.context_tag_slugs ?? []
+  return tags.some((t) => DRINKS_OR_SCENIC_TAGS.has(t))
+}
+
+function isGastronomic(r: NowScoreResult): boolean {
+  return r.place.place_type === 'restaurant' || r.place.place_type === 'bar' || r.place.place_type === 'cafe'
 }
 
 /**
- * Top-3 weighted random selection.
+ * Top-3 selection with sponsored cap, diversity quotas, and editorial fallback.
  * Process:
  *   1. Separate sponsored vs organic candidates
- *   2. Pick at most 1 sponsored from top sponsored candidates
- *   3. Fill remaining slots from organic pool via weighted random
- *   4. Shuffle the final 3 using weighted randomness based on score
+ *   2. Pick at most 1 sponsored from top sponsored candidates (respecting quotas)
+ *   3. Fill remaining slots from organic pool via weighted random + quotas
+ *   4. Editorial fallback: if all 3 are gastronomic OR a required scenic/drinks
+ *      slot is missing, swap the weakest pick for the highest-ranked candidate
+ *      that fills the gap
+ *   5. Shuffle the final 3 using weighted randomness based on score
  */
-function selectTop3WithSponsoredCap(sorted: NowScoreResult[]): NowScoreResult[] {
+function selectTop3WithSponsoredCap(
+  sorted: NowScoreResult[],
+  timeOfDay: NowTimeOfDay,
+): NowScoreResult[] {
   const TARGET = 3
+  const limits = getDiversityLimits(timeOfDay)
+
   const sponsored = sorted.filter((r) => r.isSponsored)
   const organic = sorted.filter((r) => !r.isSponsored)
   const selected: NowScoreResult[] = []
+  const counts = { restaurant: 0, bar: 0 }
 
-  // At most 1 sponsored — pick the top one if available
-  if (sponsored.length > 0) {
-    selected.push(sponsored[0])
+  const canAdd = (r: NowScoreResult): boolean => {
+    if (r.place.place_type === 'restaurant' && counts.restaurant >= limits.maxRestaurants) return false
+    if (r.place.place_type === 'bar' && counts.bar >= limits.maxBars) return false
+    return true
+  }
+  const accept = (r: NowScoreResult) => {
+    selected.push(r)
+    if (r.place.place_type === 'restaurant') counts.restaurant++
+    if (r.place.place_type === 'bar') counts.bar++
   }
 
-  // Fill remaining from organic via weighted random
-  const remaining = TARGET - selected.length
-  const organicPicked = weightedRandomPick(organic, remaining)
-  selected.push(...organicPicked)
+  // 1. At most 1 sponsored — top one that fits the quotas
+  for (const s of sponsored) {
+    if (canAdd(s)) { accept(s); break }
+  }
 
-  // If still short (not enough organic), fill from whatever is left
-  if (selected.length < TARGET) {
-    const selectedIds = new Set(selected.map((r) => r.place.id))
-    const extras = sorted.filter((r) => !selectedIds.has(r.place.id))
-    for (const r of extras) {
+  // 2. Fill remaining slots from organic via weighted random within quotas
+  const remaining = TARGET - selected.length
+  if (remaining > 0) {
+    const eligibleOrganic = organic.filter(canAdd)
+    const organicPicked = weightedRandomPick(eligibleOrganic, remaining)
+    for (const r of organicPicked) {
       if (selected.length >= TARGET) break
-      selected.push(r)
+      if (canAdd(r)) accept(r)
     }
   }
 
-  // Final shuffle by weighted random so the #1 slot varies
+  // 3. Top-up with anyone left if quotas were so tight we ran short
+  if (selected.length < TARGET) {
+    const selectedIds = new Set(selected.map((r) => r.place.id))
+    for (const r of sorted) {
+      if (selected.length >= TARGET) break
+      if (selectedIds.has(r.place.id)) continue
+      // ignore quotas in the topup pass — better to surface 3 than to return 1
+      selected.push(r)
+      if (r.place.place_type === 'restaurant') counts.restaurant++
+      if (r.place.place_type === 'bar') counts.bar++
+    }
+  }
+
+  // 4. Editorial fallback — apply gap-filling swaps
+  return finalizeWithEditorialFallback(selected, sorted, limits)
+}
+
+/**
+ * Apply editorial fallback rules in order:
+ *   a) If `requireScenic` and the picks contain no scenic place, swap the
+ *      weakest non-scenic pick for the highest-ranked scenic candidate.
+ *   b) If `requireDrinksOrScenic` and the picks contain no drinks/scenic
+ *      place, swap the weakest non-matching pick for the best matching one.
+ *   c) If all picks are gastronomic, force-insert one scenic place — even
+ *      when not strictly required by the time-of-day rules. This is the
+ *      "never recommend 3 restaurants in a row" guarantee.
+ */
+function finalizeWithEditorialFallback(
+  selected: NowScoreResult[],
+  sorted: NowScoreResult[],
+  limits: DiversityLimits,
+): NowScoreResult[] {
+  const trySwap = (
+    predicate: (r: NowScoreResult) => boolean,
+    avoidPredicate: (r: NowScoreResult) => boolean,
+  ): void => {
+    if (selected.some(predicate)) return
+    const candidate = sorted.find(
+      (r) => predicate(r) && !selected.some((s) => s.place.id === r.place.id),
+    )
+    if (!candidate) return
+    // Find the weakest pick that does NOT match avoidPredicate (i.e. is "safe to remove")
+    let weakestIdx = -1
+    let weakestScore = Infinity
+    for (let i = 0; i < selected.length; i++) {
+      const r = selected[i]
+      if (avoidPredicate(r)) continue
+      // Don't drop the only sponsored pick
+      if (r.isSponsored) continue
+      if (r.totalScore < weakestScore) {
+        weakestScore = r.totalScore
+        weakestIdx = i
+      }
+    }
+    if (weakestIdx >= 0) selected[weakestIdx] = candidate
+  }
+
+  // (a) Required scenic
+  if (limits.requireScenic) {
+    trySwap(isScenic, isScenic)
+  }
+  // (b) Required drinks-or-scenic
+  if (limits.requireDrinksOrScenic) {
+    trySwap(isDrinksOrScenic, isDrinksOrScenic)
+  }
+  // (c) Universal "no all-gastronomic top-3" guard
+  if (selected.length > 0 && selected.every(isGastronomic)) {
+    trySwap(isScenic, isScenic)
+  }
+
   return weightedShuffle(selected)
 }
 

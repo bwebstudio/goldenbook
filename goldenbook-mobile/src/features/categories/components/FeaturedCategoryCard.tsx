@@ -63,7 +63,7 @@ export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
           {place.cityName}
         </Text>
         <Text
-          className="text-white font-bold leading-snug mb-1"
+          className="text-white font-bold leading-snug mb-1 uppercase"
           style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 18, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}
           numberOfLines={2}
         >
