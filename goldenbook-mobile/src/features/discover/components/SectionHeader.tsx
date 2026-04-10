@@ -9,7 +9,7 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, onSeeAll }: SectionHeaderProps) {
   const t = useTranslation();
   return (
-    <View className="flex-row items-end justify-between px-6 mb-6 mt-8">
+    <View className="flex-row items-end justify-between px-6 mb-5 mt-7">
       <Text className="text-xl font-bold text-navy tracking-tight">{title}</Text>
       {onSeeAll && (
         <TouchableOpacity onPress={onSeeAll}>

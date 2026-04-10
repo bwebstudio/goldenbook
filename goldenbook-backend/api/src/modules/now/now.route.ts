@@ -192,7 +192,15 @@ interface NowRecommendationDTO {
     heroImage: { bucket: string | null; path: string | null }
     shortDescription: string | null
     category: string
+    cuisineType: string | null
+    subcategory: string | null
+    neighborhood: string | null
     distance: number | null
+    // Contact / booking fields — used by mobile reservation button
+    bookingUrl: string | null
+    websiteUrl: string | null
+    phone: string | null
+    googleMapsUrl: string | null
   }
   isSponsored: boolean
   title: string       // max 60 chars — short contextual headline
@@ -308,6 +316,46 @@ function formatCurrentTime(citySlug?: string): string {
   return `${h}:${m}`
 }
 
+/** Extract neighborhood/zone from address_line — only returns known neighborhood names */
+function extractNeighborhood(addressLine: string | null | undefined): string | null {
+  if (!addressLine) return null
+  const upper = addressLine.toUpperCase()
+
+  // Known neighborhoods / zones — match against address
+  const NEIGHBORHOODS: Record<string, string> = {
+    'CHIADO': 'Chiado', 'BAIRRO ALTO': 'Bairro Alto', 'PRÍNCIPE REAL': 'Príncipe Real',
+    'PRINCIPE REAL': 'Príncipe Real', 'ALFAMA': 'Alfama', 'BAIXA': 'Baixa',
+    'BELÉM': 'Belém', 'BELEM': 'Belém', 'SANTOS': 'Santos', 'LAPA': 'Lapa',
+    'ALCÂNTARA': 'Alcântara', 'ALCANTARA': 'Alcântara', 'ESTRELA': 'Estrela',
+    'PARQUE DAS NAÇÕES': 'Parque das Nações', 'PARQUE DAS NACOES': 'Parque das Nações',
+    'AVENIDA DA LIBERDADE': 'Av. Liberdade', 'AV. LIBERDADE': 'Av. Liberdade',
+    'AV. DA LIBERDADE': 'Av. Liberdade',
+    'CASCAIS': 'Cascais', 'ESTORIL': 'Estoril', 'SINTRA': 'Sintra',
+    'GUINCHO': 'Guincho', 'CARCAVELOS': 'Carcavelos',
+    // Porto
+    'RIBEIRA': 'Ribeira', 'CEDOFEITA': 'Cedofeita', 'FÓRUM': 'Fórum',
+    'BOAVISTA': 'Boavista', 'FOZ': 'Foz', 'MATOSINHOS': 'Matosinhos',
+    'GAIA': 'Vila Nova de Gaia', 'VILA NOVA DE GAIA': 'Vila Nova de Gaia',
+    'ALIADOS': 'Aliados', 'CLÉRIGOS': 'Clérigos', 'CLERIGOS': 'Clérigos',
+    'BOLHÃO': 'Bolhão', 'BOLHAO': 'Bolhão', 'SÉ': 'Sé',
+    // Algarve
+    'VILAMOURA': 'Vilamoura', 'ALBUFEIRA': 'Albufeira', 'LAGOS': 'Lagos',
+    'PORTIMÃO': 'Portimão', 'PORTIMAO': 'Portimão', 'FARO': 'Faro',
+    'TAVIRA': 'Tavira', 'LOULÉ': 'Loulé', 'LOULE': 'Loulé',
+    'ALMANCIL': 'Almancil', 'CARVOEIRO': 'Carvoeiro', 'QUINTA DO LAGO': 'Quinta do Lago',
+    'VALE DO LOBO': 'Vale do Lobo',
+    // Madeira
+    'FUNCHAL': 'Funchal', 'CÂMARA DE LOBOS': 'Câmara de Lobos', 'CAMARA DE LOBOS': 'Câmara de Lobos',
+    'CALHETA': 'Calheta', 'PORTO MONIZ': 'Porto Moniz', 'SANTA CRUZ': 'Santa Cruz',
+    'MACHICO': 'Machico', 'PONTA DO SOL': 'Ponta do Sol',
+  }
+
+  for (const [key, label] of Object.entries(NEIGHBORHOODS)) {
+    if (upper.includes(key)) return label
+  }
+  return null
+}
+
 function buildNowDTO(
   result: ScoredCandidate,
   timeOfDay: NowTimeOfDay,
@@ -319,6 +367,13 @@ function buildNowDTO(
   const { place, bestTag, isSponsored } = result
   const city = cityName ?? place.city_name
   const explanation = buildExplanation(bestTag, timeOfDay, weather, place.distance_meters, locale)
+
+  // Extract detail fields (available on NowScoredPlace but not on UnifiedCandidate)
+  const raw = place as any
+  const cuisineTypes: string[] | null = raw.cuisine_types ?? null
+  const classificationSub: string | null = raw.classification_subcategory ?? null
+  const addressLine: string | null = raw.address_line ?? null
+
   return {
     place: {
       id: place.id,
@@ -328,7 +383,14 @@ function buildNowDTO(
       heroImage: { bucket: place.hero_bucket, path: place.hero_path },
       shortDescription: place.short_description ?? place.editorial_summary ?? null,
       category: place.place_type,
+      cuisineType: cuisineTypes?.[0] ?? null,
+      subcategory: classificationSub,
+      neighborhood: extractNeighborhood(addressLine),
       distance: place.distance_meters ? Math.round(place.distance_meters) : null,
+      bookingUrl: place.booking_url ?? place.website_url ?? null,
+      websiteUrl: place.website_url ?? null,
+      phone: place.phone ?? null,
+      googleMapsUrl: place.google_maps_url ?? null,
     },
     isSponsored,
     title: buildTitle(bestTag, timeOfDay, city, locale, place.place_type),
@@ -793,6 +855,7 @@ export async function nowRoutes(app: FastifyInstance) {
         shortDescription: r.place.short_description ?? r.place.editorial_summary ?? null,
         category: r.place.place_type,
         distance: r.place.distance_meters ? Math.round(r.place.distance_meters) : null,
+        bookingUrl: r.place.booking_url ?? r.place.website_url ?? null,
       })),
     })
   })

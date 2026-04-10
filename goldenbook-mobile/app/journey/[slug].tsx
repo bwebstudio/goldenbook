@@ -110,7 +110,7 @@ function JourneyContent({
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FDFDFB' }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.35)" />
 
       {/* ── Image section (fixed height) ─────────────────────────────────────── */}
       <View style={{ height: IMAGE_HEIGHT }}>

@@ -90,6 +90,7 @@ export function NearbyGemsSection({ nearbyGems }: NearbyGemsSectionProps) {
         data={nearbyGems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <NearbyGemCard gem={item} />}
+        getItemLayout={(_, index) => ({ length: CARD_WIDTH + 12, offset: (CARD_WIDTH + 12) * index, index })}
         contentContainerStyle={{ paddingHorizontal: 32 }}
         showsHorizontalScrollIndicator={false}
       />

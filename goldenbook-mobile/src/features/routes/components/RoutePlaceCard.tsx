@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -13,7 +14,7 @@ interface RoutePlaceCardProps {
   isLast: boolean;
 }
 
-export function RoutePlaceCard({ place, index, isLast }: RoutePlaceCardProps) {
+export const RoutePlaceCard = React.memo(function RoutePlaceCard({ place, index, isLast }: RoutePlaceCardProps) {
   const router = useRouter();
   const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
 
@@ -99,4 +100,4 @@ export function RoutePlaceCard({ place, index, isLast }: RoutePlaceCardProps) {
       </TouchableOpacity>
     </View>
   );
-}
+});

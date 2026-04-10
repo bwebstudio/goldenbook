@@ -148,11 +148,13 @@ export function toPlaceDetailDTO(
   // Build booking input for the resolver
   const bookingInput: PlaceBookingInput = {
     id: place.id,
+    place_type: place.place_type ?? 'restaurant',
     booking_enabled: place.booking_enabled,
     booking_mode: (place.booking_mode ?? 'none') as BookingMode,
     booking_url: place.booking_url,
     booking_label: place.booking_label,
     website_url: place.website_url,
+    google_maps_url: place.google_maps_url,
     phone: place.phone,
     reservation_relevant: place.reservation_relevant,
     category_slugs: categories.filter(c => c.type === 'category').map(c => c.slug),

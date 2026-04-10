@@ -16,7 +16,7 @@ import { createPlaceSchema, updatePlaceSchema } from './admin-places.dto'
 import { createPlace, updatePlace, deletePlace } from './admin-places.query'
 import { getAdminPlacesList } from './admin-places-list.query'
 import { getPlaceImages, setCoverImage, setGalleryOrder, moveImageToGallery, removeImageFromGallery, deleteImage, addImageToPlace } from './admin-images.query'
-import { searchGooglePlaces, generatePlaceFromGoogle } from './generate-place'
+import { searchGooglePlaces, previewPlaceFromGoogle, ingestGooglePhotos } from './generate-place'
 
 const idParamsSchema = z.object({ id: z.string().uuid('Place id must be a valid UUID') })
 
@@ -30,16 +30,44 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     return reply.send({ results })
   })
 
-  // ── POST /admin/places/generate ─────────────────────────────────────────────
-  // Create a fully auto-filled place from a Google Place ID
-  app.post('/admin/places/generate', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
-    const { googlePlaceId, citySlug } = z.object({
+  // ── POST /admin/places/preview-from-google ───────────────────────────────────
+  // Returns all fields pre-filled from Google Places WITHOUT creating the place.
+  // The editor reviews the data and clicks Save to actually create it.
+  app.post('/admin/places/preview-from-google', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { googlePlaceId } = z.object({
       googlePlaceId: z.string().min(1),
-      citySlug: z.string().min(1),
     }).parse(request.body)
 
-    const result = await generatePlaceFromGoogle(googlePlaceId, citySlug)
-    return reply.status(201).send(result)
+    try {
+      const preview = await previewPlaceFromGoogle(googlePlaceId)
+      return reply.send(preview)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      if (msg.startsWith('DUPLICATE:')) {
+        const existingSlug = msg.split(':')[1]
+        return reply.status(409).send({
+          error: 'DUPLICATE_PLACE',
+          message: 'Este estabelecimento já existe na base de dados.',
+          existingSlug,
+        })
+      }
+      throw err
+    }
+  })
+
+  // ── POST /admin/places/:id/ingest-google-photos ──────────────────────────────
+  // Downloads photos from Google Places and uploads them to Supabase storage.
+  // Called after place creation with the photoNames from the preview.
+  app.post('/admin/places/:id/ingest-google-photos', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { id } = idParamsSchema.parse(request.params)
+    const { photoNames } = z.object({
+      photoNames: z.array(z.string()).max(10),
+    }).parse(request.body)
+
+    if (photoNames.length === 0) return reply.send({ ingested: 0, failed: 0 })
+
+    const result = await ingestGooglePhotos(id, photoNames)
+    return reply.send(result)
   })
 
   // ── GET /admin/places ───────────────────────────────────────────────────────

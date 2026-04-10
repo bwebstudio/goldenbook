@@ -25,7 +25,7 @@ import {
 const placementTypes = [
   'golden_picks', 'now', 'hidden_gems', 'category_featured',
   'search_priority', 'new_on_goldenbook', 'routes', 'concierge',
-  'route_featured_stop', 'route_sponsor',
+  'route_featured_stop', 'route_sponsor', 'curated_route',
   'extra_images', 'extended_description', 'listing_premium_pack',
 ] as const
 

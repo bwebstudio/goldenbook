@@ -33,6 +33,7 @@ const TYPE_LABELS: Record<string, string> = {
   new_on_goldenbook: "New on Goldenbook",
   route_featured_stop: "Route Featured Stop",
   route_sponsor: "Route Sponsor",
+  curated_route: "Curated Route Placement · 15 days",
   extra_images: "Extra Images (up to 10) · Monthly",
   extended_description: "Extended Description (up to 600 chars) · Monthly",
 };

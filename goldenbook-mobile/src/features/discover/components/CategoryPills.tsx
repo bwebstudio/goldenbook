@@ -1,4 +1,4 @@
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { DiscoverCategory } from '../types';
 
@@ -12,21 +12,21 @@ export function CategoryPills({ categories }: CategoryPillsProps) {
   if (!categories.length) return null;
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+    <View
+      className="flex-row flex-wrap"
+      style={{ paddingHorizontal: 20, gap: 10 }}
     >
       {categories.map((cat) => (
         <TouchableOpacity
           key={cat.id}
           onPress={() => router.push(`/categories/${cat.slug}` as any)}
           activeOpacity={0.8}
-          className="border border-navy/10 rounded-full px-4 py-2"
+          className="border border-navy/10 rounded-full items-center justify-center"
+          style={{ paddingHorizontal: 18, paddingVertical: 10 }}
         >
-          <Text className="text-xs font-medium text-navy/60 tracking-wide">{cat.name}</Text>
+          <Text className="text-[13px] font-medium text-navy/65 tracking-wide">{cat.name}</Text>
         </TouchableOpacity>
       ))}
-    </ScrollView>
+    </View>
   );
 }

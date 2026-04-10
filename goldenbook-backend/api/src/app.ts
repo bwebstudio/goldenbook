@@ -42,6 +42,8 @@ import { notificationsRoutes } from './modules/notifications/notifications.route
 import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
 import { pricingConfigRoutes } from './modules/pricing-config/pricing-config.route'
 import { syncAllSlots } from './modules/inventory/promotion-inventory.query'
+import { curatedRoutesRoutes, adminCuratedRoutesRoutes } from './modules/curated-routes/curated-routes.route'
+import { runCuratedRoutesCycle } from './modules/curated-routes/curated-routes.scheduler'
 
 export function buildApp() {
   const app = Fastify({
@@ -100,6 +102,9 @@ export function buildApp() {
   app.register(notificationsRoutes,   { prefix: env.API_PREFIX })
   app.register(pricingConfigRoutes,   { prefix: env.API_PREFIX })
 
+  app.register(curatedRoutesRoutes,     { prefix: env.API_PREFIX })
+  app.register(adminCuratedRoutesRoutes, { prefix: env.API_PREFIX })
+
   // Stripe webhook — registered in its own encapsulated context so
   // the raw-body content-type parser doesn't affect other routes.
   app.register(stripeWebhookRoutes,    { prefix: env.API_PREFIX })
@@ -155,6 +160,16 @@ export function buildApp() {
         app.log.error(err, '[promotion-inventory] periodic sync failed'),
       )
     }, 15 * 60 * 1000)
+
+    // ── Curated routes: generate on startup + refresh every 30 minutes ────
+    runCuratedRoutesCycle().catch((err) =>
+      console.error('[curated-routes] startup cycle failed:', err),
+    )
+    setInterval(() => {
+      runCuratedRoutesCycle().catch((err) =>
+        console.error('[curated-routes] periodic cycle failed:', err),
+      )
+    }, 30 * 60 * 1000)
   })
 
   return app

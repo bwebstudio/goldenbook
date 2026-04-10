@@ -177,26 +177,33 @@ export async function createPlace(
       'address_line', 'website_url', 'phone', 'email', 'booking_url',
       'status', 'featured', 'place_type',
       'is_active', 'published_at',
+      'google_place_id', 'google_maps_url', 'google_rating', 'google_rating_count',
+      'latitude', 'longitude', 'price_tier',
     ]
     const insertVals = [
       '$1', '$2', '$3',
       '$4', '$5',
       '$6', '$7', '$8', '$9', '$10',
-      '$11', '$12', `'other'`,
+      '$11', '$12', '$13',
       'true',
       `CASE WHEN $11 = 'published' THEN now() ELSE NULL END`,
+      '$14', '$15', '$16', '$17',
+      '$18', '$19', '$20',
     ]
     const insertParams: unknown[] = [
       destinationId, input.slug, input.name,
       nullify(input.shortDescription), nullify(input.fullDescription),
       nullify(input.addressLine), nullify(input.websiteUrl),
       nullify(input.phone), nullify(input.email), nullify(input.bookingUrl),
-      input.status, input.featured,
+      input.status, input.featured, input.placeType ?? 'other',
+      nullify(input.googlePlaceId), nullify(input.googleMapsUrl),
+      input.googleRating ?? null, input.googleRatingCount ?? null,
+      input.latitude ?? null, input.longitude ?? null, input.priceTier ?? null,
     ]
 
     if (hasBookingCols) {
       insertCols.push('booking_enabled', 'booking_mode', 'booking_label', 'booking_notes', 'reservation_relevant', 'reservation_source')
-      insertVals.push('$13', `COALESCE($14, 'none')::booking_mode`, '$15', '$16', '$17', '$18::reservation_source')
+      insertVals.push('$21', `COALESCE($22, 'none')::booking_mode`, '$23', '$24', '$25', '$26::reservation_source')
       insertParams.push(
         input.bookingEnabled ?? false,
         input.bookingMode ?? 'none',
@@ -224,8 +231,10 @@ export async function createPlace(
       insider_tip: nullify(input.insiderTip),
     }
 
-    await upsertPlaceTranslation(client, place.id, 'en', englishFields)
+    // Translate first (PT, ES), then save EN last — ensures EN row always has correct English
+    // even if DeepL or upsert has edge-case bugs that could corrupt it
     await upsertAutoTranslationsFromEnglish(client, place.id, englishFields)
+    await upsertPlaceTranslation(client, place.id, 'en', englishFields)
 
     // Insert primary category
     await client.query(
@@ -247,7 +256,9 @@ export async function createPlace(
     await client.query('COMMIT')
 
     // Auto-classify (fire-and-forget — don't block response)
-    autoClassifyPlace(place.id).catch(() => {})
+    autoClassifyPlace(place.id).catch((err) => {
+      console.error(`[auto-classify] Failed for place ${place.id}:`, err)
+    })
 
     const citySlugs = await getPlaceCitySlugs(place.id)
 

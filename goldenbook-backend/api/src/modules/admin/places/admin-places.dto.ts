@@ -61,8 +61,17 @@ export const createPlaceSchema = z.object({
   bookingUrl:       bookingOrEmpty,
   categorySlug:     z.string().min(1, 'Category is required'),
   subcategorySlug:  z.string().optional(),
+  placeType:        z.enum(['restaurant', 'bar', 'cafe', 'hotel', 'shop', 'museum', 'landmark', 'activity', 'beach', 'venue', 'transport', 'other']).default('other'),
   status:           z.enum(['draft', 'published', 'archived']).default('draft'),
   featured:         z.boolean().default(false),
+  // Google enrichment (set by Place Generator)
+  googlePlaceId:    z.string().optional(),
+  googleMapsUrl:    urlOrEmpty,
+  googleRating:     z.number().optional(),
+  googleRatingCount: z.number().int().optional(),
+  latitude:         z.number().optional(),
+  longitude:        z.number().optional(),
+  priceTier:        z.number().int().min(1).max(4).optional(),
   // Booking fields
   bookingEnabled:          z.boolean().default(false),
   bookingMode:             bookingModeEnum.default('none'),

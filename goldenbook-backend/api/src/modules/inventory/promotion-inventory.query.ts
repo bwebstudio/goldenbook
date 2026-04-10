@@ -35,6 +35,7 @@ const PLACEMENT_TO_SURFACE: Record<string, string> = {
   concierge: 'concierge',
   route_featured_stop: 'route_featured',
   route_sponsor: 'route_sponsor',
+  curated_route: 'curated_route',
 }
 
 // Maps surface (place_visibility) → inventory key (promotion_inventory).
@@ -49,6 +50,7 @@ const SURFACE_TO_INVENTORY: Record<string, string> = {
   concierge: 'concierge',
   route_featured: 'route_featured_stop',
   route_sponsor: 'route_sponsor',
+  curated_route: 'curated_route',
 }
 
 /** Convert placement_type (from purchases) → inventory key (promotion_inventory). */

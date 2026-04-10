@@ -66,11 +66,13 @@ export interface BookingRoutingDecision {
 
 export interface PlaceBookingInput {
   id: string
+  place_type: string
   booking_enabled: boolean
   booking_mode: BookingMode
   booking_url: string | null
   booking_label: string | null
   website_url: string | null
+  google_maps_url: string | null
   phone: string | null
   reservation_relevant: boolean
   // Category/subcategory slugs for heuristic inference

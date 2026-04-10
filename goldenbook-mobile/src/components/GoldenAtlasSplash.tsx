@@ -37,7 +37,7 @@ const cy = height / 2;
 // ── Design tokens — exact values from src/design/tokens.ts ───────────────────
 // colors.navy.DEFAULT  = '#222D52'  (route card background, hero placeholder)
 // colors.primary       = '#D2B68A'  (Champagne Gold — star, ring, CTA button)
-const BG   = colors.navy.DEFAULT;   // '#222D52'
+const BG   = colors.navy.dark;      // '#161E38' — matches splash backgroundColor in app.json
 const GOLD = colors.primary;        // '#D2B68A'
 
 // ── Star ring — matches JourneyCompletionView `goldRing` style exactly ────────

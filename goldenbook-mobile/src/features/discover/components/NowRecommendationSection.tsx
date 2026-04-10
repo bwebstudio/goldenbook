@@ -12,20 +12,40 @@ import { useNowContextStore, type NowAdjustment } from '@/store/nowContextStore'
 import { useSettingsStore } from '@/store/settingsStore'
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
-const CARD_HEIGHT = SCREEN_HEIGHT * 0.48
+const CARD_HEIGHT = SCREEN_HEIGHT * 0.38
 
 // ─── Weather → Ionicons vector icon ─────────────────────────────────────────
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
-const WEATHER_ICON_MAP: Record<string, { name: IoniconsName; color: string }> = {
-  sun:   { name: 'sunny-outline',  color: '#F5C542' },
-  cloud: { name: 'cloudy-outline', color: '#CFD8DC' },
-  rain:  { name: 'rainy-outline',  color: '#90CAF9' },
+const WEATHER_DAY_ICONS: Record<string, { name: IoniconsName; color: string }> = {
+  sun:   { name: 'sunny-outline',        color: '#F5C542' },
+  cloud: { name: 'cloudy-outline',       color: '#CFD8DC' },
+  rain:  { name: 'rainy-outline',        color: '#90CAF9' },
+}
+
+const WEATHER_NIGHT_ICONS: Record<string, { name: IoniconsName; color: string }> = {
+  sun:   { name: 'moon-outline',         color: '#C5CAE9' },
+  cloud: { name: 'cloudy-night-outline', color: '#9EA7B8' },
+  rain:  { name: 'rainy-outline',        color: '#90CAF9' },
 }
 
 const WEATHER_CONDITION_TO_KEY: Record<string, string> = {
   sunny: 'sun', cloudy: 'cloud', rainy: 'rain', hot: 'sun', cold: 'cloud',
+}
+
+function isNightTime(timeZone: string): boolean {
+  const hour = parseInt(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone }).format(new Date()),
+    10,
+  )
+  return hour >= 21 || hour < 6
+}
+
+function getWeatherIcon(key: string | null, timeZone: string): { name: IoniconsName; color: string } | null {
+  if (!key) return null
+  const map = isNightTime(timeZone) ? WEATHER_NIGHT_ICONS : WEATHER_DAY_ICONS
+  return map[key] ?? null
 }
 
 // ─── Live clock ──────────────────────────────────────────────────────────────
@@ -133,11 +153,33 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
 
   const weatherKey = context.weather_icon
     ?? (context.weather ? WEATHER_CONDITION_TO_KEY[context.weather] : null)
-  const weatherIcon = weatherKey ? WEATHER_ICON_MAP[weatherKey] : null
+  const weatherIcon = getWeatherIcon(weatherKey, destinationTimeZone)
 
-  const eyebrow = context.moment_label
-    ? `${context.moment_label.toUpperCase()} \u00B7 ${cityName.toUpperCase()}`
-    : `${(t.now as any)[`eyebrow${capitalize(context.time_of_day)}`] ?? 'NOW'} ${cityName.toUpperCase()}`
+  // Build eyebrow: specific descriptor + location
+  // Priority: cuisineType > subcategory > category label
+  const CATEGORY_LABELS: Record<string, string> = {
+    restaurant: 'Restaurant', cafe: 'Café', bar: 'Bar', hotel: 'Hotel',
+    museum: 'Museum', shop: 'Shop', landmark: 'Landmark', beach: 'Beach',
+    activity: 'Experience', venue: 'Venue',
+  }
+  const CUISINE_LABELS: Record<string, string> = {
+    portuguese: 'Portuguese', seafood: 'Seafood', italian: 'Italian',
+    japanese: 'Japanese', french: 'French', mediterranean: 'Mediterranean',
+    'fine-dining': 'Fine Dining', indian: 'Indian', chinese: 'Chinese',
+    mexican: 'Mexican', thai: 'Thai', sushi: 'Sushi', steak: 'Steakhouse',
+    fusion: 'Fusion', vegetarian: 'Vegetarian', vegan: 'Vegan',
+  }
+  const SUBCATEGORY_LABELS: Record<string, string> = {
+    joalharia: 'Jewellery', relojoaria: 'Watches', moda: 'Fashion',
+    perfumaria: 'Perfumery', decoracao: 'Design', arte: 'Art',
+    vinhos: 'Wine', gourmet: 'Gourmet', livros: 'Books',
+  }
+  const descriptor =
+    (place.cuisineType && CUISINE_LABELS[place.cuisineType]) ??
+    (place.subcategory && SUBCATEGORY_LABELS[place.subcategory]) ??
+    CATEGORY_LABELS[place.category] ?? place.category
+  const location = place.neighborhood ?? cityName
+  const eyebrow = `${descriptor.toUpperCase()} \u00B7 ${location.toUpperCase()}`
   const adjustmentButtons = getAdjustmentButtons(data.emotion, t.now as any)
 
   return (
@@ -155,30 +197,27 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
           elevation: 10,
         }}
       >
+        {/* Full-bleed hero image */}
         <ProgressiveImage
           uri={imageUrl}
           height={CARD_HEIGHT}
           resizeMode="cover"
-          borderRadius={16}
           placeholderColor="#222D52"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
 
-        <View
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.35)',
-          }}
-          pointerEvents="none"
-        />
-
+        {/* Multi-stop gradient overlay (Apple TV style) */}
         <LinearGradient
-          colors={['transparent', 'transparent', 'rgba(17,35,67,0.55)', 'rgba(17,35,67,0.88)']}
-          locations={[0, 0.28, 0.62, 1]}
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            borderRadius: 16,
-          }}
+          colors={[
+            'transparent',
+            'rgba(17,24,40,0.08)',
+            'rgba(17,24,40,0.35)',
+            'rgba(17,24,40,0.72)',
+            'rgba(17,24,40,0.92)',
+            'rgba(17,24,40,0.98)',
+          ]}
+          locations={[0, 0.25, 0.4, 0.58, 0.75, 1]}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           pointerEvents="none"
         />
 
@@ -186,11 +225,11 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
         <View
           style={{
             position: 'absolute',
-            top: 16,
-            right: 16,
+            top: 14,
+            right: 14,
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: 'rgba(0,0,0,0.45)',
+            backgroundColor: 'rgba(22,30,56,0.70)',
             borderRadius: 20,
             paddingHorizontal: 12,
             paddingVertical: 6,
@@ -211,42 +250,60 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
 
         {/* Sponsored label (top-left, subtle) */}
         {isSponsored && (
-          <View style={{ position: 'absolute', top: 16, left: 16 }}>
+          <View style={{ position: 'absolute', top: 14, left: 14 }}>
             <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 8, letterSpacing: 0.3 }}>
-              Sponsored · Goldenbook
+              {t.common.sponsoredGoldenbook}
             </Text>
           </View>
         )}
 
-        {/* Content overlay */}
-        <View className="absolute bottom-0 left-0 right-0 p-7">
-          <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+        {/* Text zone — positioned over gradient for guaranteed contrast */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 20, paddingBottom: 20, paddingTop: 12 }}>
+          <View className="flex-row items-center mb-2" style={{ gap: 8 }}>
             <View style={{ width: 20, height: 1, backgroundColor: '#D2B68A', marginRight: 4 }} />
-            <Text className="text-primary text-[9px] uppercase tracking-widest font-bold">
+            <Text
+              className="text-[9px] uppercase tracking-widest font-bold"
+              style={{ color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}
+            >
               {eyebrow}
             </Text>
           </View>
 
           <Text
-            className="text-white text-2xl leading-snug mb-2"
-            style={{ fontFamily: 'PlayfairDisplay_400Regular_Italic', maxWidth: SCREEN_WIDTH * 0.72 }}
+            className="text-white text-xl leading-snug mb-1"
+            style={{
+              fontFamily: 'PlayfairDisplay_400Regular_Italic',
+              maxWidth: Math.max(240, SCREEN_WIDTH * 0.72),
+              textShadowColor: 'rgba(0,0,0,0.6)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 4,
+            }}
             numberOfLines={1}
           >
             {title}
           </Text>
 
           {subtitle ? (
-            <Text className="text-white/60 text-[12px] tracking-wide mb-4 leading-relaxed" numberOfLines={2}>
+            <Text
+              className="text-[11px] tracking-wide mb-3 leading-relaxed"
+              style={{ color: 'rgba(255,255,255,0.6)', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
+              numberOfLines={1}
+            >
               {subtitle}
             </Text>
           ) : (
-            <View className="mb-4" />
+            <View className="mb-3" />
           )}
 
           <Text
-            className="text-white text-base font-bold tracking-wide mb-5"
+            className="text-white text-sm font-bold tracking-wide mb-4"
             numberOfLines={1}
-            style={{ maxWidth: SCREEN_WIDTH * 0.65 }}
+            style={{
+              maxWidth: Math.max(200, SCREEN_WIDTH * 0.65),
+              textShadowColor: 'rgba(0,0,0,0.5)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 3,
+            }}
           >
             {place.name}
           </Text>
@@ -266,7 +323,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
       </TouchableOpacity>
 
       {/* ── Actions below the card ────────────────────────────────────────── */}
-      <View className="mx-6 mt-4 mb-1" style={{ gap: 10 }}>
+      <View className="mx-6 mt-3 mb-1" style={{ gap: 6 }}>
 
         {/* See another option */}
         <TouchableOpacity
@@ -298,20 +355,6 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
             {(t.now as any).openConcierge} →
           </Text>
         </TouchableOpacity>
-
-        {/* ── Adjustment buttons ─────────────────────────────────────────── */}
-        <View
-          className="flex-row items-center justify-center"
-          style={{ gap: 8, marginTop: 18, marginBottom: 4, flexWrap: 'wrap' }}
-        >
-          {adjustmentButtons.map((button) => (
-            <AdjustmentPill
-              key={`${button.label}-${button.value}`}
-              label={button.label}
-              onPress={() => navigateToConcierge(button.value)}
-            />
-          ))}
-        </View>
       </View>
     </View>
   )
@@ -394,7 +437,7 @@ function NowEditorialFallback({ cityName, liveTime, t, onRetry, onConcierge }: N
 
           <Text
             className="text-white text-xl leading-snug mb-4"
-            style={{ fontFamily: 'PlayfairDisplay_400Regular_Italic', maxWidth: SCREEN_WIDTH * 0.72 }}
+            style={{ fontFamily: 'PlayfairDisplay_400Regular_Italic', maxWidth: Math.max(240, SCREEN_WIDTH * 0.72) }}
             numberOfLines={2}
           >
             {headline}

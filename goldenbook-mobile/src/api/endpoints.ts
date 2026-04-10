@@ -134,6 +134,9 @@ export const api = {
   verificationStatus: () =>
     apiClient.get<{ email_verified: boolean }>('/auth/verification-status').then((r) => r.data),
 
+  deleteAccount: () =>
+    apiClient.delete('/auth/account').then((r) => r.data),
+
   // ── NOW contextual recommendation ──────────────────────────────────────────
   nowRecommendation: (params: {
     city?: string

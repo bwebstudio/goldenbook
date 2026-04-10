@@ -119,16 +119,21 @@ export function useConcierge() {
     const defaultIntent = bootstrapData.intents[0]
     if (!defaultIntent) return
 
-    const data = await conciergeApi.recommend({
-      city: bootstrapData.city.slug ?? city,
-      intent: defaultIntent.id,
-      limit: 3,
-      locale,
-      interests: profile.interests,
-      style: profile.style,
-    })
+    try {
+      const data = await conciergeApi.recommend({
+        city: bootstrapData.city.slug ?? city,
+        intent: defaultIntent.id,
+        limit: 3,
+        locale,
+        interests: profile.interests,
+        style: profile.style,
+      })
 
-    dispatch({ type: 'RECOMMEND_SUCCESS', payload: data })
+      dispatch({ type: 'RECOMMEND_SUCCESS', payload: data })
+    } catch (err) {
+      if (__DEV__) console.warn('[Concierge] fetchDefaultRecommendations failed:', err)
+      dispatch({ type: 'RECOMMEND_ERROR', payload: err instanceof Error ? err.message : 'Failed to load recommendations' })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, locale, profile.interests, profile.style])
 
@@ -136,9 +141,11 @@ export function useConcierge() {
     nowCtx: NowContextForConcierge,
     bootstrapData: ConciergeBootstrapDTO,
   ) => {
-    console.log('[Concierge] NOW context received', nowCtx)
-    console.log('[Concierge] adjustment', nowCtx.adjustment ?? null)
-    console.log('[Concierge] fetch triggered')
+    if (__DEV__) {
+      console.log('[Concierge] NOW context received', nowCtx)
+      console.log('[Concierge] adjustment', nowCtx.adjustment ?? null)
+      console.log('[Concierge] fetch triggered')
+    }
 
     const label = nowCtx.moment_label ?? nowCtx.moment?.replace(/_/g, ' ') ?? 'NOW'
 

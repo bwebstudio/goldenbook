@@ -28,6 +28,9 @@ export interface NowPlaceDTO {
   heroImage: { bucket: string | null; path: string | null }
   shortDescription: string | null
   category: string
+  cuisineType: string | null
+  subcategory: string | null
+  neighborhood: string | null
   distance: number | null
 }
 

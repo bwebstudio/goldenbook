@@ -72,6 +72,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
         'Goldenbook Go collects only the data necessary to personalise your experience: your saved places, preferred city, and language setting. We do not sell your data.',
         'We use Supabase for secure authentication and data storage. Analytics are anonymised and never linked to your identity.',
         'To request deletion of your account and data, contact us at privacy@goldenbook.app.',
+        'We use Google and Apple authentication services for sign-in, which may process your name and email per their respective privacy policies. Your approximate location is used solely to show nearby recommendations and is not stored permanently. When you delete your account, all personal data is permanently removed within 30 days. For data requests, contact privacy@goldenbook.app.',
       ],
     },
     pt: {
@@ -82,6 +83,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
         'O Goldenbook Go recolhe apenas os dados necessários para personalizar a tua experiência: os teus lugares guardados, cidade preferida e preferência de idioma. Não vendemos os teus dados.',
         'Utilizamos o Supabase para autenticação segura e armazenamento de dados. As análises são anonimizadas e nunca associadas à tua identidade.',
         'Para solicitar a eliminação da tua conta e dados, contacta-nos em privacy@goldenbook.app.',
+        'Utilizamos os serviços de autenticação da Google e da Apple para início de sessão, que podem processar o seu nome e e-mail de acordo com as respetivas políticas de privacidade. A sua localização aproximada é utilizada apenas para mostrar recomendações próximas e não é armazenada permanentemente. Quando elimina a sua conta, todos os dados pessoais são eliminados permanentemente no prazo de 30 dias. Para pedidos de dados, contacte privacy@goldenbook.app.',
       ],
     },
     es: {
@@ -92,6 +94,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
         'Goldenbook Go recopila solo los datos necesarios para personalizar tu experiencia: tus lugares guardados, ciudad preferida y configuración de idioma. No vendemos tus datos.',
         'Usamos Supabase para autenticación segura y almacenamiento de datos. La analítica está anonimizada y nunca se vincula a tu identidad.',
         'Para solicitar la eliminación de tu cuenta y datos, contáctanos en privacy@goldenbook.app.',
+        'Utilizamos los servicios de autenticación de Google y Apple para el inicio de sesión, que pueden procesar tu nombre y correo electrónico según sus respectivas políticas de privacidad. Tu ubicación aproximada se utiliza únicamente para mostrar recomendaciones cercanas y no se almacena de forma permanente. Cuando eliminas tu cuenta, todos los datos personales se eliminan permanentemente en un plazo de 30 días. Para solicitudes de datos, contacta con privacy@goldenbook.app.',
       ],
     },
   },

@@ -82,6 +82,7 @@ export function OtherLocationsSection({ brandName, otherLocations }: OtherLocati
         data={otherLocations}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <OtherLocationCard location={item} />}
+        getItemLayout={(_, index) => ({ length: CARD_WIDTH + 12, offset: (CARD_WIDTH + 12) * index, index })}
         contentContainerStyle={{ paddingHorizontal: 32 }}
         showsHorizontalScrollIndicator={false}
       />

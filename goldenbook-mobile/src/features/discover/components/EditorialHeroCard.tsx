@@ -72,7 +72,7 @@ export function EditorialHeroCard({ hero }: EditorialHeroCardProps) {
         {/* Title */}
         <Text
           className="text-white text-3xl font-bold leading-tight mb-5"
-          style={{ maxWidth: SCREEN_WIDTH * 0.7 }}
+          style={{ maxWidth: Math.max(240, SCREEN_WIDTH * 0.7) }}
           numberOfLines={3}
         >
           {hero.title}

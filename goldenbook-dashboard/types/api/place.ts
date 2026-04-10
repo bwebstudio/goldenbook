@@ -40,6 +40,14 @@ export interface AdminPlacePayload {
   subcategorySlug?:  string;
   status?:           "draft" | "published" | "archived";
   featured?:         boolean;
+  // Google enrichment (set by Place Generator)
+  googlePlaceId?:    string;
+  googleMapsUrl?:    string;
+  googleRating?:     number;
+  googleRatingCount?: number;
+  latitude?:         number;
+  longitude?:        number;
+  priceTier?:        number;
   // Booking fields
   bookingEnabled?:       boolean;
   bookingMode?:          BookingMode;

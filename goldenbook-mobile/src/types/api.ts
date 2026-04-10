@@ -166,6 +166,8 @@ export interface DiscoverPlaceCard {
   name: string;
   heroImage: MediaAsset;
   shortDescription: string | null;
+  placeType: string | null;
+  cityName: string | null;
   isSponsored?: boolean;
 }
 

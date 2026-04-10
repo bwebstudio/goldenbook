@@ -79,17 +79,54 @@ export interface NowPlaceConfig {
 // GET /api/v1/admin/now/tags — all available context tags
 // GET /api/v1/admin/places/search-google?q=...
 // Google Places autocomplete for the new place flow.
-export async function searchGooglePlaces(query: string): Promise<{ placeId: string; name: string; address: string }[]> {
-  const data = await apiGet<{ results: { placeId: string; name: string; address: string }[] }>(
+export async function searchGooglePlaces(query: string): Promise<{ placeId: string; name: string; address: string; lat?: number; lng?: number }[]> {
+  const data = await apiGet<{ results: { placeId: string; name: string; address: string; lat?: number; lng?: number }[] }>(
     "/api/v1/admin/places/search-google", { q: query }
   );
   return data.results;
 }
 
-// POST /api/v1/admin/places/generate
-// Creates a fully auto-filled place from a Google Place ID.
-export async function generatePlace(googlePlaceId: string, citySlug: string): Promise<AdminPlaceResponseDTO> {
-  return apiPost<AdminPlaceResponseDTO>("/api/v1/admin/places/generate", { googlePlaceId, citySlug });
+// POST /api/v1/admin/places/preview-from-google
+// Returns all fields pre-filled WITHOUT creating the place.
+export async function previewPlaceFromGoogle(googlePlaceId: string): Promise<PlacePreview> {
+  return apiPost<PlacePreview>("/api/v1/admin/places/preview-from-google", { googlePlaceId });
+}
+
+export interface PlacePreview {
+  name: string;
+  slug: string;
+  citySlug: string;
+  placeType: string;
+  categorySlug: string;
+  subcategorySlug: string;
+  addressLine: string | null;
+  phone: string | null;
+  websiteUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  googlePlaceId: string;
+  googleRating: number | null;
+  googleRatingCount: number | null;
+  googleMapsUrl: string | null;
+  priceTier: number | null;
+  cuisineTypes: string[];
+  reservable: boolean;
+  shortDescription: string;
+  fullDescription: string;
+  goldenbookNote: string;
+  insiderTip: string;
+  openingHours: Array<{ dayOfWeek: number; opensAt: string; closesAt: string }>;
+  photoUrls: string[];
+  photoNames: string[];
+}
+
+// POST /api/v1/admin/places/:id/ingest-google-photos
+// Downloads Google photos and uploads them to Supabase storage.
+export async function ingestGooglePhotos(placeId: string, photoNames: string[]): Promise<{ ingested: number; failed: number }> {
+  return apiPost<{ ingested: number; failed: number }>(
+    `/api/v1/admin/places/${encodeURIComponent(placeId)}/ingest-google-photos`,
+    { photoNames }
+  );
 }
 
 export async function fetchNowContextTags(): Promise<NowContextTag[]> {

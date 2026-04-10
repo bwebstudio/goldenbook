@@ -143,12 +143,19 @@ export async function createVisibility(data: {
 
   // ── Rule 5: Max paid surfaces per place (cross-surface dominance limit) ─
   // A place may hold at most 2 simultaneous paid placements across ALL surfaces.
+  // Includes both place_visibility sponsored AND curated_routes sponsored.
   const MAX_PAID_SURFACES_PER_PLACE = 2
   if (data.visibilityType === 'sponsored') {
     const { rows: [surfaceCount] } = await db.query<{ cnt: string }>(`
-      SELECT COUNT(*)::text AS cnt FROM place_visibility
-      WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
-        AND (ends_at IS NULL OR ends_at >= now())
+      SELECT (
+        (SELECT COUNT(*) FROM place_visibility
+         WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+           AND (ends_at IS NULL OR ends_at >= now()))
+        +
+        (SELECT COUNT(*) FROM curated_routes
+         WHERE sponsor_place_id = $1 AND route_type = 'sponsored'
+           AND is_active = true AND expires_at > now())
+      )::text AS cnt
     `, [data.placeId])
 
     if (parseInt(surfaceCount?.cnt ?? '0', 10) >= MAX_PAID_SURFACES_PER_PLACE) {

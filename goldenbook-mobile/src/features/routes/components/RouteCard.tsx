@@ -1,4 +1,6 @@
+import React from 'react';
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getStorageUrl } from '@/utils/storage';
@@ -6,7 +8,7 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
 import type { RouteCardDTO } from '../types';
 
-const { width } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 function formatDuration(minutes: number | null): string | null {
   if (!minutes) return null;
@@ -21,123 +23,121 @@ interface RouteCardProps {
   featured?: boolean;
 }
 
-export function RouteCard({ route, featured = false }: RouteCardProps) {
+export const RouteCard = React.memo(function RouteCard({ route, featured = false }: RouteCardProps) {
   const router = useRouter();
   const t = useTranslation();
   const imageUrl = getStorageUrl(route.heroImage.bucket, route.heroImage.path);
   const duration = formatDuration(route.estimatedMinutes);
 
-  // Featured: taller, more cinematic. Regular: slightly taller than before.
-  const imageHeight = featured ? (width - 48) * 0.72 : (width - 48) * 0.65;
+  const imageHeight = featured ? (SCREEN_WIDTH - 48) * 0.75 : (SCREEN_WIDTH - 48) * 0.6;
 
   return (
     <TouchableOpacity
       onPress={() => router.push(`/routes/${route.slug}` as any)}
       activeOpacity={0.92}
-      className="mx-6 mb-6 rounded-2xl overflow-hidden bg-ivory"
+      className="mx-6 mb-6 rounded-2xl overflow-hidden"
       style={{
+        height: imageHeight,
         shadowColor: '#222D52',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.12,
         shadowRadius: 16,
-        elevation: 3,
+        elevation: 4,
       }}
     >
-      {/* Hero image */}
-      <View style={{ height: imageHeight }} className="bg-navy">
-        <ProgressiveImage
-          uri={imageUrl}
-          height={imageHeight}
-          placeholderColor="#222D52"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
-        />
+      {/* Full-bleed image */}
+      <ProgressiveImage
+        uri={imageUrl}
+        height={imageHeight}
+        placeholderColor="#222D52"
+        borderRadius={16}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
+      />
 
-        {/* Dark base overlay for contrast */}
+      {/* Multi-stop gradient overlay (Apple TV style) */}
+      <LinearGradient
+        colors={[
+          'transparent',
+          'rgba(17,24,40,0.06)',
+          'rgba(17,24,40,0.30)',
+          'rgba(17,24,40,0.65)',
+          'rgba(17,24,40,0.88)',
+          'rgba(17,24,40,0.96)',
+        ]}
+        locations={[0, 0.25, 0.4, 0.58, 0.75, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        pointerEvents="none"
+      />
+
+      {/* Featured badge */}
+      {route.featured && (
         <View
-          className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}
-          pointerEvents="none"
-        />
+          className="absolute top-4 left-4 px-3 py-1 rounded-full"
+          style={{ backgroundColor: 'rgba(210,182,138,0.92)' }}
+        >
+          <Text className="text-navy text-[9px] font-bold uppercase tracking-widest">
+            {t.routes.featured}
+          </Text>
+        </View>
+      )}
 
-        {/* Goldenbook blue overlay */}
-        <View
-          className="absolute inset-0"
-          style={{ backgroundColor: 'rgba(17,35,67,0.55)' }}
-          pointerEvents="none"
-        />
-
-        {/* Featured badge — only shown when explicitly featured from backend */}
-        {route.featured && (
-          <View
-            className="absolute top-4 left-4 px-3 py-1 rounded-full"
-            style={{ backgroundColor: 'rgba(210,182,138,0.92)' }}
-          >
-            <Text className="text-navy text-[9px] font-bold uppercase tracking-widest">
-              {t.routes.featured}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Content block */}
-      <View className="p-5">
-        {/* City label */}
-        <Text className="text-[10px] text-primary font-bold tracking-widest uppercase mb-1">
+      {/* Content — directly on gradient */}
+      <View className="absolute bottom-0 left-0 right-0" style={{ paddingHorizontal: 18, paddingBottom: 18 }}>
+        {/* City */}
+        <Text
+          className="text-[9px] font-bold tracking-widest uppercase mb-1"
+          style={{ color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}
+        >
           {route.city.name}
         </Text>
 
-        {/* Title — larger for featured */}
+        {/* Title */}
         <Text
-          className={`font-bold text-navy tracking-tight leading-snug mb-2 ${featured ? 'text-2xl' : 'text-xl'}`}
-          style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
+          className={`font-bold text-white tracking-tight leading-snug mb-1 ${featured ? 'text-xl' : 'text-lg'}`}
+          style={{ fontFamily: 'PlayfairDisplay_700Bold', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}
           numberOfLines={2}
         >
           {route.title}
         </Text>
 
-        {/* Summary */}
-        {route.summary && (
-          <Text className="text-sm text-navy/55 leading-relaxed font-light italic mb-4" numberOfLines={2}>
+        {/* Summary — only on featured */}
+        {featured && route.summary && (
+          <Text
+            className="text-[11px] leading-relaxed font-light italic mb-2"
+            style={{ color: 'rgba(255,255,255,0.6)', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
+            numberOfLines={2}
+          >
             {route.summary}
           </Text>
         )}
 
-        {/* Meta row */}
-        <View className="flex-row items-center gap-4 mb-4">
-          <View className="flex-row items-center gap-1">
-            <Ionicons name="location-outline" size={13} color="#999" />
-            <Text className="text-xs text-navy/45">
-              {route.placesCount} {route.placesCount === 1 ? t.discover.place : t.discover.places}
-            </Text>
-          </View>
-          {duration && (
+        {/* Meta + CTA row */}
+        <View className="flex-row items-center justify-between mt-1">
+          <View className="flex-row items-center gap-3">
             <View className="flex-row items-center gap-1">
-              <Ionicons name="time-outline" size={13} color="#999" />
-              <Text className="text-xs text-navy/45">{duration}</Text>
+              <Ionicons name="location-outline" size={11} color="rgba(255,255,255,0.5)" />
+              <Text className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                {route.placesCount} {route.placesCount === 1 ? t.discover.place : t.discover.places}
+              </Text>
             </View>
-          )}
+            {duration && (
+              <View className="flex-row items-center gap-1">
+                <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.5)" />
+                <Text className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{duration}</Text>
+              </View>
+            )}
+          </View>
+          <View className="flex-row items-center gap-1">
+            <Text
+              className="text-[10px] font-bold uppercase tracking-widest"
+              style={{ color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
+            >
+              {t.routes.beginRoute}
+            </Text>
+            <Text className="text-xs font-bold" style={{ color: '#D2B68A' }}>→</Text>
+          </View>
         </View>
-
-        {/* CTA — full-width button for featured, inline text for regular */}
-        {featured ? (
-          <View
-            className="rounded-xl py-3.5 items-center justify-center flex-row gap-2"
-            style={{ backgroundColor: '#222D52' }}
-          >
-            <Text className="text-primary text-[11px] font-bold uppercase tracking-widest">
-              {t.routes.beginRoute}
-            </Text>
-            <Text className="text-primary text-sm font-bold">→</Text>
-          </View>
-        ) : (
-          <View className="border-t border-navy/8 pt-3 flex-row items-center justify-end gap-1">
-            <Text className="text-primary text-[11px] font-bold uppercase tracking-widest">
-              {t.routes.beginRoute}
-            </Text>
-            <Text className="text-primary text-sm font-bold">→</Text>
-          </View>
-        )}
       </View>
     </TouchableOpacity>
   );
-}
+});

@@ -39,6 +39,7 @@ const pt: TranslationKeys = {
     places: "Estabelecimentos",
     campaigns: "Campanhas",
     routes: "Rotas",
+    curatedRoutes: "Rotas Curadas",
     analytics: "Analítica",
     categories: "Categorias",
     users: "Utilizadores",
@@ -72,6 +73,10 @@ const pt: TranslationKeys = {
     routes: {
       title: "Rotas",
       subtitle: "Gerir percursos e experiências curadas",
+    },
+    curatedRoutes: {
+      title: "Rotas Curadas",
+      subtitle: "Gerir rotas editoriais e patrocinadas",
     },
     routesNew: {
       title: "Nova rota",
@@ -320,6 +325,14 @@ const pt: TranslationKeys = {
         where: "Página de detalhe da rota",
         why: "1 paragem em destaque e 1 patrocinador por rota. Contexto editorial premium.",
       },
+      curated_route: {
+        label: "Presença em Rota Curada",
+        tagline: "O seu estabelecimento numa rota com 2 outros lugares próximos",
+        description: "O seu espaço integra uma rota curada com mais 2 lugares selecionados, concebida para descoberta contextual. Duração de 15 dias.",
+        where: "Presença em rota curada na sua cidade",
+        why: "Descoberta contextual junto a outros lugares relevantes",
+        context: "Ideal para gerar visitas através de experiências ligadas",
+      },
       extra_images: {
         label: "Imagens Extra",
         tagline: "Até 10 imagens · Mensal",
@@ -368,6 +381,7 @@ const pt: TranslationKeys = {
     unavailableAntiDomination: "Concierge + Discover exclusivo",
     unavailableMaxSurfaces: "Máx. 2 promoções atingido",
     unavailableSoldOut: "Esgotado",
+    unavailableCityRoutesFull: "Sem vagas disponíveis nesta cidade neste momento",
     unavailableGeneric: "Indisponível",
     cityLabel: "Cidade",
     positionLabel: "Posição",

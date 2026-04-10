@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
@@ -10,7 +11,7 @@ interface SavedPlaceCardProps {
   place: SavedPlaceDTO;
 }
 
-export function SavedPlaceCard({ place }: SavedPlaceCardProps) {
+export const SavedPlaceCard = React.memo(function SavedPlaceCard({ place }: SavedPlaceCardProps) {
   const router = useRouter();
   const imageUrl = getStorageUrl(place.image?.bucket ?? null, place.image?.path ?? null);
 
@@ -45,7 +46,7 @@ export function SavedPlaceCard({ place }: SavedPlaceCardProps) {
       <PlaceSaveButton placeId={place.id} size={20} />
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

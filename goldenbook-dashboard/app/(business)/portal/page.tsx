@@ -154,6 +154,7 @@ export default function PortalOverview() {
             { key: "category_featured", label: (products.category_featured as { label: string }).label },
             { key: "hidden_gems", label: (products.hidden_gems as { label: string }).label },
             { key: "concierge", label: (products.concierge as { label: string }).label },
+            { key: "curated_route", label: (products.curated_route as { label: string }).label },
           ];
           const activeSurfaceItems = surfaces.filter((s) => activeSurfaces.has(s.key));
           const inactiveSurfaceItems = surfaces.filter((s) => !activeSurfaces.has(s.key));

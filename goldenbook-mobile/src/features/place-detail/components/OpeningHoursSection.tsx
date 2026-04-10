@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { useTranslation } from '@/i18n';
 import type { PlaceDetailDTO } from '../types';
@@ -6,12 +7,7 @@ type OpeningHour = PlaceDetailDTO['openingHours'][number];
 
 function formatTime(t: string | null): string {
   if (!t) return '';
-  // "HH:MM:SS" → "HH:MM"
   return t.slice(0, 5);
-}
-
-function isCurrentDay(dayOfWeek: number): boolean {
-  return new Date().getDay() === dayOfWeek;
 }
 
 interface OpeningHoursSectionProps {
@@ -21,15 +17,16 @@ interface OpeningHoursSectionProps {
 export function OpeningHoursSection({ openingHours }: OpeningHoursSectionProps) {
   const t = useTranslation();
   const dayNames = [t.days.sun, t.days.mon, t.days.tue, t.days.wed, t.days.thu, t.days.fri, t.days.sat];
+  const today = useMemo(() => new Date().getDay(), []);
 
   if (!openingHours.length) return null;
 
-  // Sort Mon→Sun (Mon=1 first, Sun=0 last)
-  const sorted = [...openingHours].sort((a, b) => {
+  // Sort Mon→Sun (Mon=1 first, Sun=0 last) — memoized to avoid re-sorting on re-render
+  const sorted = useMemo(() => [...openingHours].sort((a, b) => {
     const dayA = a.dayOfWeek === 0 ? 7 : a.dayOfWeek;
     const dayB = b.dayOfWeek === 0 ? 7 : b.dayOfWeek;
     return dayA - dayB;
-  });
+  }), [openingHours]);
 
   return (
     <View className="px-5 pb-4">
@@ -38,7 +35,7 @@ export function OpeningHoursSection({ openingHours }: OpeningHoursSectionProps) 
       </Text>
       <View className="bg-ivory-soft rounded-2xl overflow-hidden">
         {sorted.map((h, idx) => {
-          const isToday = isCurrentDay(h.dayOfWeek);
+          const isToday = h.dayOfWeek === today;
           return (
             <View
               key={`${h.dayOfWeek}-${h.opensAt ?? 'closed'}-${idx}`}

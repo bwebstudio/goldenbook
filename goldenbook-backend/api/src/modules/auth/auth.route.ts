@@ -869,4 +869,74 @@ export async function authRoutes(app: FastifyInstance) {
       email_verified: rows[0]?.email_verified ?? false,
     })
   })
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DELETE ACCOUNT (required by App Store & Play Store)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  app.delete('/auth/account', { preHandler: [authenticate] }, async (request, reply) => {
+    const userId = request.user.sub
+
+    app.log.info({ userId }, '[auth/account] Account deletion requested')
+
+    try {
+      // 1. Delete place_now_tags for user's places
+      await db.query(
+        `DELETE FROM place_now_tags
+         WHERE place_id IN (
+           SELECT id FROM places WHERE business_client_id IN (
+             SELECT id FROM business_clients WHERE auth_user_id = $1
+           )
+         )`,
+        [userId],
+      )
+
+      // 2. Delete purchases
+      await db.query(
+        `DELETE FROM purchases WHERE business_client_id IN (
+           SELECT id FROM business_clients WHERE auth_user_id = $1
+         )`,
+        [userId],
+      )
+
+      // 3. Delete admin_users
+      await db.query(
+        'DELETE FROM admin_users WHERE auth_user_id = $1',
+        [userId],
+      )
+
+      // 4. Delete business_clients
+      await db.query(
+        'DELETE FROM business_clients WHERE auth_user_id = $1',
+        [userId],
+      )
+
+      // 5. Delete app user row
+      await db.query(
+        'DELETE FROM users WHERE id = $1',
+        [userId],
+      )
+
+      // 6. Delete Supabase auth user via admin API
+      const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { message?: string }
+        app.log.error({ userId, status: res.status, message: errBody.message }, '[auth/account] Supabase user deletion failed')
+        throw new Error(`Supabase user deletion failed (${res.status})`)
+      }
+
+      app.log.info({ userId }, '[auth/account] Account deleted successfully')
+      return reply.status(204).send()
+    } catch (err: any) {
+      app.log.error({ userId, err: err.message }, '[auth/account] Account deletion failed')
+      throw new AppError(500, 'Could not delete account. Please try again or contact support.', 'DELETION_FAILED')
+    }
+  })
 }

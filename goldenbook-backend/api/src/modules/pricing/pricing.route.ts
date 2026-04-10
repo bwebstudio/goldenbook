@@ -17,6 +17,7 @@ import { CampaignCheckoutSchema } from '../campaigns/campaigns.dto'
 import { validateCampaignCheckout } from '../campaigns/campaigns.validation'
 import { getCampaignById } from '../campaigns/campaigns.query'
 import { checkSlotAvailabilityForPeriod, placementToSurface } from '../inventory/promotion-inventory.query'
+import { countActiveByCity, isPlaceInActiveRoute } from '../curated-routes/curated-routes.query'
 
 // Placement type labels for Stripe line items
 const PLACEMENT_LABELS: Record<string, string> = {
@@ -29,6 +30,7 @@ const PLACEMENT_LABELS: Record<string, string> = {
   new_on_goldenbook: 'New on Goldenbook Go',
   route_featured_stop: 'Route Featured Stop',
   route_sponsor: 'Route Sponsor',
+  curated_route: 'Curated Route Placement',
   extra_images: 'Extra Images (up to 10)',
   extended_description: 'Extended Description (up to 600 chars)',
 }
@@ -134,11 +136,18 @@ export async function pricingRoutes(app: FastifyInstance) {
     const hasActiveConcierge = activeSurfaces.has('concierge') || occupiedSections.has('concierge')
 
     // Count total active paid surfaces for cross-surface dominance limit
+    // Includes BOTH place_visibility sponsored records AND active curated_route sponsored routes
     const MAX_PAID_SURFACES_PER_PLACE = 2
     const { rows: [paidSurfaceCount] } = await db.query<{ cnt: string }>(
-      `SELECT COUNT(*)::text AS cnt FROM place_visibility
-       WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
-         AND (ends_at IS NULL OR ends_at >= now())`,
+      `SELECT (
+        (SELECT COUNT(*) FROM place_visibility
+         WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+           AND (ends_at IS NULL OR ends_at >= now()))
+        +
+        (SELECT COUNT(*) FROM curated_routes
+         WHERE sponsor_place_id = $1 AND route_type = 'sponsored'
+           AND is_active = true AND expires_at > now())
+       )::text AS cnt`,
       [placeId],
     ).catch(() => ({ rows: [{ cnt: '0' }] }))
     const activePaidSurfaces = parseInt(paidSurfaceCount?.cnt ?? '0', 10)
@@ -217,6 +226,33 @@ export async function pricingRoutes(app: FastifyInstance) {
       sections[section] = { available, reason, group }
     }
 
+    // ── Curated route availability ──────────────────────────────────────────
+    // Rule: max 2 active routes per city TOTAL (editorial + sponsored).
+    // Sponsored routes displace editorials, so availability depends on whether
+    // there's room (< 2 sponsored). If city has 2 sponsored already, no slot.
+    // If city has 1 or 2 routes but at least 1 editorial, a new sponsored can
+    // displace the editorial → available.
+    // Curated route DOES count toward MAX_PAID_SURFACES_PER_PLACE (rule 4).
+    {
+      let crAvailable = true
+      let crReason: string | null = null
+
+      // Already has an active sponsored purchase for curated_route
+      if (occupiedSections.has('curated_route')) {
+        crAvailable = false
+        crReason = 'ALREADY_ACTIVE'
+      } else {
+        const counts = await countActiveByCity(citySlug).catch(() => ({ total: 0, editorial: 0, sponsored: 0 }))
+        // Only blocked if city already has 2 SPONSORED routes (no editorials to displace)
+        if (counts.sponsored >= 2) {
+          crAvailable = false
+          crReason = 'CITY_ROUTES_FULL'
+        }
+      }
+
+      sections['curated_route'] = { available: crAvailable, reason: crReason, group: 'route' }
+    }
+
     // Build inventory map for scarcity display
     const inventory: Record<string, { max: number; active: number; remaining: number }> = {}
     for (const row of inventoryRows) {
@@ -224,6 +260,16 @@ export async function pricingRoutes(app: FastifyInstance) {
         max: row.max_slots,
         active: row.active_slots,
         remaining: Math.max(0, row.max_slots - row.active_slots),
+      }
+    }
+
+    // Add curated route inventory (virtual — based on sponsored route count)
+    {
+      const counts = await countActiveByCity(citySlug).catch(() => ({ total: 0, editorial: 0, sponsored: 0 }))
+      inventory['curated_route'] = {
+        max: 2,
+        active: counts.sponsored,
+        remaining: Math.max(0, 2 - counts.sponsored),
       }
     }
 

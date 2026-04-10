@@ -22,12 +22,13 @@ const PRODUCT_GROUPS = [
   { key: "discover", products: ["golden_picks", "hidden_gems", "new_on_goldenbook"] },
   { key: "recommendation", products: ["now", "concierge"] },
   { key: "intent", products: ["search_priority", "category_featured"] },
+  { key: "routes", products: ["curated_route"] },
   { key: "listing", products: ["extra_images", "extended_description"] },
 ] as const;
 
 const GROUP_LABELS: Record<string, Record<string, string>> = {
-  en: { discover: "Discover (Exclusive)", recommendation: "Recommendations", intent: "Search & Categories", listing: "Listing Upgrades" },
-  pt: { discover: "Descobrir (Exclusivo)", recommendation: "Recomendações", intent: "Pesquisa & Categorias", listing: "Melhorias do Espaço" },
+  en: { discover: "Discover (Exclusive)", recommendation: "Recommendations", intent: "Search & Categories", routes: "Curated Routes", listing: "Listing Upgrades" },
+  pt: { discover: "Descobrir (Exclusivo)", recommendation: "Recomendações", intent: "Pesquisa & Categorias", routes: "Rotas Curadas", listing: "Melhorias do Espaço" },
 };
 
 const SCOPE_PRODUCTS = new Set(["search_priority", "category_featured"]);
@@ -363,7 +364,9 @@ export default function PortalPromote() {
                                 ? t.promote.unavailableMaxSurfaces
                                 : reason === "INVENTORY_FULL"
                                   ? t.promote.unavailableSoldOut
-                                  : t.promote.unavailableGeneric}
+                                  : reason === "CITY_ROUTES_FULL"
+                                    ? (t.promote as any).unavailableCityRoutesFull ?? t.promote.unavailableSoldOut
+                                    : t.promote.unavailableGeneric}
                       </span>
                     )}
                   </div>

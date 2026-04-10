@@ -15,7 +15,7 @@ export function DiscoverSearchBar({ placeholder }: DiscoverSearchBarProps) {
     <TouchableOpacity
       onPress={() => router.push('/search' as any)}
       activeOpacity={0.8}
-      className="mx-6 my-4"
+      className="mx-6 my-2"
     >
       <View
         className="flex-row items-center bg-white border border-navy/5 rounded-xl px-4 h-12 gap-3"

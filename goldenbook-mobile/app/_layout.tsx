@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -25,6 +25,40 @@ import GoldenAtlasSplash from '@/components/GoldenAtlasSplash';
 import '../global.css';
 
 SplashScreen.preventAutoHideAsync();
+
+// ─── Error Boundary ─────────────────────────────────────────────────────────
+// Catches unhandled rendering errors so the app shows a message instead of crashing.
+
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    if (__DEV__) console.error('[ErrorBoundary]', error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#161E38', padding: 32 }}>
+          <Text style={{ color: '#D2B68A', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
+            Something went wrong
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'center' }}>
+            Please close and reopen the app. If the issue persists, contact support.
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Navigation guard ─────────────────────────────────────────────────────────
 // Runs AFTER both the splash animation and the app state are ready.
@@ -149,6 +183,7 @@ export default function RootLayout() {
 
   // ── Main app — navigation guard handles all routing from here ─────────────
   return (
+    <AppErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
         <Stack.Screen name="(tabs)" />
@@ -169,5 +204,6 @@ export default function RootLayout() {
         />
       </Stack>
     </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }

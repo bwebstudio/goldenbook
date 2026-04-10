@@ -1,9 +1,12 @@
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
 import type { CategoryPlaceDTO } from '../types';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_HEIGHT = (SCREEN_WIDTH - 48) * 0.6;
 
 interface FeaturedCategoryCardProps {
   place: CategoryPlaceDTO;
@@ -18,42 +21,60 @@ export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
       onPress={() => router.push(`/places/${place.slug}` as any)}
       activeOpacity={0.9}
       className="mx-6 mb-4 rounded-2xl overflow-hidden"
-      style={styles.card}
+      style={{
+        height: CARD_HEIGHT,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.22,
+        shadowRadius: 28,
+        elevation: 10,
+      }}
     >
+      {/* Full-bleed image */}
       <ProgressiveImage
         uri={imageUri}
-        aspectRatio={16 / 9}
+        height={CARD_HEIGHT}
         borderRadius={16}
+        placeholderColor="#222D52"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
 
-      {/* Dark base overlay for contrast */}
-      <View
-        style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' }}
-        pointerEvents="none"
-      />
-
-      {/* Goldenbook blue gradient overlay */}
+      {/* Multi-stop gradient overlay (Apple TV style) */}
       <LinearGradient
-        colors={['transparent', 'rgba(17,35,67,0.55)']}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0.4 }}
-        end={{ x: 0, y: 1 }}
+        colors={[
+          'transparent',
+          'rgba(17,24,40,0.06)',
+          'rgba(17,24,40,0.30)',
+          'rgba(17,24,40,0.65)',
+          'rgba(17,24,40,0.88)',
+          'rgba(17,24,40,0.96)',
+        ]}
+        locations={[0, 0.25, 0.4, 0.58, 0.75, 1]}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         pointerEvents="none"
       />
 
-      <View className="absolute bottom-0 left-0 right-0 p-5">
-        <Text className="text-[9px] font-bold uppercase tracking-widest text-primary/80 mb-1.5">
+      {/* Content — directly on gradient */}
+      <View className="absolute bottom-0 left-0 right-0" style={{ paddingHorizontal: 18, paddingBottom: 18 }}>
+        <Text
+          className="text-[9px] font-bold uppercase tracking-widest mb-1.5"
+          style={{ color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}
+        >
           {place.cityName}
         </Text>
         <Text
-          className="text-ivory/90 font-bold leading-snug mb-1"
-          style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 20 }}
+          className="text-white font-bold leading-snug mb-1"
+          style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 18, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}
           numberOfLines={2}
         >
           {place.name}
         </Text>
         {place.summary ? (
-          <Text className="text-ivory/60 text-xs leading-relaxed" numberOfLines={2}>
+          <Text
+            className="text-[11px] leading-relaxed"
+            style={{ color: 'rgba(255,255,255,0.55)', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
+            numberOfLines={1}
+          >
             {place.summary}
           </Text>
         ) : null}
@@ -61,13 +82,3 @@ export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    shadowColor: '#222D52',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 6,
-  },
-});

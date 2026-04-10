@@ -27,6 +27,15 @@ export interface NowScoredPlace {
   longitude: number | null
   distance_meters: number | null
   category_slugs: string[]
+  // ── Place detail fields ──
+  cuisine_types: string[] | null
+  classification_subcategory: string | null
+  address_line: string | null
+  // ── Contact / booking fields ──
+  website_url: string | null
+  booking_url: string | null
+  phone: string | null
+  google_maps_url: string | null
   // ── NOW editorial fields ──
   now_enabled: boolean
   now_priority: number
@@ -129,11 +138,13 @@ export async function getNowCandidates(
       WHEN p.context_windows_auto IS NOT NULL
         THEN p.context_windows_auto ? (
           CASE $${hasCoords ? 5 : 3}
-            WHEN 'morning'   THEN 'manhã'
-            WHEN 'midday'    THEN 'almoço'
-            WHEN 'afternoon' THEN 'tarde'
-            WHEN 'evening'   THEN 'noite'
-            WHEN 'night'     THEN 'madrugada'
+            WHEN 'morning'      THEN 'manhã'
+            WHEN 'midday'       THEN 'almoço'
+            WHEN 'afternoon'    THEN 'tarde'
+            WHEN 'evening'      THEN 'noite'
+            WHEN 'night'        THEN 'madrugada'
+            WHEN 'late_evening' THEN 'madrugada'
+            WHEN 'deep_night'   THEN 'madrugada'
             ELSE $${hasCoords ? 5 : 3}
           END
         )
@@ -170,6 +181,15 @@ export async function getNowCandidates(
       p.longitude,
       (${distanceExpr}) AS distance_meters,
       (${categorySlugsExpr}) AS category_slugs,
+      -- Place detail fields for eyebrow display
+      p.cuisine_types,
+      (p.classification_auto->>'subcategory') AS classification_subcategory,
+      p.address_line,
+      -- Contact / booking fields
+      p.website_url,
+      p.booking_url,
+      p.phone,
+      p.google_maps_url,
       -- NOW editorial fields
       COALESCE(p.now_enabled, false) AS now_enabled,
       COALESCE(p.now_priority, 0) AS now_priority,

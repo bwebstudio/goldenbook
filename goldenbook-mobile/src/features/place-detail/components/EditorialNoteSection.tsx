@@ -28,7 +28,7 @@ export function EditorialNoteSection({
   if (!hasPerspective && !hasInsiderTip) return null;
 
   return (
-    <View className="px-8 mt-8 gap-16">
+    <View className="px-8 mt-4 gap-8">
       {/* ── The Goldenbook Perspective ────────────────────────────────────── */}
       {hasPerspective && (
         <View className="relative">

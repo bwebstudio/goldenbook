@@ -37,6 +37,7 @@ const en = {
     places: "Places",
     campaigns: "Campaigns",
     routes: "Routes",
+    curatedRoutes: "Curated Routes",
     analytics: "Analytics",
     categories: "Categories",
     users: "Users",
@@ -70,6 +71,10 @@ const en = {
     routes: {
       title: "Routes",
       subtitle: "Manage curated journeys and experiences",
+    },
+    curatedRoutes: {
+      title: "Curated Routes",
+      subtitle: "Manage editorial and sponsored curated routes",
     },
     routesNew: {
       title: "New route",
@@ -318,6 +323,14 @@ const en = {
         where: "Route detail page",
         why: "1 featured stop and 1 sponsor per route. Premium editorial context.",
       },
+      curated_route: {
+        label: "Curated Route Placement",
+        tagline: "Your venue in a route with 2 other nearby places",
+        description: "Your venue joins a curated route with 2 other selected places, designed for contextual discovery. Duration: 15 days.",
+        where: "Featured in a curated route in your city",
+        why: "Contextual discovery alongside other relevant places",
+        context: "Ideal for driving visits through connected experiences",
+      },
       extra_images: {
         label: "Extra Images",
         tagline: "Up to 10 images · Monthly",
@@ -366,6 +379,7 @@ const en = {
     unavailableAntiDomination: "Concierge + Discover exclusive",
     unavailableMaxSurfaces: "Max 2 promotions reached",
     unavailableSoldOut: "Sold out",
+    unavailableCityRoutesFull: "No slots available in this city at this time",
     unavailableGeneric: "Unavailable",
     cityLabel: "City",
     positionLabel: "Position",

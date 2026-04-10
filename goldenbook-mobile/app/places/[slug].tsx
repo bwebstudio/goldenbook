@@ -5,7 +5,6 @@ import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
 import {
   PlaceHero,
-  PlaceHeader,
   PlaceActions,
   EditorialNoteSection,
   InfoSection,
@@ -45,15 +44,15 @@ export default function PlaceDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
-        {/* 1. Hero image + back button */}
-        <PlaceHero heroImage={data.heroImage} />
-
-        {/* 2. Name + city + rating */}
-        <PlaceHeader
+        {/* 1. Hero image with name, city, rating overlay */}
+        <PlaceHero
+          heroImage={data.heroImage}
           name={data.name}
           cityName={data.city.name}
           rating={data.rating}
           tags={data.tags}
+          categories={data.categories}
+          subcategories={data.subcategories}
         />
 
         {/* 3. Actions: reserve / map / save / website */}

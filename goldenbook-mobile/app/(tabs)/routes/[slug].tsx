@@ -1,17 +1,15 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouteDetail } from '@/features/routes/hooks/useRouteDetail';
 import { useSaveRoute } from '@/features/saved/hooks/useSaveRoute';
 import { RouteHero, RoutePlacesTimeline } from '@/features/routes/components';
-import { useTranslation } from '@/i18n';
 
 export default function RouteDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
-  const t = useTranslation();
-  const { data, isLoading, isError, refetch } = useRouteDetail(slug ?? '');
+  const { data, isLoading, isError } = useRouteDetail(slug ?? '');
   const { isSaved, toggle: toggleSave, isPending } = useSaveRoute(data?.id ?? '');
 
   if (isLoading) {
@@ -25,21 +23,9 @@ export default function RouteDetailScreen() {
   if (isError || !data) {
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm mb-5">
-          {t.route.couldNotLoad}
+        <Text className="text-navy/40 text-center text-sm">
+          Could not load this route.{'\n'}Check your connection and try again.
         </Text>
-        <TouchableOpacity
-          onPress={() => refetch()}
-          activeOpacity={0.85}
-          className="bg-primary rounded-lg px-6 py-3 mb-3"
-        >
-          <Text className="text-navy text-xs uppercase tracking-widest font-bold">
-            {t.common.retry}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <Text className="text-navy/30 text-xs tracking-wide">{t.common.goBack}</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -48,7 +34,7 @@ export default function RouteDetailScreen() {
     <View className="flex-1 bg-ivory">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 96 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* 1. Hero: image + title + summary + meta */}
         <RouteHero
@@ -74,11 +60,8 @@ export default function RouteDetailScreen() {
         <RoutePlacesTimeline places={data.places} />
       </ScrollView>
 
-      {/* 5. Bottom bar — bottom: 0 is already above the tab bar inside the tabs layout */}
-      <View
-        className="absolute left-0 right-0 bg-ivory/96"
-        style={{ bottom: 0 }}
-      >
+      {/* 5. Bottom bar — Start Route + Save */}
+      <SafeAreaView edges={['bottom']} className="absolute bottom-0 left-0 right-0 bg-ivory/96">
         <View className="px-5 py-3 flex-row gap-3">
           {/* Start Route — grows to fill available space */}
           <TouchableOpacity
@@ -88,7 +71,7 @@ export default function RouteDetailScreen() {
             onPress={() => router.push(`/journey/${slug}`)}
           >
             <Text className="text-primary text-[11px] uppercase tracking-widest font-bold">
-              {t.routes.startRoute}
+              Start Route
             </Text>
             <Text className="text-primary text-sm font-bold">→</Text>
           </TouchableOpacity>
@@ -113,7 +96,7 @@ export default function RouteDetailScreen() {
             />
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     </View>
   );
 }

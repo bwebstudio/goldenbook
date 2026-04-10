@@ -1,6 +1,7 @@
 import { router } from 'expo-router'
 import React from 'react'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
 import { getStorageUrl } from '@/utils/storage'
 import { useTranslation } from '@/i18n'
@@ -47,48 +48,62 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
     )
   }
 
+  const CARD_HEIGHT = 340
+
   return (
-    <View style={styles.card}>
-      {/* Hero image */}
-      <View style={styles.imageContainer}>
-        <ProgressiveImage
-          uri={getStorageUrl(recommendation.heroImage.bucket, recommendation.heroImage.path)}
-          aspectRatio={16 / 10}
-          borderRadius={0}
-        />
-        {/* Dark base overlay for contrast */}
-        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' }} pointerEvents="none" />
-        {/* Goldenbook blue overlay */}
-        <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(17,35,67,0.55)' }} pointerEvents="none" />
-        {/* Badges */}
-        {recommendation.badges.length > 0 && (
-          <View style={styles.badges}>
-            {recommendation.badges.slice(0, 2).map((b) => (
-              <View key={b} style={styles.badge}>
-                <Text style={styles.badgeText}>{b.toUpperCase()}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.92} style={[styles.card, { height: CARD_HEIGHT }]}>
+      {/* Full-bleed hero image */}
+      <ProgressiveImage
+        uri={getStorageUrl(recommendation.heroImage.bucket, recommendation.heroImage.path)}
+        height={CARD_HEIGHT}
+        borderRadius={0}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+
+      {/* Multi-stop gradient overlay (Apple TV style) */}
+      <LinearGradient
+        colors={[
+          'transparent',
+          'rgba(17,24,40,0.08)',
+          'rgba(17,24,40,0.35)',
+          'rgba(17,24,40,0.70)',
+          'rgba(17,24,40,0.90)',
+          'rgba(17,24,40,0.97)',
+        ]}
+        locations={[0, 0.2, 0.38, 0.56, 0.72, 1]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      {/* Badges (top-left) */}
+      {recommendation.badges.length > 0 && (
+        <View style={styles.badges}>
+          {recommendation.badges.slice(0, 2).map((b) => (
+            <View key={b} style={styles.badge}>
+              <Text style={styles.badgeText}>{b.toUpperCase()}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Content — positioned over gradient */}
+      <View style={styles.contentOverlay}>
         {/* City */}
-        <Text style={styles.city}>
+        <Text style={styles.cityOverlay}>
           {[recommendation.city, recommendation.neighborhood].filter(Boolean).join(' · ')}
         </Text>
-      </View>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.name}>{recommendation.name}</Text>
+        <Text style={styles.nameOverlay}>{recommendation.name}</Text>
         {recommendation.shortDescription ? (
-          <Text style={styles.description} numberOfLines={3}>
+          <Text style={styles.descriptionOverlay} numberOfLines={2}>
             {recommendation.shortDescription}
           </Text>
         ) : null}
-        <TouchableOpacity style={styles.cta} onPress={handlePress} activeOpacity={0.82}>
+        <View style={styles.ctaOverlay}>
           <Text style={styles.ctaText}>{t.concierge.requestAccess}</Text>
-        </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   )
 }
 
@@ -98,17 +113,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 20,
-    backgroundColor: '#FDFDFB',
     overflow: 'hidden',
-    shadowColor: NAVY,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 5,
-  },
-  imageContainer: {
-    position: 'relative',
-    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    elevation: 10,
   },
   badges: {
     position: 'absolute',
@@ -131,45 +141,56 @@ const styles = StyleSheet.create({
     color: GOLD,
     letterSpacing: 1,
   },
-  city: {
+  contentOverlay: {
     position: 'absolute',
-    bottom: 14,
-    left: 14,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+    paddingTop: 12,
+  },
+  cityOverlay: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.75)',
+    fontSize: 10,
+    color: GOLD,
     letterSpacing: 1.2,
     textTransform: 'uppercase',
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 20,
-  },
-  name: {
+  nameOverlay: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 20,
-    color: NAVY,
-    marginBottom: 8,
-    lineHeight: 26,
+    fontSize: 22,
+    color: '#FFFFFF',
+    marginBottom: 6,
+    lineHeight: 28,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  description: {
+  descriptionOverlay: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 13,
-    color: 'rgba(34,45,82,0.6)',
-    lineHeight: 20,
-    marginBottom: 18,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.6)',
+    lineHeight: 18,
+    marginBottom: 16,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  cta: {
-    backgroundColor: NAVY,
-    borderRadius: 9999,
+  ctaOverlay: {
+    backgroundColor: GOLD,
+    borderRadius: 10,
     paddingVertical: 13,
     alignItems: 'center',
   },
   ctaText: {
     fontFamily: 'Inter_600SemiBold',
-    fontSize: 13,
-    color: '#FDFDFB',
+    fontSize: 12,
+    color: NAVY,
     letterSpacing: 0.8,
   },
 

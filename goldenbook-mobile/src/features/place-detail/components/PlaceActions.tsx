@@ -84,14 +84,14 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
   const canShowMap = !!(location?.latitude && location?.longitude) || !!actions.navigateUrl;
 
   return (
-    <View className="flex-row gap-4 px-8 py-4">
+    <View className="flex-row gap-3 px-8 pt-6 pb-2">
       {/* Booking CTA — primary action */}
       {hasBookingCTA && cta && (
         <TouchableOpacity
           onPress={handleBookingCTA}
           activeOpacity={0.85}
           className="items-center justify-center bg-navy rounded-full"
-          style={{ flex: 1.5, height: 56 }}
+          style={{ flex: 1.5, height: 48 }}
         >
           <Text className="text-ivory text-xs font-bold uppercase tracking-widest">
             {t.place.reserve}
@@ -105,7 +105,7 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
           onPress={handleLegacyReserve}
           activeOpacity={0.85}
           className="items-center justify-center bg-navy rounded-full"
-          style={{ flex: 1.5, height: 56 }}
+          style={{ flex: 1.5, height: 48 }}
         >
           <Text className="text-ivory text-xs font-bold uppercase tracking-widest">{t.place.reserve}</Text>
         </TouchableOpacity>
@@ -118,7 +118,7 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
           activeOpacity={0.85}
           className="flex-row items-center justify-center gap-2 rounded-full border border-navy/5"
           style={{
-            flex: 1, height: 56, backgroundColor: '#FDFDFB',
+            flex: 1, height: 48, backgroundColor: '#FDFDFB',
             shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
           }}
         >
@@ -134,7 +134,7 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
           activeOpacity={0.8}
           className="items-center justify-center rounded-full border border-navy/5"
           style={{
-            width: 56, height: 56, backgroundColor: '#FDFDFB',
+            width: 48, height: 48, backgroundColor: '#FDFDFB',
             shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
           }}
         >
@@ -149,7 +149,7 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
           activeOpacity={0.8}
           className="items-center justify-center rounded-full border border-navy/5"
           style={{
-            width: 56, height: 56, backgroundColor: '#FDFDFB',
+            width: 48, height: 48, backgroundColor: '#FDFDFB',
             shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
           }}
         >

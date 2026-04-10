@@ -1,12 +1,10 @@
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
-import { useTranslation } from '@/i18n';
 import {
   PlaceHero,
-  PlaceHeader,
   PlaceActions,
   EditorialNoteSection,
   InfoSection,
@@ -19,9 +17,7 @@ import {
 
 export default function PlaceDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
-  const router = useRouter();
-  const t = useTranslation();
-  const { data, isLoading, isError, refetch } = usePlaceDetail(slug ?? '');
+  const { data, isLoading, isError } = usePlaceDetail(slug ?? '');
   const { isSaved, toggle: toggleSave } = useSavePlace(data?.id ?? '');
 
   if (isLoading) {
@@ -35,21 +31,9 @@ export default function PlaceDetailScreen() {
   if (isError || !data) {
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm mb-5">
-          {t.place.couldNotLoad}
+        <Text className="text-navy/40 text-center text-sm">
+          Could not load this place.{'\n'}Check your connection and try again.
         </Text>
-        <TouchableOpacity
-          onPress={() => refetch()}
-          activeOpacity={0.85}
-          className="bg-primary rounded-lg px-6 py-3 mb-3"
-        >
-          <Text className="text-navy text-xs uppercase tracking-widest font-bold">
-            {t.common.retry}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <Text className="text-navy/30 text-xs tracking-wide">{t.common.goBack}</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -58,26 +42,23 @@ export default function PlaceDetailScreen() {
     <View className="flex-1 bg-ivory">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 48 }}
       >
-        {/* 1. Hero image + back button */}
-        <PlaceHero heroImage={data.heroImage} />
-
-        {/* 2. Name + city + rating */}
-        <PlaceHeader
+        {/* 1. Hero image with name, city, rating overlay */}
+        <PlaceHero
+          heroImage={data.heroImage}
           name={data.name}
           cityName={data.city.name}
           rating={data.rating}
           tags={data.tags}
+          categories={data.categories}
+          subcategories={data.subcategories}
         />
 
         {/* 3. Actions: reserve / map / save / website */}
         <PlaceActions
-          placeId={data.id}
           actions={data.actions}
-          booking={data.booking}
           location={data.location}
-          city={data.city.slug}
           isSaved={isSaved}
           onSave={toggleSave}
         />
@@ -85,7 +66,10 @@ export default function PlaceDetailScreen() {
         {/* Divider */}
         <View className="h-px bg-navy/5 mx-5 mb-4" />
 
-        {/* 4. Editorial sections */}
+        {/* 4. Editorial sections: Goldenbook Perspective + Insider Tip
+            Content source: data.goldenbookNote and data.insiderTip (backend / admin dashboard)
+            Fallback: placeholder demo content shown when backend fields are null.
+            See EditorialNoteSection for placeholder constants and TODO comments. */}
         <EditorialNoteSection
           goldenbookNote={data.goldenbookNote}
           insiderTip={data.insiderTip}
@@ -129,9 +113,11 @@ export default function PlaceDetailScreen() {
           />
         )}
 
-        {/* 11. Curated Nearby */}
+        {/* 11. Curated Nearby — always at the end */}
         <NearbyGemsSection nearbyGems={data.nearbyGems} />
       </ScrollView>
+
+      <SafeAreaView edges={['bottom']} className="bg-ivory" />
     </View>
   );
 }

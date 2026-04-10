@@ -118,7 +118,8 @@ async function seedDefaults(): Promise<void> {
       ('placement', 'concierge',          NULL, '7 days',  7,  320.00),
       ('placement', 'new_on_goldenbook',  NULL, '14 days', 14, 240.00),
       ('placement', 'route_featured_stop',NULL, '14 days', 14, 260.00),
-      ('placement', 'route_sponsor',      NULL, '28 days', 28, 520.00)
+      ('placement', 'route_sponsor',      NULL, '28 days', 28, 520.00),
+      ('placement', 'curated_route',      NULL, '15 days', 15, 380.00)
   `)
 
   // Upgrades

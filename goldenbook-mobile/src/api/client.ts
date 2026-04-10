@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { getAuthToken } from '@/auth/tokenStorage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
+  ? 'http://localhost:3001/api/v1'
+  : 'https://api.goldenbook.app/api/v1'
+);
 
 // Stable session ID for NOW anti-repetition tracking (persists until app restart)
 const SESSION_ID = `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

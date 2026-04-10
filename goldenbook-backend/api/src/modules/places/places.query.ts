@@ -50,6 +50,8 @@ export interface PlaceRow {
   context_windows_auto: unknown | null
   context_tags_auto: unknown | null
   moment_tags_auto: unknown | null
+  // Google enrichment
+  google_maps_url: string | null
 }
 
 // ─── Shared query fragments ──────────────────────────────────────────────────
@@ -82,7 +84,8 @@ const CORE_SELECT = `
   p.classification_auto,
   p.context_windows_auto,
   p.context_tags_auto,
-  p.moment_tags_auto`
+  p.moment_tags_auto,
+  p.google_maps_url`
 
 const BOOKING_SELECT = `,
   p.booking_enabled,

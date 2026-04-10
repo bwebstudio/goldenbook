@@ -10,7 +10,7 @@ interface DiscoverHeaderProps {
 
 export function DiscoverHeader({ cityName, country, onCityPress, onMenuPress }: DiscoverHeaderProps) {
   return (
-    <View className="px-6 pt-8 pb-2 flex-row items-start justify-between">
+    <View className="px-6 pt-4 pb-1 flex-row items-start justify-between">
       {/* City + country */}
       <TouchableOpacity onPress={onCityPress} activeOpacity={0.7}>
         <Text

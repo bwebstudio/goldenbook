@@ -7,6 +7,7 @@ import {
   getCampaignById,
 } from '../campaigns/campaigns.query'
 import { incrementSlot, decrementSlot, placementToSurface } from '../inventory/promotion-inventory.query'
+import { fulfillCuratedRoute } from '../curated-routes/curated-routes.fulfillment'
 
 // ─── Idempotency ─────────────────────────────────────────────────────────────
 
@@ -158,6 +159,7 @@ const SURFACE_MAP: Record<string, string> = {
   route_featured_stop: 'route_featured',
   route_sponsor: 'route_sponsor',
   concierge: 'concierge',
+  curated_route: 'curated_route',
 }
 
 const UPGRADE_TYPES = new Set(['extra_images', 'extended_description', 'listing_premium_pack'])
@@ -183,6 +185,35 @@ export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promi
   if (UPGRADE_TYPES.has(purchase.placement_type ?? '')) {
     await activatePurchase(purchase.id, null as unknown as string, startsAt, endsAt)
     return 'upgrade-activated'
+  }
+
+  // Curated route: special fulfillment — generates a sponsored route
+  if (purchase.placement_type === 'curated_route') {
+    if (!purchase.place_id) {
+      console.error(`[fulfillment] curated_route purchase ${purchase.id} has no place_id`)
+      await db.query(
+        `UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`,
+        [purchase.id],
+      )
+      return 'inventory_conflict'
+    }
+
+    const result = await fulfillCuratedRoute(purchase.place_id, purchase.id)
+
+    if (result.status === 'created') {
+      await activatePurchase(purchase.id, result.routeId ?? null, startsAt, endsAt)
+      return result.routeId ?? 'curated-route-activated'
+    }
+
+    // Generation failed — mark as conflict for admin review
+    console.error(
+      `[fulfillment] curated_route fulfillment failed: status=${result.status} purchase=${purchase.id}`,
+    )
+    await db.query(
+      `UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`,
+      [purchase.id],
+    )
+    return 'inventory_conflict'
   }
 
   // ── Global slot check + atomic increment BEFORE creating visibility ────
@@ -271,11 +302,18 @@ export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promi
   }
 
   // Cross-surface dominance limit: max 2 paid surfaces per place
+  // Includes place_visibility sponsored + curated_routes sponsored
   const MAX_PAID_SURFACES_PER_PLACE = 2
   const { rows: [surfaceCount] } = await db.query<{ cnt: string }>(`
-    SELECT COUNT(*)::text AS cnt FROM place_visibility
-    WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
-      AND (ends_at IS NULL OR ends_at >= now())
+    SELECT (
+      (SELECT COUNT(*) FROM place_visibility
+       WHERE place_id = $1 AND is_active = true AND visibility_type = 'sponsored'
+         AND (ends_at IS NULL OR ends_at >= now()))
+      +
+      (SELECT COUNT(*) FROM curated_routes
+       WHERE sponsor_place_id = $1 AND route_type = 'sponsored'
+         AND is_active = true AND expires_at > now())
+    )::text AS cnt
   `, [purchase.place_id])
 
   if (parseInt(surfaceCount?.cnt ?? '0', 10) >= MAX_PAID_SURFACES_PER_PLACE) {
@@ -345,10 +383,10 @@ async function fulfillCampaignInventory(
   })
 
   if (!claimed) {
-    console.warn('[campaign-fulfillment] Inventory unavailable at claim time — marking purchase as failed', { ...logCtx, status: 'inventory_conflict' })
-    // Mark purchase as failed — inventory was sold between checkout and payment
+    console.warn('[campaign-fulfillment] Inventory unavailable at claim time — triggering auto-refund', { ...logCtx, status: 'inventory_conflict' })
+    // Mark as inventory_conflict so the webhook handler triggers an auto-refund
     await db.query(
-      `UPDATE purchases SET status = 'failed', updated_at = now() WHERE id = $1`,
+      `UPDATE purchases SET status = 'inventory_conflict', updated_at = now() WHERE id = $1`,
       [purchase.id],
     )
     return

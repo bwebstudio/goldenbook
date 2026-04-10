@@ -155,7 +155,21 @@ export default function AuthEntryScreen() {
 
           {/* Legal */}
           <Text style={styles.legal}>
-            By continuing you agree to Goldenbook Go's{'\n'}Terms of Service and Privacy Policy.
+            By continuing you agree to Goldenbook Go's{'\n'}
+            <Text
+              style={styles.legalLink}
+              onPress={() => router.push({ pathname: '/info', params: { contentKey: 'terms' } })}
+            >
+              Terms of Service
+            </Text>
+            {' and '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => router.push({ pathname: '/info', params: { contentKey: 'privacy' } })}
+            >
+              Privacy Policy
+            </Text>
+            .
           </Text>
         </View>
       </ScrollView>
@@ -360,5 +374,9 @@ const styles = StyleSheet.create({
     color: 'rgba(253,253,251,0.20)',
     textAlign: 'center',
     marginTop: 20,
+  },
+  legalLink: {
+    textDecorationLine: 'underline',
+    color: 'rgba(253,253,251,0.36)',
   },
 });

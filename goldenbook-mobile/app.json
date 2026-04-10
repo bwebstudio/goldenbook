@@ -4,12 +4,12 @@
     "slug": "goldenbook",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/app-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0A0A0A"
+      "backgroundColor": "#161E38"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -23,8 +23,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "foregroundImage": "./assets/app-icon-android.png",
+        "backgroundColor": "#161E38"
       },
       "package": "com.goldenbook.app"
     },
