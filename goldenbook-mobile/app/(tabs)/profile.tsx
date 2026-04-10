@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Alert, DevSettings, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter, useNavigation } from 'expo-router';
+import { TabActions } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, DevSettings, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
@@ -9,6 +10,7 @@ import { useOnboardingStore } from '@/store/onboardingStore';
 import { LOCALITY_BY_SLUG } from '@/config/localities';
 import { useTranslation } from '@/i18n';
 import { colors, typography, spacing, radius } from '@/design/tokens';
+import { api } from '@/api/endpoints';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -82,6 +84,43 @@ export default function ProfileScreen() {
   const photoURL    = meta.avatar_url ?? meta.picture ?? null;
   const initials    = getInitials(user);
   const locality    = LOCALITY_BY_SLUG[selectedCity];
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    // Step 1: First confirmation
+    Alert.alert(t.profile.deleteAccountTitle, t.profile.deleteAccountMessage, [
+      { text: t.common.cancel, style: 'cancel' },
+      {
+        text: t.profile.deleteAccountConfirm,
+        style: 'destructive',
+        onPress: () => {
+          // Step 2: Final confirmation
+          Alert.alert(t.profile.deleteAccountFinalTitle, t.profile.deleteAccountFinalMessage, [
+            { text: t.common.cancel, style: 'cancel' },
+            {
+              text: t.profile.deleteAccountConfirm,
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  setDeleting(true);
+                  await api.deleteAccount();
+                  Alert.alert('', t.profile.deleteAccountSuccess);
+                  await signOut();
+                } catch {
+                  Alert.alert(
+                    'Error',
+                    'Could not delete account. Please try again or contact support at privacy@goldenbook.app.',
+                  );
+                } finally {
+                  setDeleting(false);
+                }
+              },
+            },
+          ]);
+        },
+      },
+    ]);
+  };
 
   const handleSignOut = () => {
     Alert.alert(t.profile.signOutTitle, t.profile.signOutMessage, [
@@ -102,12 +141,38 @@ export default function ProfileScreen() {
     DevSettings.reload();
   };
 
+  // ── Close profile: return to the previous tab ────────────────────────
+  // Profile is a tab, not a modal — router.back() doesn't work reliably
+  // because tabs are siblings, not stacked. Instead, we read the tab
+  // navigator's history to find which tab the user came from and jump there.
+  const tabNav = useNavigation().getParent();
+
+  const handleClose = () => {
+    // Try to find the previous tab from the navigator's history
+    const state = tabNav?.getState();
+    if (state?.history) {
+      // history entries for tabs look like { type: 'tab', key: '...' }
+      const tabHistory = (state.history as any[]).filter((h) => h.type === 'tab');
+      // The last entry is "profile" (current), the one before is where we came from
+      const prev = tabHistory.length >= 2 ? tabHistory[tabHistory.length - 2] : null;
+      if (prev) {
+        const route = state.routes.find((r: any) => r.key === prev.key);
+        if (route?.name && route.name !== 'profile') {
+          tabNav?.dispatch(TabActions.jumpTo(route.name));
+          return;
+        }
+      }
+    }
+    // Fallback: go to Discover (index)
+    router.replace('/(tabs)');
+  };
+
   return (
     <SafeAreaView style={styles.screen}>
       {/* ── Close button ── */}
       <View style={styles.closeRow}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleClose}
           activeOpacity={0.7}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -202,33 +267,22 @@ export default function ProfileScreen() {
             />
           </SectionCard>
 
-          {/* ── Sign out ── */}
+          {/* ── Delete account & Sign out ── */}
           <View style={[styles.sectionCard, styles.section]}>
+            {deleting ? (
+              <View style={[styles.row, styles.rowDivider]}>
+                <ActivityIndicator size="small" color="#B94040" />
+                <Text style={[styles.rowLabel, styles.rowLabelDestructive, { marginLeft: spacing.sm }]}>
+                  Deleting...
+                </Text>
+              </View>
+            ) : (
+              <MenuRow label={t.profile.deleteAccount} onPress={handleDeleteAccount} destructive />
+            )}
             <MenuRow label={t.profile.signOut} onPress={handleSignOut} destructive isLast />
           </View>
 
-          {/* ── Dev tools — only in development builds ── */}
-          {__DEV__ && (
-            <View style={styles.devSection}>
-              <Text style={styles.devLabel}>{t.profile.devTools}</Text>
-              <View style={styles.devCard}>
-                <TouchableOpacity
-                  style={[styles.devRow, styles.devRowDivider]}
-                  onPress={resetOnboardingOnly}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.devRowText}>{t.profile.resetOnboarding}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.devRow}
-                  onPress={() => { resetLocality(); resetOnboarding(); }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.devRowText}>{t.profile.resetLocality}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+          {/* Dev tools removed — use Expo DevMenu instead */}
         </View>
 
         <View style={{ height: spacing.xxxl }} />

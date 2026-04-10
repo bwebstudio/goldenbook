@@ -130,11 +130,9 @@ export default function ConciergeScreen() {
   const bootstrapCity = state.bootstrapData?.city.slug
   useEffect(() => {
     if (entry === 'now') return
-    // Reload if no bootstrap or if city changed since last bootstrap
-    if (!state.bootstrapData || (bootstrapCity && bootstrapCity !== city)) {
-      loadBootstrap()
-    }
-  }, [entry, loadBootstrap, state.bootstrapData, bootstrapCity, city])
+    // Reload if no bootstrap, city changed, or locale changed
+    loadBootstrap()
+  }, [entry, loadBootstrap, city, locale])
 
   useEffect(() => {
     if (entry !== 'now' || pendingNowContext?.source !== 'now') return

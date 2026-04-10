@@ -12,7 +12,7 @@
 // Usage:
 //   <GoldenMenu visible={open} onClose={() => setOpen(false)} />
 
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
   Modal,
@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/appStore';
+import { useSettingsStore, type Locale } from '@/store/settingsStore';
 import { LOCALITY_BY_SLUG } from '@/config/localities';
 import { useTranslation } from '@/i18n';
 
@@ -69,6 +70,70 @@ function MenuRow({ item, isLast }: { item: MenuItem; isLast?: boolean }) {
   );
 }
 
+// ─── LanguagePicker ───────────────────────────────────────────────────────────
+//
+// Inline EN / ES / PT pills — tap to change, no navigation.
+
+const LANG_OPTIONS: { locale: Locale; code: string }[] = [
+  { locale: 'en', code: 'EN' },
+  { locale: 'es', code: 'ES' },
+  { locale: 'pt', code: 'PT' },
+];
+
+function LanguagePicker() {
+  const currentLocale = useSettingsStore((s) => s.locale);
+  const setLocale     = useSettingsStore((s) => s.setLocale);
+
+  return (
+    <View style={langStyles.row}>
+      {LANG_OPTIONS.map((opt) => {
+        const selected = currentLocale === opt.locale;
+        return (
+          <TouchableOpacity
+            key={opt.locale}
+            onPress={() => setLocale(opt.locale)}
+            activeOpacity={0.65}
+            style={[langStyles.pill, selected && langStyles.pillSelected]}
+          >
+            <Text style={[langStyles.pillText, selected && langStyles.pillTextSelected]}>
+              {opt.code}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+const langStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  pill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: `${NAVY}06`,
+    borderWidth: 1,
+    borderColor: `${NAVY}10`,
+  },
+  pillSelected: {
+    backgroundColor: NAVY,
+    borderColor: NAVY,
+  },
+  pillText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 11,
+    letterSpacing: 0.8,
+    color: `${NAVY}50`,
+  },
+  pillTextSelected: {
+    color: '#FFFFFF',
+  },
+});
+
 // ─── GoldenMenu ───────────────────────────────────────────────────────────────
 
 interface GoldenMenuProps {
@@ -102,16 +167,27 @@ export function GoldenMenu({ visible, onClose }: GoldenMenuProps) {
     }
   }, [visible, slideAnim]);
 
-  const go = (path: string, params?: Record<string, string>) => {
+  const pendingNav = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (pendingNav.current) clearTimeout(pendingNav.current);
+    };
+  }, []);
+
+  const go = useCallback((path: string, params?: Record<string, string>) => {
     onClose();
-    setTimeout(() => {
+    if (pendingNav.current) clearTimeout(pendingNav.current);
+    pendingNav.current = setTimeout(() => {
       if (params) {
         router.push({ pathname: path as any, params });
       } else {
         router.push(path as any);
       }
+      pendingNav.current = null;
     }, 180);
-  };
+  }, [onClose, router]);
 
   // ── Utility ──────────────────────────────────────────────────────────────────
   const utilityItems: MenuItem[] = [
@@ -186,6 +262,9 @@ export function GoldenMenu({ visible, onClose }: GoldenMenuProps) {
           </View>
 
           <View style={styles.ruleDivider} />
+
+          {/* ── Language ──────────────────────────────────────────────────── */}
+          <LanguagePicker />
 
           {/* ── Utility ───────────────────────────────────────────────────── */}
           <View style={styles.sectionCard}>

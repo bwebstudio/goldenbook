@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Platform } from 'react-native';
+import { View, Platform, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from '@/i18n';
 
@@ -28,9 +28,37 @@ function tabIcon(outlined: IoniconsName, filled: IoniconsName) {
   );
 }
 
+/**
+ * Translated tab label — rendered via tabBarLabel instead of title.
+ * This lets translations update without changing the Tabs.Screen `options`
+ * object identity, which would cause Expo Router to reset tab navigation.
+ */
+function TabLabel({ translationKey, color }: { translationKey: keyof ReturnType<typeof useTranslation>['tabs']; color: string }) {
+  const t = useTranslation();
+  return <Text style={[labelStyle.text, { color }]}>{t.tabs[translationKey]}</Text>;
+}
+
+const labelStyle = StyleSheet.create({
+  text: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+});
+
+// Stable option objects — created once, never re-created on locale change.
+// Translation-dependent text is rendered via tabBarLabel components above.
+const discoverOpts  = { tabBarLabel: ({ color }: any) => <TabLabel translationKey="discover" color={color} />,  tabBarIcon: tabIcon('compass-outline', 'compass') };
+const conciergeOpts = { tabBarLabel: ({ color }: any) => <TabLabel translationKey="concierge" color={color} />, tabBarIcon: tabIcon('chatbubble-outline', 'chatbubble') };
+const routesOpts    = { tabBarLabel: ({ color }: any) => <TabLabel translationKey="routes" color={color} />,    tabBarIcon: tabIcon('navigate-outline', 'navigate') };
+const savedOpts     = { tabBarLabel: ({ color }: any) => <TabLabel translationKey="saved" color={color} />,     tabBarIcon: tabIcon('heart-outline', 'heart') };
+const profileOpts   = { tabBarLabel: ({ color }: any) => <TabLabel translationKey="profile" color={color} />,   tabBarIcon: tabIcon('person-outline', 'person') };
+const hiddenOpts    = { href: null as any };
+
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  const t = useTranslation();
 
   // On iPhone with home indicator, insets.bottom ≈ 34.
   // We extend the bar behind it and push content up with paddingBottom.
@@ -53,39 +81,17 @@ export default function TabsLayout() {
         },
         tabBarActiveTintColor: '#222D52',
         tabBarInactiveTintColor: 'rgba(34,45,82,0.28)',
-        tabBarLabelStyle: {
-          fontSize: 9,
-          fontWeight: '600',
-          letterSpacing: 0.8,
-          textTransform: 'uppercase',
-          marginTop: 4,
-        },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: t.tabs.discover, tabBarIcon: tabIcon('compass-outline', 'compass') }}
-      />
-      <Tabs.Screen
-        name="concierge"
-        options={{ title: t.tabs.concierge, tabBarIcon: tabIcon('chatbubble-outline', 'chatbubble') }}
-      />
-      <Tabs.Screen
-        name="routes"
-        options={{ title: t.tabs.routes, tabBarIcon: tabIcon('navigate-outline', 'navigate') }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{ title: t.tabs.saved, tabBarIcon: tabIcon('heart-outline', 'heart') }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: t.tabs.profile, tabBarIcon: tabIcon('person-outline', 'person') }}
-      />
+      <Tabs.Screen name="index"       options={discoverOpts} />
+      <Tabs.Screen name="concierge"   options={conciergeOpts} />
+      <Tabs.Screen name="routes"      options={routesOpts} />
+      <Tabs.Screen name="saved"       options={savedOpts} />
+      <Tabs.Screen name="profile"     options={profileOpts} />
       {/* Detail screens — inside tabs shell so the tab bar stays visible, hidden from tab bar */}
-      <Tabs.Screen name="places" options={{ href: null }} />
-      <Tabs.Screen name="categories" options={{ href: null }} />
-      <Tabs.Screen name="golden-picks" options={{ href: null }} />
+      <Tabs.Screen name="places"       options={hiddenOpts} />
+      <Tabs.Screen name="categories"   options={hiddenOpts} />
+      <Tabs.Screen name="golden-picks" options={hiddenOpts} />
     </Tabs>
   );
 }
