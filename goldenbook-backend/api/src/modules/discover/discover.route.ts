@@ -113,8 +113,14 @@ export async function discoverRoutes(app: FastifyInstance) {
       nowPick = pickNowRecommendation(nowCandidates, nowSegment, profile)
     }
 
+    // ── Dedup: NOW place must not appear in Golden Picks ──────────────────
+    const nowPlaceId = nowPick?.id ?? null
+    const dedupedEditorsPicks = nowPlaceId
+      ? rankedEditorsPicks.filter((p) => p.id !== nowPlaceId)
+      : rankedEditorsPicks
+
     return reply.send(
-      toDiscoverDTO(cityHeader, hero, rankedHiddenSpots, rankedEditorsPicks, categories, goldenRoutes, rankedNewPlaces, nowPick, nowSegment),
+      toDiscoverDTO(cityHeader, hero, rankedHiddenSpots, dedupedEditorsPicks, categories, goldenRoutes, rankedNewPlaces, nowPick, nowSegment, locale),
     )
   })
 }

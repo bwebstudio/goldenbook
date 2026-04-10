@@ -136,6 +136,8 @@ export interface PlaceCardRow {
   hero_bucket: string | null
   hero_path: string | null
   short_description: string | null
+  place_type: string | null
+  city_name: string | null
   is_sponsored?: boolean
 }
 
@@ -155,7 +157,9 @@ async function getCollectionPlaces(
       COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
       hero_img.bucket                                                                              AS hero_bucket,
       hero_img.path                                                                                AS hero_path,
-      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
+      p.place_type,
+      d.name AS city_name
     FROM editorial_collections ec
     JOIN destinations d
            ON d.id = ec.destination_id AND d.slug = $1
@@ -203,7 +207,9 @@ async function getPlacesFallback(
       COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
       hero_img.bucket                                                                              AS hero_bucket,
       hero_img.path                                                                                AS hero_path,
-      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
+      p.place_type,
+      d.name AS city_name
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
@@ -330,7 +336,9 @@ export async function getNewPlaces(
       COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)                                        AS name,
       hero_img.bucket                                                                              AS hero_bucket,
       hero_img.path                                                                                AS hero_path,
-      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description
+      COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
+      p.place_type,
+      d.name AS city_name
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
     LEFT JOIN place_translations pt
@@ -473,36 +481,35 @@ export async function getGoldenRoutes(
   locale: string,
   limit = 4,
 ): Promise<RouteCardRow[]> {
-  const { rows } = await db.query<RouteCardRow>(
+  const lang = locale.split('-')[0]
+
+  // 1. Curated routes (active, auto-generated/sponsored) — take priority
+  const { rows: curatedRows } = await db.query<RouteCardRow>(
     `
     SELECT
-      r.id,
-      r.slug,
-      COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)         AS title,
-      COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)       AS summary,
-      ma.bucket                                                               AS hero_bucket,
-      ma.path                                                                 AS hero_path,
-      COUNT(rp.place_id)::int                                                AS places_count
-    FROM routes r
-    JOIN destinations d ON d.id = r.destination_id AND d.slug = $1
-    LEFT JOIN route_translations rt
-           ON rt.route_id = r.id AND rt.locale = $2
-    LEFT JOIN route_translations rt_lang
-           ON rt_lang.route_id = r.id AND rt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
-    LEFT JOIN route_translations rt_fb
-           ON rt_fb.route_id = r.id AND rt_fb.locale = 'en'
-    LEFT JOIN media_assets ma ON ma.id = r.cover_asset_id
-    LEFT JOIN route_places rp ON rp.route_id = r.id
-    WHERE r.status = 'published'
-    GROUP BY
-      r.id, r.slug, r.title, r.summary, r.featured, r.published_at,
-      rt.title, rt_lang.title, rt_fb.title,
-      rt.summary, rt_lang.summary, rt_fb.summary,
-      ma.bucket, ma.path
-    ORDER BY r.featured DESC, r.published_at DESC NULLS LAST
+      cr.id,
+      cr.id::text AS slug,
+      COALESCE(cr.title_translations ->> $2, cr.title) AS title,
+      COALESCE(cr.summary_translations ->> $2, cr.summary) AS summary,
+      (SELECT ma.bucket FROM curated_route_stops crs
+       JOIN place_images pi ON pi.place_id = crs.place_id AND pi.image_role IN ('hero','cover')
+       JOIN media_assets ma ON ma.id = pi.asset_id
+       WHERE crs.route_id = cr.id ORDER BY crs.stop_order LIMIT 1) AS hero_bucket,
+      (SELECT ma.path FROM curated_route_stops crs
+       JOIN place_images pi ON pi.place_id = crs.place_id AND pi.image_role IN ('hero','cover')
+       JOIN media_assets ma ON ma.id = pi.asset_id
+       WHERE crs.route_id = cr.id ORDER BY crs.stop_order LIMIT 1) AS hero_path,
+      (SELECT COUNT(*)::int FROM curated_route_stops crs WHERE crs.route_id = cr.id) AS places_count
+    FROM curated_routes cr
+    WHERE cr.city_slug = $1
+      AND cr.is_active = true
+      AND cr.starts_at <= now()
+      AND cr.expires_at > now()
+    ORDER BY cr.route_type = 'sponsored' DESC, cr.created_at DESC
     LIMIT $3
     `,
-    [citySlug, locale, limit],
+    [citySlug, lang, limit],
   )
-  return rows
+
+  return curatedRows
 }

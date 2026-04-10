@@ -13,7 +13,7 @@ import {
 
 // ─── Time segment ─────────────────────────────────────────────────────────────
 
-export type TimeSegment = 'morning' | 'midday' | 'afternoon' | 'evening' | 'night'
+export type TimeSegment = 'morning' | 'midday' | 'afternoon' | 'evening' | 'late_evening' | 'deep_night' | 'night'
 
 export function getTimeSegment(hour: number): TimeSegment {
   if (hour >= 6 && hour <= 10) return 'morning'
@@ -82,6 +82,8 @@ interface PlaceCardDTO {
   name: string
   heroImage: MediaAssetDTO
   shortDescription: string | null
+  placeType: string | null
+  cityName: string | null
   isSponsored?: boolean
 }
 
@@ -92,6 +94,8 @@ function toPlaceCard(row: PlaceCardRow): PlaceCardDTO {
     name: row.name,
     heroImage: { bucket: row.hero_bucket, path: row.hero_path },
     shortDescription: row.short_description,
+    placeType: row.place_type ?? null,
+    cityName: row.city_name ?? null,
   }
   if (row.is_sponsored) dto.isSponsored = true
   return dto
@@ -143,6 +147,12 @@ export interface DiscoverDTO {
   newOnGoldenbook: PlaceCardDTO[]
 }
 
+const SEARCH_PLACEHOLDERS: Record<string, string> = {
+  en: 'Search destinations, places, experiences',
+  es: 'Busca destinos, lugares, experiencias',
+  pt: 'Pesquisar destinos, lugares, experiências',
+}
+
 export function toDiscoverDTO(
   city: CityHeaderRow,
   hero: EditorialHeroRow | null,
@@ -153,7 +163,9 @@ export function toDiscoverDTO(
   newPlaces: PlaceCardRow[],
   nowPick: NowCandidateRow | null,
   nowSegment: TimeSegment,
+  locale = 'en',
 ): DiscoverDTO {
+  const localeFamily = locale.split('-')[0]
   return {
     cityHeader: {
       slug: city.slug,
@@ -162,7 +174,7 @@ export function toDiscoverDTO(
       heroImage: { bucket: city.hero_bucket, path: city.hero_path },
     },
     search: {
-      placeholder: 'Search destinations, places, experiences',
+      placeholder: SEARCH_PLACEHOLDERS[localeFamily] ?? SEARCH_PLACEHOLDERS['en'],
     },
     nowRecommendation: nowPick
       ? {
