@@ -2,7 +2,7 @@
   "expo": {
     "name": "Goldenbook Go",
     "slug": "goldenbook",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -16,9 +16,10 @@
     ],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.goldenbook.app",
+      "bundleIdentifier": "com.bwebstudio.goldenbook",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations."
+        "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -26,7 +27,7 @@
         "foregroundImage": "./assets/app-icon-android.png",
         "backgroundColor": "#161E38"
       },
-      "package": "com.goldenbook.app",
+      "package": "com.bwebstudio.goldenbook",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
