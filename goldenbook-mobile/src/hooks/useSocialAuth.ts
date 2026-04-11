@@ -21,7 +21,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { Platform } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { supabase } from '@/auth/supabaseClient';
 
 // Required for WebBrowser to complete auth sessions correctly on iOS.
@@ -129,6 +129,66 @@ function parseOAuthCallback(rawUrl: string): {
 // historical record in case we ever need to roll back. Suppress the lint hint.
 void makeRedirectUri;
 
+/**
+ * Process a callback URL — used both by the WebBrowser path and by the
+ * parallel `Linking.addEventListener('url', …)` listener. Returns:
+ *   • { ok: true }                  → session created, user is now signed in
+ *   • { ok: false, message: '…' }   → caller should show this in the UI
+ *   • { ok: false, silent: true }   → user-initiated cancel, do nothing
+ */
+async function handleCallbackUrl(rawUrl: string): Promise<
+  | { ok: true }
+  | { ok: false; message: string; silent?: false }
+  | { ok: false; silent: true }
+> {
+  if (__DEV__) console.log('[useGoogleSignIn] handling callback URL:', rawUrl);
+
+  const parsed = parseOAuthCallback(rawUrl);
+  if (__DEV__) {
+    console.log('[useGoogleSignIn] parsed callback:', {
+      hasCode:         !!parsed.code,
+      hasAccessToken:  !!parsed.accessToken,
+      hasRefreshToken: !!parsed.refreshToken,
+      errorCode:       parsed.errorCode,
+    });
+  }
+
+  if (parsed.errorCode) {
+    if (parsed.errorCode === 'access_denied') {
+      return { ok: false, silent: true };
+    }
+    return { ok: false, message: parsed.errorDescription || parsed.errorCode };
+  }
+
+  if (parsed.code) {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(parsed.code);
+    if (exchangeError) {
+      if (__DEV__) console.warn('[useGoogleSignIn] exchangeCodeForSession error:', exchangeError);
+      return {
+        ok: false,
+        message: `${(exchangeError as any).code ?? 'exchange_failed'}: ${exchangeError.message}`,
+      };
+    }
+    return { ok: true };
+  }
+
+  if (parsed.accessToken && parsed.refreshToken) {
+    const { error: setSessionError } = await supabase.auth.setSession({
+      access_token:  parsed.accessToken,
+      refresh_token: parsed.refreshToken,
+    });
+    if (setSessionError) {
+      return { ok: false, message: setSessionError.message };
+    }
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    message: `No session token in callback: ${rawUrl.substring(0, 160)}`,
+  };
+}
+
 export function useGoogleSignIn() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -136,6 +196,46 @@ export function useGoogleSignIn() {
   const signIn = async () => {
     setLoading(true);
     setError('');
+
+    // ── Parallel deep-link listener ──────────────────────────────────────
+    //
+    // CRITICAL: We attach a Linking listener BEFORE opening the WebBrowser
+    // because of a known race condition with `expo-web-browser` 14.0.2 +
+    // ASWebAuthenticationSession on iOS:
+    //
+    //   When the user already has an active Google Safari session (so the
+    //   OAuth round-trip completes in milliseconds with no UI), the URL
+    //   handoff back to `WebBrowser.openAuthSessionAsync` can race with the
+    //   system's deep-link delivery. The promise sometimes resolves with
+    //   `{ type: 'dismiss' }` BEFORE the URL is attached to it, while iOS
+    //   ALSO fires the `url` event on the standard React Native Linking
+    //   bridge. If we only listen on `openAuthSessionAsync`, we silently
+    //   throw the auth code away and the user falls back to the login screen.
+    //
+    // The fix is to race the two channels:
+    //   • `firstUrlPromise`            → resolves on the first Linking 'url' event
+    //   • `WebBrowser.openAuthSessionAsync(...)` → resolves with its own result
+    //
+    // Whichever resolves first AND yields a parseable callback URL wins.
+    let urlListener: { remove: () => void } | null = null;
+    const firstUrlPromise = new Promise<string>((resolve) => {
+      urlListener = Linking.addEventListener('url', (event) => {
+        if (__DEV__) console.log('[useGoogleSignIn] Linking url event:', event.url);
+        if (event.url && event.url.startsWith('goldenbook://')) {
+          resolve(event.url);
+        }
+      });
+    });
+
+    const cleanupListener = () => {
+      try {
+        urlListener?.remove();
+      } catch {
+        // ignore
+      }
+      urlListener = null;
+    };
+
     try {
       // 1. Ask Supabase for the Google OAuth URL.
       //
@@ -163,91 +263,97 @@ export function useGoogleSignIn() {
 
       if (__DEV__) console.log('[useGoogleSignIn] opening OAuth URL:', data.url);
 
-      // 2. Open the system web auth session.
-      //
-      // We pass the same redirect URI as the second arg so iOS knows which
-      // deep link to intercept and return to the app.
-      const result = await WebBrowser.openAuthSessionAsync(
+      // 2. Open the system web auth session AND race it against the deep-link
+      //    listener we attached above. We do NOT `await` openAuthSessionAsync
+      //    on its own — we put it in a Promise.race against `firstUrlPromise`
+      //    so whichever channel delivers the callback URL first wins.
+      const browserResultPromise = WebBrowser.openAuthSessionAsync(
         data.url,
         OAUTH_REDIRECT_URI,
-        {
-          // showInRecents: keeps the auth session in the iOS app switcher
-          // momentarily while it's running, which makes the flow feel smoother.
-          showInRecents: true,
-        },
+        { showInRecents: true },
       );
 
-      if (__DEV__) console.log('[useGoogleSignIn] WebBrowser result:', JSON.stringify(result));
+      // Wrap the WebBrowser promise so the race resolves with a uniform shape.
+      const wrappedBrowser = browserResultPromise.then((result) => {
+        if (__DEV__) console.log('[useGoogleSignIn] WebBrowser result:', JSON.stringify(result));
+        return { source: 'browser' as const, result };
+      });
 
-      // 3. User cancelled the iOS web auth permission alert or closed Safari.
+      const wrappedListener = firstUrlPromise.then((url) => ({
+        source: 'listener' as const,
+        url,
+      }));
+
+      const winner = await Promise.race([wrappedBrowser, wrappedListener]);
+
+      // 3a. Listener got the URL first — process it directly.
+      if (winner.source === 'listener') {
+        if (__DEV__) console.log('[useGoogleSignIn] Linking listener won the race');
+        // Try to dismiss any in-flight Safari session that didn't notice
+        // the URL was already handled. This is best-effort; failures are fine.
+        try {
+          WebBrowser.dismissAuthSession();
+        } catch {
+          // ignore
+        }
+        const outcome = await handleCallbackUrl(winner.url);
+        if (outcome.ok) return;
+        if ('silent' in outcome && outcome.silent) return;
+        throw new Error(outcome.message);
+      }
+
+      // 3b. WebBrowser resolved first.
+      const result = winner.result;
+
+      // 3b.i. User cancelled — but BEFORE giving up, give the Linking
+      //       listener a 250ms grace period in case the URL is in flight.
+      //       Some iOS versions report `cancel`/`dismiss` but the deep
+      //       link still arrives a few hundred ms later.
       if (result.type === 'cancel' || result.type === 'dismiss') {
-        return; // silent
+        if (__DEV__) {
+          console.log('[useGoogleSignIn] WebBrowser said cancel/dismiss; waiting 250ms for late URL');
+        }
+        const lateUrl = await Promise.race([
+          firstUrlPromise,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 250)),
+        ]);
+        if (typeof lateUrl === 'string') {
+          if (__DEV__) console.log('[useGoogleSignIn] late URL arrived after cancel:', lateUrl);
+          const outcome = await handleCallbackUrl(lateUrl);
+          if (outcome.ok) return;
+          if ('silent' in outcome && outcome.silent) return;
+          throw new Error(outcome.message);
+        }
+        return; // genuine cancel — silent
       }
 
       if (result.type !== 'success') {
         throw new Error(`Unexpected OAuth result: ${result.type}`);
       }
-
       if (!result.url) {
         throw new Error('OAuth callback returned no URL.');
       }
 
-      // 4. Parse the callback URL.
-      const parsed = parseOAuthCallback(result.url);
-      if (__DEV__) {
-        console.log('[useGoogleSignIn] parsed callback:', {
-          hasCode:         !!parsed.code,
-          hasAccessToken:  !!parsed.accessToken,
-          hasRefreshToken: !!parsed.refreshToken,
-          errorCode:       parsed.errorCode,
-        });
-      }
-
-      // 5. Provider returned an explicit OAuth error.
-      if (parsed.errorCode) {
-        throw new Error(parsed.errorDescription || parsed.errorCode);
-      }
-
-      // 6. PKCE flow: exchange the code for a session.
-      if (parsed.code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(parsed.code);
-        if (exchangeError) {
-          if (__DEV__) console.warn('[useGoogleSignIn] exchangeCodeForSession error:', exchangeError);
-          // Surface the actual server error code so we know if it's e.g.
-          // `flow_state_not_found` (PKCE verifier mismatch / lost) vs.
-          // `bad_code_verifier` (verifier in storage is wrong).
-          throw exchangeError;
-        }
-        // onAuthStateChange in authStore fires and updates session automatically.
-        return;
-      }
-
-      // 7. Implicit-flow fallback: Supabase returned #access_token=…&refresh_token=…
-      // Should not happen now that flowType is 'pkce', but kept as a defensive
-      // net so a future SDK regression doesn't silently re-introduce the bug.
-      if (parsed.accessToken && parsed.refreshToken) {
-        const { error: setSessionError } = await supabase.auth.setSession({
-          access_token:  parsed.accessToken,
-          refresh_token: parsed.refreshToken,
-        });
-        if (setSessionError) throw setSessionError;
-        return;
-      }
-
-      // 8. Got back a callback URL we don't recognise — surface it loudly.
-      if (__DEV__) console.warn('[useGoogleSignIn] Unparseable callback URL:', result.url);
-      throw new Error(
-        `Sign-in completed but no session token was returned. Callback URL: ${result.url.substring(0, 200)}`,
-      );
+      const outcome = await handleCallbackUrl(result.url);
+      if (outcome.ok) return;
+      if ('silent' in outcome && outcome.silent) return;
+      throw new Error(outcome.message);
     } catch (e: any) {
       if (__DEV__) console.warn('[useGoogleSignIn] failed:', e);
-      // Prefer the explicit Supabase error code when present so the user
-      // sees something actionable instead of a generic message.
       const message =
         e?.message ??
         (typeof e === 'string' ? e : 'Google sign-in failed. Please try again.');
       setError(message);
+      // Also surface the error via a native Alert so it's impossible to miss
+      // — the in-screen banner can be obscured by the keyboard or by the
+      // user being on a different screen by the time we resolve.
+      try {
+        Alert.alert('Google sign-in', message);
+      } catch {
+        // ignore
+      }
     } finally {
+      cleanupListener();
       setLoading(false);
     }
   };
