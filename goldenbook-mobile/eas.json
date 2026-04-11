@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 14.0.0"
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -22,6 +23,11 @@
       },
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.goldenbook.app/api/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ltdhyshuhkvicsvtssjm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_Ri9l7farexx8MG6P70HZxA_BkSNq6ru"
       }
     },
     "production": {
@@ -29,6 +35,11 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.goldenbook.app/api/v1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ltdhyshuhkvicsvtssjm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_Ri9l7farexx8MG6P70HZxA_BkSNq6ru"
       }
     }
   },
