@@ -30,6 +30,8 @@
       "package": "com.bwebstudio.goldenbook",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
@@ -69,6 +71,12 @@
         "projectId": "134f9bf5-71ef-42f0-bef9-789e42476be1"
       }
     },
-    "owner": "goldenbook"
+    "owner": "goldenbook",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/134f9bf5-71ef-42f0-bef9-789e42476be1"
+    }
   }
 }
