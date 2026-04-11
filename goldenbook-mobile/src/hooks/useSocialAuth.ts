@@ -19,6 +19,7 @@
 import { useState } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import { supabase } from '@/auth/supabaseClient';
 
@@ -79,13 +80,12 @@ export function useAppleSignIn() {
     setLoading(true);
     setError('');
     try {
-      // Import at call-site: prevents Android native module resolution errors.
-      const AppleAuth = await import('expo-apple-authentication');
-
-      const credential = await AppleAuth.signInAsync({
+      // Static import is safe here because the iOS check above short-circuits
+      // on Android before any native method is called.
+      const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
-          AppleAuth.AppleAuthenticationScope.FULL_NAME,
-          AppleAuth.AppleAuthenticationScope.EMAIL,
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
 
