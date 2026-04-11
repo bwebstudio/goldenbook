@@ -51,12 +51,16 @@ function TabLabel({ translationKey, color }: { translationKey: keyof ReturnType<
   );
 }
 
+// Mixed-case labels (no `textTransform: uppercase`) — uppercase + bold +
+// letter-spacing made the 9-letter Spanish strings ("Descubrir", "Concierge",
+// "Guardado") wider than the tab cell on iPhone SE/8/Mini-class devices,
+// causing them to ellipsize as DESCUB…/CONCIER…/GUARDA…. Mixed case at the
+// same fontSize is ~25% narrower and fits comfortably on every screen size.
 const labelStyle = StyleSheet.create({
   text: {
     fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
+    letterSpacing: 0.2,
     marginTop: 4,
     textAlign: 'center',
   },
