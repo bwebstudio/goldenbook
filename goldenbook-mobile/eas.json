@@ -25,7 +25,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.goldenbook.app/api/v1",
+        "EXPO_PUBLIC_API_URL": "https://goldenbook-production.up.railway.app/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://ltdhyshuhkvicsvtssjm.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_Ri9l7farexx8MG6P70HZxA_BkSNq6ru"
       }
@@ -37,7 +37,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.goldenbook.app/api/v1",
+        "EXPO_PUBLIC_API_URL": "https://goldenbook-production.up.railway.app/api/v1",
         "EXPO_PUBLIC_SUPABASE_URL": "https://ltdhyshuhkvicsvtssjm.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_Ri9l7farexx8MG6P70HZxA_BkSNq6ru"
       }

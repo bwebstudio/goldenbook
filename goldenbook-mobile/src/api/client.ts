@@ -13,7 +13,7 @@ import { getAuthToken } from '@/auth/tokenStorage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
   ? 'http://localhost:3001/api/v1'
-  : 'https://api.goldenbook.app/api/v1'
+  : 'https://goldenbook-production.up.railway.app/api/v1'
 );
 
 // Stable session ID for NOW anti-repetition tracking (persists until app restart)

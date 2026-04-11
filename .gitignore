@@ -7,6 +7,10 @@
 !.env.example
 !**/.env.example
 
+# Apple Sign-In private keys (must never be committed)
+AuthKey_*.p8
+**/AuthKey_*.p8
+
 # Node
 node_modules
 npm-debug.log*

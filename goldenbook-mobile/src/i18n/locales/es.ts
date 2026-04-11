@@ -83,7 +83,7 @@ export const es: Translations = {
     discover: 'Descubrir',
     concierge: 'Concierge',
     routes: 'Rutas',
-    saved: 'Guardados',
+    saved: 'Guardado',
     profile: 'Perfil',
   },
 

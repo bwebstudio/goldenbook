@@ -32,19 +32,33 @@ function tabIcon(outlined: IoniconsName, filled: IoniconsName) {
  * Translated tab label — rendered via tabBarLabel instead of title.
  * This lets translations update without changing the Tabs.Screen `options`
  * object identity, which would cause Expo Router to reset tab navigation.
+ *
+ * `numberOfLines={1}` + `ellipsizeMode="tail"` guarantees the label never
+ * wraps under the icon, even if a translation produces a string that's
+ * slightly too wide for the cell.
  */
 function TabLabel({ translationKey, color }: { translationKey: keyof ReturnType<typeof useTranslation>['tabs']; color: string }) {
   const t = useTranslation();
-  return <Text style={[labelStyle.text, { color }]}>{t.tabs[translationKey]}</Text>;
+  return (
+    <Text
+      style={[labelStyle.text, { color }]}
+      numberOfLines={1}
+      ellipsizeMode="tail"
+      allowFontScaling={false}
+    >
+      {t.tabs[translationKey]}
+    </Text>
+  );
 }
 
 const labelStyle = StyleSheet.create({
   text: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '600',
-    letterSpacing: 0.8,
+    letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginTop: 4,
+    textAlign: 'center',
   },
 });
 
