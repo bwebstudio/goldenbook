@@ -33,11 +33,13 @@ const querySchema = z.object({
 /** Map time segment to now placement slot */
 function segmentToSlot(segment: TimeSegment): string {
   switch (segment) {
-    case 'morning': return 'morning'
-    case 'midday':  return 'afternoon'
-    case 'afternoon': return 'afternoon'
-    case 'evening': return 'dinner'
-    case 'night':   return 'night'
+    case 'morning':      return 'morning'
+    case 'midday':       return 'afternoon'
+    case 'afternoon':    return 'afternoon'
+    case 'evening':      return 'dinner'
+    case 'late_evening': return 'dinner'
+    case 'deep_night':   return 'night'
+    case 'night':        return 'night'
   }
 }
 
