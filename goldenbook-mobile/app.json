@@ -46,7 +46,16 @@
           "locationWhenInUsePermission": "Your location is used to show nearby places and local recommendations."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/app-icon.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#161E38"
+        }
+      ]
     ],
     "scheme": "goldenbook",
     "experiments": {
