@@ -29,5 +29,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE is the secure, recommended flow for native mobile OAuth.
+    //
+    // The supabase-js default is `'implicit'`, which makes Supabase return
+    // tokens as a URL hash fragment (`#access_token=…&refresh_token=…`) on
+    // the deep-link callback. Our `useSocialAuth` parses `?code=…` and calls
+    // `exchangeCodeForSession`, so under the implicit default the parser
+    // silently failed, the local session was never created, and the user
+    // was bounced back to /auth even though Supabase had already created
+    // them server-side. Switching to PKCE makes Supabase emit `?code=…` on
+    // the callback, which is what `exchangeCodeForSession` consumes.
+    //
+    // PKCE only affects the OAuth (web) flows. Apple Sign-In via
+    // `signInWithIdToken` is unaffected — it never uses an authorize URL.
+    flowType: 'pkce',
   },
 });
