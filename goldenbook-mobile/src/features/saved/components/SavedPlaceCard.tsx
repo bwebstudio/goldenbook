@@ -16,35 +16,36 @@ export const SavedPlaceCard = React.memo(function SavedPlaceCard({ place }: Save
   const imageUrl = getStorageUrl(place.image?.bucket ?? null, place.image?.path ?? null);
 
   return (
-    <TouchableOpacity
-      onPress={() => router.push(`/places/${place.slug}` as any)}
-      activeOpacity={0.85}
-      style={styles.container}
-    >
-      {/* Thumbnail */}
-      <ProgressiveImage
-        uri={imageUrl}
-        height={72}
-        borderRadius={radius.md}
-        placeholderColor={colors.navy.DEFAULT}
-        style={styles.image}
-      />
+    <View style={styles.container}>
+      {/* Row area — navigates to detail */}
+      <TouchableOpacity
+        onPress={() => router.push(`/places/${place.slug}` as any)}
+        activeOpacity={0.85}
+        style={styles.touchRow}
+      >
+        <ProgressiveImage
+          uri={imageUrl}
+          height={72}
+          borderRadius={radius.md}
+          placeholderColor={colors.navy.DEFAULT}
+          style={styles.image}
+        />
 
-      {/* Text */}
-      <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {place.name}
-        </Text>
-        {place.shortDescription && (
-          <Text style={styles.description} numberOfLines={2}>
-            {place.shortDescription}
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>
+            {place.name}
           </Text>
-        )}
-      </View>
+          {place.shortDescription && (
+            <Text style={styles.description} numberOfLines={2}>
+              {place.shortDescription}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
 
-      {/* Unsave (heart) — feeds snapshot so re-save from list is instant */}
+      {/* Heart — SIBLING of TouchableOpacity. No responder conflict. */}
       <PlaceSaveButton placeId={place.id} snapshot={place} size={20} />
-    </TouchableOpacity>
+    </View>
   );
 });
 
@@ -57,6 +58,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: `${colors.navy.DEFAULT}07`,
+  },
+  touchRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
   },
   image: {
     width: 72,

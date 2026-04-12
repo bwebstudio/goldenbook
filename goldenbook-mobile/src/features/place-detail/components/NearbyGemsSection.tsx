@@ -9,7 +9,7 @@ import type { PlaceDetailDTO } from '../types';
 type NearbyGem = PlaceDetailDTO['nearbyGems'][number];
 
 const CARD_WIDTH = 200;
-const CARD_HEIGHT = 224; // h-56 equivalent
+const CARD_HEIGHT = 224;
 
 function NearbyGemCard({ gem }: { gem: NearbyGem }) {
   const router = useRouter();
@@ -20,71 +20,70 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
     : `${(gem.distanceMeters / 1000).toFixed(1)}km ${t.place.away}`;
 
   return (
-    <TouchableOpacity
-      onPress={() => router.push(`/places/${gem.slug}` as any)}
-      activeOpacity={0.88}
-      className="mr-6"
-      style={{ width: CARD_WIDTH }}
-    >
-      {/* Image */}
+    <View className="mr-6" style={{ width: CARD_WIDTH }}>
+      {/* Image + navigation area */}
+      <TouchableOpacity
+        onPress={() => router.push(`/places/${gem.slug}` as any)}
+        activeOpacity={0.88}
+      >
+        <View
+          className="rounded-2xl overflow-hidden mb-4"
+          style={{
+            height: CARD_HEIGHT,
+            shadowColor: '#222D52',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.07,
+            shadowRadius: 8,
+            elevation: 2,
+          }}
+        >
+          <ProgressiveImage
+            uri={imageUrl}
+            height={CARD_HEIGHT}
+            borderRadius={16}
+            placeholderColor="#222D52"
+            fadeDuration={350}
+          />
+        </View>
+      </TouchableOpacity>
+
+      {/* Heart — SIBLING of TouchableOpacity, absolute over the image */}
       <View
-        className="rounded-2xl overflow-hidden mb-4"
         style={{
-          height: CARD_HEIGHT,
-          shadowColor: '#222D52',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.07,
-          shadowRadius: 8,
-          elevation: 2,
+          position: 'absolute',
+          top: 6,
+          right: 6,
+          width: 44,
+          height: 44,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <ProgressiveImage
-          uri={imageUrl}
-          height={CARD_HEIGHT}
-          borderRadius={16}
-          placeholderColor="#222D52"
-          fadeDuration={350}
-        />
-
-        {/* Save heart overlay — 44×44 touch wrapper for iPhone XS compat */}
         <View
           style={{
-            position: 'absolute',
-            top: 6,
-            right: 6,
-            width: 44,
-            height: 44,
-            zIndex: 10,
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: 'rgba(253,253,251,0.85)',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <View
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: 'rgba(253,253,251,0.85)',
-              alignItems: 'center',
-              justifyContent: 'center',
+          <PlaceSaveButton
+            placeId={gem.id}
+            snapshot={{
+              id: gem.id,
+              slug: gem.slug,
+              name: gem.name,
+              shortDescription: null,
+              image:
+                gem.heroImage?.bucket && gem.heroImage?.path
+                  ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path }
+                  : null,
             }}
-          >
-            <PlaceSaveButton
-              placeId={gem.id}
-              snapshot={{
-                id: gem.id,
-                slug: gem.slug,
-                name: gem.name,
-                shortDescription: null,
-                image:
-                  gem.heroImage?.bucket && gem.heroImage?.path
-                    ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path }
-                    : null,
-              }}
-              size={16}
-              style={{ minWidth: 32, minHeight: 32 }}
-            />
-          </View>
+            size={16}
+            style={{ minWidth: 32, minHeight: 32 }}
+          />
         </View>
       </View>
 
@@ -101,7 +100,7 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
       <Text className="text-[10px] text-navy/40 font-bold uppercase tracking-widest">
         {distanceText}
       </Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -123,7 +122,6 @@ export function NearbyGemsSection({ nearbyGems }: NearbyGemsSectionProps) {
         data={nearbyGems}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <NearbyGemCard gem={item} />}
-        getItemLayout={(_, index) => ({ length: CARD_WIDTH + 12, offset: (CARD_WIDTH + 12) * index, index })}
         contentContainerStyle={{ paddingHorizontal: 32 }}
         showsHorizontalScrollIndicator={false}
       />
