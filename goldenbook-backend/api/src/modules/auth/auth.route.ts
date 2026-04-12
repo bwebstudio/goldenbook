@@ -911,13 +911,40 @@ export async function authRoutes(app: FastifyInstance) {
         [userId],
       )
 
+      // 4b. Anonymise analytics rows that reference users(id) WITHOUT a
+      // cascade rule. These FK columns block `DELETE FROM users` if any
+      // event row exists for the user. We null them so the historical
+      // analytics survives anonymously and the cascade can proceed.
+      // Wrapped in try/catch so a missing table on older environments
+      // never breaks the whole deletion flow.
+      try {
+        await db.query(
+          'UPDATE booking_click_events SET user_id = NULL WHERE user_id = $1',
+          [userId],
+        )
+      } catch (e: any) {
+        app.log.warn({ userId, err: e?.message }, '[auth/account] booking_click_events anonymise skipped')
+      }
+      try {
+        await db.query(
+          'UPDATE booking_impression_events SET user_id = NULL WHERE user_id = $1',
+          [userId],
+        )
+      } catch (e: any) {
+        app.log.warn({ userId, err: e?.message }, '[auth/account] booking_impression_events anonymise skipped')
+      }
+
       // 5. Delete app user row
       await db.query(
         'DELETE FROM users WHERE id = $1',
         [userId],
       )
 
-      // 6. Delete Supabase auth user via admin API
+      // 6. Delete Supabase auth user via admin API.
+      // Treat 404 as success — the row might already be gone (e.g. a
+      // previous attempt removed it but failed before clearing the app
+      // tables). Without this the user got stuck in a state where the
+      // backend kept reporting "deletion failed" forever.
       const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -926,7 +953,7 @@ export async function authRoutes(app: FastifyInstance) {
         },
       })
 
-      if (!res.ok) {
+      if (!res.ok && res.status !== 404) {
         const errBody = await res.json().catch(() => ({})) as { message?: string }
         app.log.error({ userId, status: res.status, message: errBody.message }, '[auth/account] Supabase user deletion failed')
         throw new Error(`Supabase user deletion failed (${res.status})`)
@@ -936,7 +963,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(204).send()
     } catch (err: any) {
       app.log.error({ userId, err: err.message }, '[auth/account] Account deletion failed')
-      throw new AppError(500, 'Could not delete account. Please try again or contact support.', 'DELETION_FAILED')
+      throw new AppError(500, 'Could not delete account. Please try again or contact us at hello@goldenbook.app.', 'DELETION_FAILED')
     }
   })
 }

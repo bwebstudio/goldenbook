@@ -1,36 +1,35 @@
 import { TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSavePlace } from '../hooks/useSavePlace';
+import { useSaveRoute } from '../hooks/useSaveRoute';
 import { colors } from '@/design/tokens';
-import type { SavedPlaceDTO } from '@/types/api';
+import type { SavedRouteDTO } from '@/types/api';
 
-interface PlaceSaveButtonProps {
-  placeId: string;
+interface RouteSaveButtonProps {
+  routeId: string;
   size?: number;
   /** Snapshot used for optimistic save (so the saved list shows it instantly). */
-  snapshot?: Partial<SavedPlaceDTO> & { id: string };
+  snapshot?: Partial<SavedRouteDTO> & { id: string };
   /** Tint when not saved (defaults to navy). Use white over hero images. */
   inactiveColor?: string;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
- * Shared heart toggle for place cards & detail screens.
- * heart-outline = not saved, heart (filled) = saved.
+ * Heart toggle for route cards & detail screens. Mirrors PlaceSaveButton.
  */
-export function PlaceSaveButton({
-  placeId,
+export function RouteSaveButton({
+  routeId,
   size = 20,
   snapshot,
   inactiveColor,
   style,
-}: PlaceSaveButtonProps) {
-  const { isSaved, toggle, isPending } = useSavePlace(placeId, { snapshot });
+}: RouteSaveButtonProps) {
+  const { isSaved, toggle, isPending } = useSaveRoute(routeId, { snapshot });
 
   return (
     <TouchableOpacity
       onPress={toggle}
-      disabled={isPending || !placeId}
+      disabled={isPending || !routeId}
       activeOpacity={0.7}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       accessibilityRole="button"

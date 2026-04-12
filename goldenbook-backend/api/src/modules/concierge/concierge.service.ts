@@ -253,6 +253,9 @@ const TIME_SAFE_FALLBACKS: Record<string, Partial<Record<TimeOfDay, string>>> = 
     // a long leisurely lunch, not coffee. Coffee feels like a downgrade.
     morning:    'long_lunch',
     afternoon:  'long_lunch',
+    // After 23:00 most kitchens are closed → pivot to refined drinks so we
+    // never suggest a "romantic dinner" the user can't actually have.
+    late_evening: 'after_dinner_drinks',
     // At 3am the mood is still going → late-night drinks keeps the night alive
     deep_night: 'late_night_drinks',
   },

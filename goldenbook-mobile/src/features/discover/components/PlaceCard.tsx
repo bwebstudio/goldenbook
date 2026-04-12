@@ -6,7 +6,23 @@ import { useRouter } from 'expo-router';
 import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
+import { PlaceSaveButton } from '@/features/saved/components/PlaceSaveButton';
 import type { DiscoverPlaceCard } from '../types';
+
+// Convert a discover card into the snapshot shape used for optimistic saves
+// (so the saved tab updates instantly without needing to refetch metadata).
+function toSnapshot(place: DiscoverPlaceCard) {
+  return {
+    id: place.id,
+    slug: place.slug,
+    name: place.name,
+    shortDescription: place.shortDescription,
+    image:
+      place.heroImage?.bucket && place.heroImage?.path
+        ? { bucket: place.heroImage.bucket, path: place.heroImage.path }
+        : null,
+  };
+}
 
 interface PlaceCardProps {
   place: DiscoverPlaceCard;
@@ -68,8 +84,8 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
         </View>
       </View>
 
-      {/* Chevron */}
-      <Ionicons name="chevron-forward" size={14} color="rgba(34,45,82,0.25)" />
+      {/* Save heart */}
+      <PlaceSaveButton placeId={place.id} snapshot={toSnapshot(place)} size={20} />
     </TouchableOpacity>
   );
 }
@@ -139,6 +155,28 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
             </Text>
           </View>
         )}
+
+        {/* Save heart (top-right over hero) */}
+        <View
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <PlaceSaveButton
+            placeId={place.id}
+            snapshot={toSnapshot(place)}
+            size={18}
+            inactiveColor="#FFFFFF"
+          />
+        </View>
 
         {/* Bottom content — directly on gradient */}
         <View className="absolute bottom-0 left-0 right-0" style={{ paddingHorizontal: 14, paddingBottom: 16 }}>

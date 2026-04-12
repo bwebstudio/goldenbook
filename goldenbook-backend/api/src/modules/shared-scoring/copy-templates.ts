@@ -334,7 +334,10 @@ const PLACE_TYPE_SAFE_TAGS: Record<string, Set<string>> = {
   venue:      new Set(['live-music', 'late-night', 'cocktails', 'celebration']),
 }
 
-// Fallback tag when bestTag is inappropriate for the place type
+// Fallback tag when bestTag is inappropriate for the place type.
+// NOTE: this is the time-OF-day-AGNOSTIC default. The time-aware overrides
+// below take priority (e.g. restaurants in late_evening fall back to
+// 'late-night' or 'cocktails', NEVER 'dinner').
 const PLACE_TYPE_FALLBACK_TAG: Record<string, ContextTag> = {
   restaurant: 'dinner',
   cafe:       'coffee',
@@ -348,19 +351,83 @@ const PLACE_TYPE_FALLBACK_TAG: Record<string, ContextTag> = {
   venue:      'live-music',
 }
 
-function sanitizeBestTag(bestTag: string | null, placeType?: string): string | null {
-  if (!bestTag || !placeType) return bestTag
+// Time-aware fallback overrides. These are checked BEFORE the generic
+// PLACE_TYPE_FALLBACK_TAG above. The motivating bug: a restaurant slipping
+// into the late_evening pool would still get titled "Cena en Lisboa" at
+// 00:54 because the generic fallback is 'dinner'. We now route restaurants
+// (and any other dinner-shaped place) to a late-night title at those hours.
+const TIME_AWARE_FALLBACK: Partial<Record<NowTimeOfDay, Partial<Record<string, ContextTag>>>> = {
+  morning: {
+    restaurant: 'brunch',
+  },
+  midday: {
+    restaurant: 'lunch',
+  },
+  afternoon: {
+    restaurant: 'lunch',
+  },
+  late_evening: {
+    restaurant: 'late-night',
+    cafe:       'cocktails',
+    hotel:      'cocktails',
+  },
+  deep_night: {
+    restaurant: 'late-night',
+    cafe:       'late-night',
+    hotel:      'late-night',
+  },
+  night: {
+    restaurant: 'late-night',
+    cafe:       'late-night',
+    hotel:      'late-night',
+  },
+}
+
+// Tags that imply a dinner-service title. These get rewritten to a
+// time-appropriate alternative when the current bucket is post-22:00.
+const DINNER_SHAPED_TAGS = new Set<string>(['dinner', 'fine-dining'])
+const POST_DINNER_BUCKETS = new Set<NowTimeOfDay>(['late_evening', 'deep_night', 'night'])
+
+function sanitizeBestTag(
+  bestTag: string | null,
+  placeType?: string,
+  timeOfDay?: NowTimeOfDay,
+): string | null {
+  // 1. Time-aware override: in post-dinner hours, kill any dinner-shaped tag
+  // regardless of place type. "Cena" / "Dinner" must never reach the title
+  // builder after 22:00.
+  if (bestTag && timeOfDay && POST_DINNER_BUCKETS.has(timeOfDay) && DINNER_SHAPED_TAGS.has(bestTag)) {
+    const override = (placeType && TIME_AWARE_FALLBACK[timeOfDay]?.[placeType]) ?? 'late-night'
+    return override
+  }
+
+  if (!bestTag || !placeType) {
+    // No tag at all — try to give a time-appropriate fallback for the type
+    if (timeOfDay && placeType) {
+      const override = TIME_AWARE_FALLBACK[timeOfDay]?.[placeType]
+      if (override) return override
+    }
+    return bestTag
+  }
+
   const safeSet = PLACE_TYPE_SAFE_TAGS[placeType]
   if (!safeSet) return bestTag  // Unknown type — don't filter
-  if (safeSet.has(bestTag)) return bestTag  // Tag is valid for this type
-  // Tag is inappropriate — use fallback
-  return PLACE_TYPE_FALLBACK_TAG[placeType] ?? bestTag
+  if (safeSet.has(bestTag)) {
+    // Tag is structurally valid for this type, but we still apply the
+    // time-aware override above for dinner-shaped tags in late hours.
+    return bestTag
+  }
+  // Tag is inappropriate for the type — prefer the time-aware fallback,
+  // then the generic one.
+  const timeOverride = timeOfDay ? TIME_AWARE_FALLBACK[timeOfDay]?.[placeType] : undefined
+  return timeOverride ?? PLACE_TYPE_FALLBACK_TAG[placeType] ?? bestTag
 }
 
 /**
  * Build the NOW card title — max 60 chars.
  * Uses tag-specific template, or falls back to time-of-day generic.
  * placeType is used to prevent absurd tag/copy combos.
+ * timeOfDay is used to suppress dinner-shaped titles after 22:00.
  */
 export function buildTitle(
   bestTag: string | null,
@@ -370,7 +437,7 @@ export function buildTitle(
   placeType?: string,
 ): string {
   const l = resolveLocale(locale)
-  const tag = sanitizeBestTag(bestTag, placeType) as ContextTag | null
+  const tag = sanitizeBestTag(bestTag, placeType, timeOfDay) as ContextTag | null
 
   let template: string
   if (tag && TAG_TITLES[l]?.[tag]) {
@@ -393,7 +460,7 @@ export function buildSubtitle(
   placeType?: string,
 ): string {
   const l = resolveLocale(locale)
-  const tag = sanitizeBestTag(bestTag, placeType) as ContextTag | null
+  const tag = sanitizeBestTag(bestTag, placeType, timeOfDay) as ContextTag | null
 
   if (tag && TAG_SUBTITLES[l]?.[tag]) {
     return truncate(pick(TAG_SUBTITLES[l][tag]!), SUBTITLE_MAX)
@@ -414,9 +481,12 @@ export function buildExplanation(
   weather: WeatherCondition | undefined,
   distanceMeters: number | null,
   locale = 'en',
+  placeType?: string,
 ): string {
   const l = resolveLocale(locale)
-  const tag = bestTag as ContextTag | null
+  // Run the same time-aware sanitiser used by the title so the explanation
+  // never says "Perfect for dinner" at 00:54 either.
+  const tag = sanitizeBestTag(bestTag, placeType, timeOfDay) as ContextTag | null
 
   // Pick adjective: weather-aware if weather is provided
   let adjective: string

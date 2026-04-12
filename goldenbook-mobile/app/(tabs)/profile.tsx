@@ -104,9 +104,14 @@ export default function ProfileScreen() {
                 try {
                   setDeleting(true);
                   await api.deleteAccount();
-                  Alert.alert('', t.profile.deleteAccountSuccess);
+                  // Sign out FIRST so the navigation guard kicks the user
+                  // back to /auth before we show the success alert. This
+                  // matches the destructive UX users expect: the account
+                  // is gone, the app immediately reflects that.
                   await signOut();
-                } catch {
+                  Alert.alert('', t.profile.deleteAccountSuccess);
+                } catch (err: any) {
+                  if (__DEV__) console.warn('[deleteAccount] failed:', err);
                   Alert.alert(t.common.error, t.profile.deleteAccountError);
                 } finally {
                   setDeleting(false);

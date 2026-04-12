@@ -62,7 +62,10 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     categorySlugs: ['restaurant', 'fine-dining', 'dinner'],
     tags: ['romantic', 'date-night', 'fine-dining', 'intimate', 'candlelit'],
     canonicalTags: ['romantic', 'fine-dining', 'dinner'],
-    preferredTimeOfDay: ['evening', 'late_evening'],
+    // Dining service is over by late evening — keep this intent strictly
+    // for the proper dinner window so the Concierge never suggests "romantic
+    // dinner" at 23:44 (a real bug reported in pre-release testing).
+    preferredTimeOfDay: ['evening'],
     keywords: ['romantic', 'romance', 'date', 'dinner', 'couple', 'anniversary', 'intimate'],
     priority: 9,
   },
@@ -338,9 +341,12 @@ export const BOOTSTRAP_MATRIX: Record<TimeOfDay, string[][]> = {
     ['romantic_dinner', 'cocktail_bars', 'quiet_wine_bar'],
   ],
   late_evening: [
+    // After 23:00 the night is for drinks, jazz and quiet wine bars —
+    // never for "romantic dinner" pills, since most kitchens are closed
+    // by then. Sets are tried in order until one is fully viable.
     ['cocktail_bars', 'after_dinner_drinks', 'late_night_jazz'],
-    ['cocktail_bars', 'romantic_dinner', 'late_night_jazz'],
-    ['cocktail_bars', 'romantic_dinner', 'quiet_wine_bar'],
+    ['cocktail_bars', 'after_dinner_drinks', 'quiet_wine_bar'],
+    ['late_night_drinks', 'cocktail_bars', 'late_night_jazz'],
   ],
   deep_night: [
     ['late_night_drinks', 'late_night_jazz', 'night_walk'],

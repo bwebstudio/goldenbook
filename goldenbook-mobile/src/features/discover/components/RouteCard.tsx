@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from '@/i18n';
+import { RouteSaveButton } from '@/features/saved/components/RouteSaveButton';
 import type { DiscoverRoute } from '../types';
 
 // Background image source: route.heroImage (set via admin dashboard / CMS).
@@ -65,6 +66,37 @@ export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         pointerEvents="none"
       />
+
+      {/* Save heart (top-right over hero) */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 14,
+          right: 14,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: 'rgba(0,0,0,0.35)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <RouteSaveButton
+          routeId={route.id}
+          snapshot={{
+            id: route.id,
+            slug: route.slug,
+            title: route.title,
+            summary: route.summary,
+            image:
+              route.heroImage?.bucket && route.heroImage?.path
+                ? { bucket: route.heroImage.bucket, path: route.heroImage.path }
+                : null,
+          }}
+          size={18}
+          inactiveColor="#FFFFFF"
+        />
+      </View>
 
       {/* Content — positioned over gradient */}
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 24, paddingBottom: 24 }}>

@@ -366,7 +366,7 @@ function buildNowDTO(
 ): NowRecommendationDTO {
   const { place, bestTag, isSponsored } = result
   const city = cityName ?? place.city_name
-  const explanation = buildExplanation(bestTag, timeOfDay, weather, place.distance_meters, locale)
+  const explanation = buildExplanation(bestTag, timeOfDay, weather, place.distance_meters, locale, place.place_type)
 
   // Extract detail fields (available on NowScoredPlace but not on UnifiedCandidate)
   const raw = place as any

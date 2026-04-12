@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
+import { RouteSaveButton } from '@/features/saved/components/RouteSaveButton';
 import type { RouteCardDTO } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -80,6 +81,37 @@ export const RouteCard = React.memo(function RouteCard({ route, featured = false
           </Text>
         </View>
       )}
+
+      {/* Save heart (top-right over hero) */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 14,
+          right: 14,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: 'rgba(0,0,0,0.35)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <RouteSaveButton
+          routeId={route.id}
+          snapshot={{
+            id: route.id,
+            slug: route.slug,
+            title: route.title,
+            summary: route.summary ?? null,
+            image:
+              route.heroImage?.bucket && route.heroImage?.path
+                ? { bucket: route.heroImage.bucket, path: route.heroImage.path }
+                : null,
+          }}
+          size={18}
+          inactiveColor="#FFFFFF"
+        />
+      </View>
 
       {/* Content — directly on gradient */}
       <View className="absolute bottom-0 left-0 right-0" style={{ paddingHorizontal: 18, paddingBottom: 18 }}>

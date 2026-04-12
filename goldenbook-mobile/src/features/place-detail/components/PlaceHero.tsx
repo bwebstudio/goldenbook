@@ -20,9 +20,11 @@ interface PlaceHeroProps {
   tags?: string[];
   categories?: { name: string }[];
   subcategories?: { name: string }[];
+  /** Triggered by the top-right share icon. Hidden when undefined. */
+  onShare?: () => void;
 }
 
-export function PlaceHero({ heroImage, name, cityName, rating, tags, categories, subcategories }: PlaceHeroProps) {
+export function PlaceHero({ heroImage, name, cityName, rating, tags, categories, subcategories, onShare }: PlaceHeroProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const t = useTranslation();
@@ -74,18 +76,24 @@ export function PlaceHero({ heroImage, name, cityName, rating, tags, categories,
         <Ionicons name="arrow-back" size={22} color="#fff" />
       </TouchableOpacity>
 
-      {/* Share button */}
-      <TouchableOpacity
-        className="absolute right-6 items-center justify-center rounded-full"
-        style={{
-          top: insets.top + 8,
-          width: 44, height: 44,
-          backgroundColor: 'rgba(0,0,0,0.35)',
-          borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
-        }}
-      >
-        <Ionicons name="share-outline" size={20} color="#fff" />
-      </TouchableOpacity>
+      {/* Share button — only shown when parent provides a handler */}
+      {onShare && (
+        <TouchableOpacity
+          onPress={onShare}
+          accessibilityRole="button"
+          accessibilityLabel="Share"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="absolute right-6 items-center justify-center rounded-full"
+          style={{
+            top: insets.top + 8,
+            width: 44, height: 44,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+          }}
+        >
+          <Ionicons name="share-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       {/* ── Content overlay on bottom of image ──────────────────────────── */}
       {showOverlay && (

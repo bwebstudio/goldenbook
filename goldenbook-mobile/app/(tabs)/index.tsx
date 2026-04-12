@@ -150,7 +150,10 @@ export default function DiscoverScreen() {
             {/* 8. Golden Routes */}
             {data.goldenRoutes.length > 0 && (
               <View>
-                <SectionHeader title={t.discover.goldenRoutes} onSeeAll={() => {}} />
+                <SectionHeader
+                  title={t.discover.goldenRoutes}
+                  onSeeAll={() => router.push('/(tabs)/routes' as any)}
+                />
                 {data.goldenRoutes.map((route) => (
                   <RouteCard key={route.id} route={route} />
                 ))}

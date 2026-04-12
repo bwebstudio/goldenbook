@@ -198,8 +198,11 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
           elevation: 10,
         }}
       >
-        {/* Full-bleed hero image */}
+        {/* Full-bleed hero image — keyed on URL so a city/locale change forces
+            a remount instead of trying to reuse the previous image instance,
+            which sometimes left the old image stuck on screen. */}
         <ProgressiveImage
+          key={imageUrl ?? 'now-empty'}
           uri={imageUrl}
           height={CARD_HEIGHT}
           resizeMode="cover"

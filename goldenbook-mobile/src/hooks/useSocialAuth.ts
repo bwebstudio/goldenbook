@@ -250,6 +250,22 @@ export function useGoogleSignIn() {
           redirectTo: OAUTH_REDIRECT_URI,
           // PKCE is set globally via flowType: 'pkce' in supabaseClient.ts,
           // so this call will automatically include code_challenge in the URL.
+          //
+          // `prompt=select_account` forces Google to ALWAYS show the account
+          // chooser, even when the user already has an active Google session
+          // in Safari. Without this, Google silently auto-selects the only
+          // logged-in account, which is technically working as designed but
+          // surprises users who expect to see a chooser (especially on
+          // shared/family devices). `prompt` is a standard OAuth 2.0 param
+          // and is forwarded by Supabase to Google verbatim.
+          //
+          // Other valid values: 'none', 'consent', 'login'. We use
+          // 'select_account' so the user can both pick a different account
+          // AND see which one they're about to use, without forcing them
+          // to re-enter their password (which 'login' would do).
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
       });
 

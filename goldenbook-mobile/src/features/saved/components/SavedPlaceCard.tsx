@@ -42,8 +42,8 @@ export const SavedPlaceCard = React.memo(function SavedPlaceCard({ place }: Save
         )}
       </View>
 
-      {/* Unsave button */}
-      <PlaceSaveButton placeId={place.id} size={20} />
+      {/* Unsave (heart) — feeds snapshot so re-save from list is instant */}
+      <PlaceSaveButton placeId={place.id} snapshot={place} size={20} />
     </TouchableOpacity>
   );
 });

@@ -62,6 +62,12 @@ export function useNowRecommendation() {
   const explorationStyle = useOnboardingStore((s) => s.explorationStyle)
   const locale           = useSettingsStore((s) => s.locale)
 
+  // Stabilise the interests dependency: the underlying array reference can
+  // change between renders even when the contents are identical (Zustand
+  // re-creates the array on rehydration), which used to retrigger the
+  // load effect mid-fetch and leave the NOW image stuck on a stale value.
+  const interestsKey = interests.join(',')
+
   const [data, setData] = useState<NowRecommendationResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -73,10 +79,14 @@ export function useNowRecommendation() {
     try {
       setLoading(true)
       setError(false)
+      // Drop the previous result first so the image component sees an actual
+      // URI change (and the section falls back to the loading state) instead
+      // of holding the old image while the new fetch races in the background.
+      setData(null)
       const result = await api.nowRecommendation({
         city,
         locale,
-        interests: interests.length > 0 ? interests.join(',') : undefined,
+        interests: interestsKey.length > 0 ? interestsKey : undefined,
         style: explorationStyle ?? undefined,
       })
 
@@ -96,7 +106,7 @@ export function useNowRecommendation() {
     } finally {
       setLoading(false)
     }
-  }, [city, locale, interests, explorationStyle])
+  }, [city, locale, interestsKey, explorationStyle])
 
   useEffect(() => { load() }, [load])
 
@@ -108,7 +118,7 @@ export function useNowRecommendation() {
       const result = await api.nowRefresh({
         city,
         locale,
-        interests: interests.length > 0 ? interests : undefined,
+        interests: interestsKey.length > 0 ? interestsKey.split(',') : undefined,
         style: explorationStyle ?? undefined,
       })
 
@@ -126,7 +136,7 @@ export function useNowRecommendation() {
     } finally {
       setRefreshing(false)
     }
-  }, [city, locale, interests, explorationStyle])
+  }, [city, locale, interestsKey, explorationStyle])
 
   return { data, loading, refreshing, error, refresh, reload: load }
 }

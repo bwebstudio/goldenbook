@@ -117,18 +117,21 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'local-secret': 0.4,
   },
   late_evening: {
+    // 22:00–02:00 — kitchens closed, dinner is OVER. NEVER list dinner /
+    // fine-dining here: a "Cena en Lisboa" at 00:54 is the exact bug we are
+    // killing. Only late-night drinking, music, and scenic spots survive.
     'late-night':   1.0,
     'cocktails':    1.0,
     'wine':         0.9,
-    'live-music':   0.8,
-    'dinner':       0.7,   // late dinner still relevant
-    'rooftop':      0.7,
-    'romantic':     0.6,
-    'fine-dining':  0.5,
+    'live-music':   0.9,
+    'rooftop':      0.8,
+    'viewpoint':    0.6,   // night views still interesting
+    'romantic':     0.5,   // intimate late-night drinks
     'local-secret': 0.4,
-    'viewpoint':    0.3,   // night views still interesting
   },
   deep_night: {
+    // 02:00–06:00 — after-hours. Late-night bars, scenic city-lights spots.
+    // Dinner / fine-dining are forbidden here for the same reason as above.
     'late-night':   1.0,
     'cocktails':    0.8,
     'viewpoint':    0.9,   // scenic nighttime fallback — city lights, bridges
@@ -258,6 +261,18 @@ const CITY_TIMEZONES: Record<string, string> = {
 /**
  * Get time-of-day for a city. Uses the city's timezone, not the server's.
  * Falls back to Europe/Lisbon if city is unknown.
+ *
+ * Buckets (canonical):
+ *   06:00–11:00 → morning      (cafes, brunch, museums)
+ *   11:00–15:00 → midday       (lunch service)
+ *   15:00–18:00 → afternoon    (culture, coffee, terraces, shopping)
+ *   18:00–22:00 → evening      (dinner, sunset drinks)
+ *   22:00–02:00 → late_evening (cocktail bars, wine bars, late-night spots — NEVER dinner)
+ *   02:00–06:00 → deep_night   (after-hours, scenic night fallback)
+ *
+ * The dinner window deliberately ends at 22:00. After that, kitchens are
+ * either closed or about to close in Portugal/Spain, and recommending a
+ * "Cena en Lisboa" at 00:54 is the exact bug we are preventing here.
  */
 export function getNowTimeOfDay(date: Date = new Date(), citySlug?: string): NowTimeOfDay {
   const tz = (citySlug && CITY_TIMEZONES[citySlug]) || 'Europe/Lisbon'
@@ -266,11 +281,10 @@ export function getNowTimeOfDay(date: Date = new Date(), citySlug?: string): Now
   }).format(date)
   const hour = parseInt(hourStr, 10)
 
-  if (hour >= 8 && hour < 11)  return 'morning'        // 08:00–11:00
+  if (hour >= 6  && hour < 11) return 'morning'         // 06:00–11:00
   if (hour >= 11 && hour < 15) return 'midday'          // 11:00–15:00
   if (hour >= 15 && hour < 18) return 'afternoon'       // 15:00–18:00
-  if (hour >= 18 && hour < 23) return 'evening'         // 18:00–23:00
-  if (hour >= 23 || hour < 2)  return 'late_evening'    // 23:00–02:00
-  if (hour >= 2 && hour < 7)   return 'deep_night'      // 02:00–07:00
-  return 'morning'                                       // 07:00–08:00 early morning transition
+  if (hour >= 18 && hour < 22) return 'evening'         // 18:00–22:00
+  if (hour >= 22 || hour < 2)  return 'late_evening'    // 22:00–02:00 (late night)
+  return 'deep_night'                                    // 02:00–06:00 (after hours)
 }

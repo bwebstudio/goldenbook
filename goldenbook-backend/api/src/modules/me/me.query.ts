@@ -71,28 +71,66 @@ export async function getSavedPlaces(userId: string, locale: string): Promise<Sa
 }
 
 export async function getSavedRoutes(userId: string, locale: string): Promise<SavedRouteRow[]> {
+  // The mobile app now serves rows from `curated_routes` everywhere it shows
+  // a route. The legacy `routes` table is still queried for backwards
+  // compatibility (any historic save against it remains visible) — but the
+  // expected hot path is curated_routes.
+  //
+  // Implementation notes:
+  //   - `slug` is `id::text` for curated routes (matching the discover and
+  //     `/routes` endpoints, which use UUID-as-slug for curated rows).
+  //   - The cover image is the first stop's hero image, identical to the
+  //     thumbnail used in the discover feed and routes list.
+  //   - Locale resolution mirrors the curated-routes detail query:
+  //     `title_translations ->> lang → title`. We do not have per-row
+  //     `route_translations` for curated routes.
+  const lang = locale.split('-')[0]
   const { rows } = await db.query<SavedRouteRow>(
-    `SELECT
-       r.id,
-       r.slug,
-       COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)   AS title,
-       COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary)  AS summary,
-       usr.created_at                                                    AS saved_at,
-       ma.bucket                                                         AS image_bucket,
-       ma.path                                                           AS image_path
-     FROM user_saved_routes usr
-     JOIN routes r ON r.id = usr.route_id
-     LEFT JOIN route_translations rt
-            ON rt.route_id = r.id AND rt.locale = $2
-     LEFT JOIN route_translations rt_lang
-            ON rt_lang.route_id = r.id AND rt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
-     LEFT JOIN route_translations rt_fb
-            ON rt_fb.route_id = r.id AND rt_fb.locale = 'en'
-     LEFT JOIN media_assets ma ON ma.id = r.cover_asset_id
-     WHERE usr.user_id = $1
-       AND r.status = 'published'
-     ORDER BY usr.created_at DESC`,
-    [userId, locale],
+    `SELECT * FROM (
+       -- Curated routes (the only kind the app currently surfaces)
+       SELECT
+         cr.id,
+         cr.id::text AS slug,
+         COALESCE(NULLIF(cr.title_translations   ->> $3, ''), cr.title)   AS title,
+         COALESCE(NULLIF(cr.summary_translations ->> $3, ''), cr.summary) AS summary,
+         usr.created_at AS saved_at,
+         (SELECT ma.bucket FROM curated_route_stops crs
+          JOIN place_images pi ON pi.place_id = crs.place_id AND pi.image_role IN ('hero','cover')
+          JOIN media_assets ma ON ma.id = pi.asset_id
+          WHERE crs.route_id = cr.id ORDER BY crs.stop_order LIMIT 1) AS image_bucket,
+         (SELECT ma.path FROM curated_route_stops crs
+          JOIN place_images pi ON pi.place_id = crs.place_id AND pi.image_role IN ('hero','cover')
+          JOIN media_assets ma ON ma.id = pi.asset_id
+          WHERE crs.route_id = cr.id ORDER BY crs.stop_order LIMIT 1) AS image_path
+       FROM user_saved_routes usr
+       JOIN curated_routes cr ON cr.id = usr.route_id
+       WHERE usr.user_id = $1
+
+       UNION ALL
+
+       -- Legacy routes — kept around for users who saved before the cutover
+       SELECT
+         r.id,
+         r.slug,
+         COALESCE(NULLIF(rt.title,''),   NULLIF(rt_lang.title,''),   NULLIF(rt_fb.title,''),   r.title)   AS title,
+         COALESCE(NULLIF(rt.summary,''), NULLIF(rt_lang.summary,''), NULLIF(rt_fb.summary,''), r.summary) AS summary,
+         usr.created_at AS saved_at,
+         ma.bucket AS image_bucket,
+         ma.path   AS image_path
+       FROM user_saved_routes usr
+       JOIN routes r ON r.id = usr.route_id
+       LEFT JOIN route_translations rt
+              ON rt.route_id = r.id AND rt.locale = $2
+       LEFT JOIN route_translations rt_lang
+              ON rt_lang.route_id = r.id AND rt_lang.locale = $3 AND $2 LIKE '%-%'
+       LEFT JOIN route_translations rt_fb
+              ON rt_fb.route_id = r.id AND rt_fb.locale = 'en'
+       LEFT JOIN media_assets ma ON ma.id = r.cover_asset_id
+       WHERE usr.user_id = $1
+         AND r.status = 'published'
+     ) saved
+     ORDER BY saved_at DESC`,
+    [userId, locale, lang],
   )
   return rows
 }

@@ -12,7 +12,20 @@ export default function RouteDetailScreen() {
   const router = useRouter();
   const t = useTranslation();
   const { data, isLoading, isError } = useRouteDetail(slug ?? '');
-  const { isSaved, toggle: toggleSave, isPending } = useSaveRoute(data?.id ?? '');
+  const { isSaved, toggle: toggleSave, isPending } = useSaveRoute(data?.id ?? '', {
+    snapshot: data
+      ? {
+          id: data.id,
+          slug: data.slug,
+          title: data.title,
+          summary: data.summary,
+          image:
+            data.heroImage?.bucket && data.heroImage?.path
+              ? { bucket: data.heroImage.bucket, path: data.heroImage.path }
+              : null,
+        }
+      : undefined,
+  });
 
   if (isLoading) {
     return (

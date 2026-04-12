@@ -48,6 +48,10 @@ export default function ResetPasswordConfirmScreen() {
   const passwordTooShort = password.length > 0 && password.length < 8;
   const passwordWeak     = password.length >= 8 && !passwordValid;
 
+  // Per-rule status (used by the visible checklist below the input).
+  const ruleLength = password.length >= 8;
+  const ruleAlnum  = /[A-Za-z]/.test(password) && /\d/.test(password);
+
   const passwordsMatch = password === confirm;
   const canSubmit = passwordValid && passwordsMatch && !loading && !!token;
 
@@ -183,13 +187,33 @@ export default function ResetPasswordConfirmScreen() {
                 <Text style={styles.showHide}>{showPass ? t.auth.hidePassword : t.auth.showPassword}</Text>
               </TouchableOpacity>
             </View>
+            {/* Always-visible rules block. The user asked for an explicit
+                "Password must contain" checklist instead of a one-line hint
+                that only appears after a typo. */}
+            <View style={styles.rulesBox}>
+              <Text style={styles.rulesTitle}>{t.auth.passwordRulesTitle}</Text>
+              <View style={styles.ruleRow}>
+                <Text style={[styles.ruleMark, ruleLength && styles.ruleMarkOk]}>
+                  {ruleLength ? '✓' : '•'}
+                </Text>
+                <Text style={[styles.ruleText, ruleLength && styles.ruleTextOk]}>
+                  {t.auth.passwordRuleLength}
+                </Text>
+              </View>
+              <View style={styles.ruleRow}>
+                <Text style={[styles.ruleMark, ruleAlnum && styles.ruleMarkOk]}>
+                  {ruleAlnum ? '✓' : '•'}
+                </Text>
+                <Text style={[styles.ruleText, ruleAlnum && styles.ruleTextOk]}>
+                  {t.auth.passwordRuleAlnum}
+                </Text>
+              </View>
+            </View>
             {passwordTooShort ? (
               <Text style={styles.fieldError}>{t.auth.passwordTooShort}</Text>
             ) : passwordWeak ? (
               <Text style={styles.fieldError}>{t.auth.passwordNeedsLettersAndNumbers}</Text>
-            ) : (
-              <Text style={styles.fieldHint}>{t.auth.passwordHint}</Text>
-            )}
+            ) : null}
           </View>
 
           <View style={styles.fieldWrapper}>
@@ -322,6 +346,45 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(34,45,82,0.45)',
     marginTop: 6,
+  },
+  // ── Password rules block ──
+  rulesBox: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(210,182,138,0.07)',
+    borderWidth: 1,
+    borderColor: 'rgba(210,182,138,0.22)',
+  },
+  rulesTitle: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(34,45,82,0.55)',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  ruleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 2,
+  },
+  ruleMark: {
+    width: 14,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12,
+    color: 'rgba(34,45,82,0.35)',
+  },
+  ruleMarkOk: {
+    color: GOLD,
+  },
+  ruleText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: 'rgba(34,45,82,0.55)',
+  },
+  ruleTextOk: {
+    color: NAVY,
   },
   fieldBox: {
     flexDirection: 'row',

@@ -1,9 +1,11 @@
+import { useCallback } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '@/i18n';
 import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
+import { sharePlace } from '@/features/place-detail/share';
 import {
   PlaceHero,
   PlaceActions,
@@ -21,7 +23,29 @@ export default function PlaceDetailScreen() {
   const router = useRouter();
   const t = useTranslation();
   const { data, isLoading, isError, refetch, isFetching } = usePlaceDetail(slug ?? '');
-  const { isSaved, toggle: toggleSave } = useSavePlace(data?.id ?? '');
+  const { isSaved, toggle: toggleSave, isPending: isSaving } = useSavePlace(data?.id ?? '', {
+    snapshot: data
+      ? {
+          id: data.id,
+          slug: data.slug,
+          name: data.name,
+          shortDescription: data.shortDescription,
+          image: data.heroImage?.bucket && data.heroImage?.path
+            ? { bucket: data.heroImage.bucket, path: data.heroImage.path }
+            : null,
+        }
+      : undefined,
+  });
+
+  const handleShare = useCallback(() => {
+    if (!data) return;
+    void sharePlace({
+      name: data.name,
+      slug: data.slug,
+      cityName: data.city?.name,
+      shortDescription: data.shortDescription,
+    });
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -85,6 +109,7 @@ export default function PlaceDetailScreen() {
           tags={data.tags}
           categories={data.categories}
           subcategories={data.subcategories}
+          onShare={handleShare}
         />
 
         {/* 3. Actions: reserve / map / save / website */}
@@ -95,6 +120,7 @@ export default function PlaceDetailScreen() {
           location={data.location}
           city={data.city.slug}
           isSaved={isSaved}
+          isSaving={isSaving}
           onSave={toggleSave}
         />
 

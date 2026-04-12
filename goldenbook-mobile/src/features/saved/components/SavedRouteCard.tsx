@@ -1,9 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
-import { useSaveRoute } from '../hooks/useSaveRoute';
+import { RouteSaveButton } from './RouteSaveButton';
 import type { SavedRouteDTO } from '@/types/api';
 import { colors, typography, spacing, radius } from '@/design/tokens';
 
@@ -13,7 +12,6 @@ interface SavedRouteCardProps {
 
 export function SavedRouteCard({ route }: SavedRouteCardProps) {
   const router = useRouter();
-  const { toggle, isPending } = useSaveRoute(route.id);
   const imageUrl = getStorageUrl(route.image?.bucket ?? null, route.image?.path ?? null);
 
   return (
@@ -43,19 +41,8 @@ export function SavedRouteCard({ route }: SavedRouteCardProps) {
         )}
       </View>
 
-      {/* Unsave button */}
-      <TouchableOpacity
-        onPress={toggle}
-        disabled={isPending}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Ionicons
-          name="heart"
-          size={20}
-          color={isPending ? `${colors.primary}60` : colors.primary}
-        />
-      </TouchableOpacity>
+      {/* Unsave (heart) — feeds snapshot so re-save from list is instant */}
+      <RouteSaveButton routeId={route.id} snapshot={route} size={20} />
     </TouchableOpacity>
   );
 }

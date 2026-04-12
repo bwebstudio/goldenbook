@@ -298,12 +298,16 @@ function isEligibleForTimeWindow(
   // A restaurant with zero context tags has no editorial signal about when
   // it's appropriate. Default to dinner-only behaviour: block from
   // morning / midday / afternoon to prevent leaking dinner venues into
-  // daytime NOW results. (Also blocked from deep_night below.)
+  // daytime NOW results, and block from late_evening / deep_night so we
+  // never recommend "Cena" at 00:54 (the bug this rule fixes).
   if (pt === 'restaurant' && tags.length === 0) {
     if (
       timeOfDay === 'morning' ||
       timeOfDay === 'midday' ||
-      timeOfDay === 'afternoon'
+      timeOfDay === 'afternoon' ||
+      timeOfDay === 'late_evening' ||
+      timeOfDay === 'deep_night' ||
+      timeOfDay === 'night'
     ) {
       return false
     }
@@ -353,9 +357,19 @@ function isEligibleForTimeWindow(
     }
   }
 
-  // ── Restaurants without late-night in deep night ──────────────────────
-  if (pt === 'restaurant' && timeOfDay === 'deep_night' && !hasTag('late-night')) {
-    return false
+  // ── Restaurants in late_evening / deep_night ──────────────────────────
+  // After 22:00 the dinner window is closed. Only restaurants with explicit
+  // late-night signals survive — i.e., they ALSO function as a bar / lounge
+  // / live-music venue. Pure dinner places are excluded. This is the
+  // backstop for the "Cena en Lisboa at 00:54" bug.
+  if (pt === 'restaurant' && (timeOfDay === 'late_evening' || timeOfDay === 'deep_night' || timeOfDay === 'night')) {
+    const hasLateSignal =
+      hasTag('late-night') ||
+      hasTag('cocktails') ||
+      hasTag('wine') ||
+      hasTag('rooftop') ||
+      hasTag('live-music')
+    if (!hasLateSignal) return false
   }
 
   // ── Activities without evening relevance: excluded from evening ───────
@@ -475,16 +489,23 @@ export function scoreCandidate(
     // Shops, museums and cafes are now hard-excluded in evening (isEligibleForTimeWindow)
   }
   else if (tod === 'late_evening') {
-    // 23:00–02:00: bars, late restaurants, hotel F&B
-    if (pt === 'bar')                                    timeAdjustment += 15
+    // 22:00–02:00: bars, late-night restaurants (only ones that double as
+    // bars/lounges), hotel F&B. NEVER boost the "dinner" tag here — kitchens
+    // are closed and recommending "Cena" at this hour is the bug we are
+    // fixing. Restaurants without a late-night signal are already excluded
+    // upstream by isEligibleForTimeWindow.
+    if (pt === 'bar')                                    timeAdjustment += 18
     if (pt === 'restaurant' && hasTag('late-night'))      timeAdjustment += 12
-    if (pt === 'restaurant' && hasTag('dinner'))          timeAdjustment += 5
+    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 12
+    if (hasTag('late-night'))                             timeAdjustment += 10
+    if (hasTag('rooftop'))                                timeAdjustment += 8
+    if (hasTag('live-music'))                             timeAdjustment += 8
     if (pt === 'hotel' && (hasTag('cocktails') || hasTag('rooftop') || hasTag('wine')))
                                                          timeAdjustment += 10
-    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 8
-    if (hasTag('rooftop'))                                timeAdjustment += 5
-    if (hasTag('live-music'))                             timeAdjustment += 5
-    // Cafes without evening relevance are now hard-excluded (isEligibleForTimeWindow)
+    // Hard penalty: dinner / fine-dining tags should never rank a place
+    // highly in late_evening, even if the place itself slipped through with
+    // a late-night signal as well. The drink/music side wins.
+    if (hasTag('dinner') || hasTag('fine-dining'))        timeAdjustment -= 25
     // Hotels without F&B tags: mild penalty
     if (pt === 'hotel' && !hasTag('cocktails') && !hasTag('wine') && !hasTag('rooftop'))
                                                          timeAdjustment -= 10
@@ -502,11 +523,15 @@ export function scoreCandidate(
                                                          timeAdjustment -= 15
   }
   else if (tod === 'night') {
-    // 22:00–23:00 (legacy transition window)
-    if (pt === 'bar')                                    timeAdjustment += 10
-    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 8
-    if (hasTag('late-night'))                             timeAdjustment += 5
-    if (hasTag('live-music'))                             timeAdjustment += 5
+    // Legacy bucket — getNowTimeOfDay no longer returns 'night' (22:00 onward
+    // is now late_evening), but the type still allows it. Treat it the same
+    // as late_evening: bars and drinks only, dinner / fine-dining penalised.
+    if (pt === 'bar')                                    timeAdjustment += 18
+    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 12
+    if (hasTag('late-night'))                             timeAdjustment += 10
+    if (hasTag('live-music'))                             timeAdjustment += 8
+    if (hasTag('rooftop'))                                timeAdjustment += 6
+    if (hasTag('dinner') || hasTag('fine-dining'))        timeAdjustment -= 25
   }
 
   // totalScore = baseScore + personalization + time adjustment

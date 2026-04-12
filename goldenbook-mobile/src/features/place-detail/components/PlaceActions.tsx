@@ -17,13 +17,14 @@ interface PlaceActionsProps {
   city?: string;
   onSave?: () => void;
   isSaved?: boolean;
+  isSaving?: boolean;
 }
 
 function isHttpUrl(url: string | null | undefined): url is string {
   return !!url && /^https?:\/\/.+/i.test(url.trim());
 }
 
-export function PlaceActions({ placeId, actions, booking, location, city, onSave, isSaved = false }: PlaceActionsProps) {
+export function PlaceActions({ placeId, actions, booking, location, city, onSave, isSaved = false, isSaving = false }: PlaceActionsProps) {
   const router = useRouter();
   const t = useTranslation();
   const impressionSent = useRef(false);
@@ -152,18 +153,25 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
           </TouchableOpacity>
         )}
 
-        {/* Save */}
-        {actions.canSave && (
+        {/* Save (heart) */}
+        {actions.canSave && onSave && (
           <TouchableOpacity
-            onPress={onSave ?? (() => {})}
+            onPress={onSave}
+            disabled={isSaving}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
             className="items-center justify-center rounded-full border border-navy/5"
             style={{
               width: 48, height: 48, backgroundColor: '#FDFDFB',
               shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
             }}
           >
-            <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={20} color="#222D52" />
+            <Ionicons
+              name={isSaved ? 'heart' : 'heart-outline'}
+              size={20}
+              color={isSaving ? 'rgba(210,182,138,0.6)' : isSaved ? '#D2B68A' : '#222D52'}
+            />
           </TouchableOpacity>
         )}
 
