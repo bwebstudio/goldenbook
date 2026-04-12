@@ -24,7 +24,6 @@ export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps
 
   return (
     <View className="mx-6 mb-4" style={{ height: CARD_HEIGHT }}>
-      {/* Card body — navigates to detail */}
       <TouchableOpacity
         onPress={() => router.push(`/routes/${route.slug}` as any)}
         activeOpacity={0.9}
@@ -49,58 +48,31 @@ export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           />
         )}
-
         <LinearGradient
-          colors={[
-            'transparent',
-            'rgba(17,24,40,0.10)',
-            'rgba(17,24,40,0.40)',
-            'rgba(17,24,40,0.72)',
-            'rgba(17,24,40,0.90)',
-            'rgba(17,24,40,0.97)',
-          ]}
+          colors={['transparent', 'rgba(17,24,40,0.10)', 'rgba(17,24,40,0.40)', 'rgba(17,24,40,0.72)', 'rgba(17,24,40,0.90)', 'rgba(17,24,40,0.97)']}
           locations={[0, 0.15, 0.32, 0.50, 0.68, 1]}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           pointerEvents="none"
         />
-
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 24, paddingBottom: 24 }}>
-          <Text
-            className="font-bold text-[10px] uppercase tracking-widest mb-3"
-            style={{ fontFamily: 'Inter_700Bold', color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}
-          >
+          <Text className="font-bold text-[10px] uppercase tracking-widest mb-3" style={{ fontFamily: 'Inter_700Bold', color: '#D2B68A' }}>
             {t.discover.curatedItinerary}
           </Text>
-
-          <Text
-            className="text-2xl font-bold text-white mb-3 leading-tight"
-            style={{ fontFamily: 'PlayfairDisplay_700Bold', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}
-            numberOfLines={2}
-          >
+          <Text className="text-2xl font-bold text-white mb-3 leading-tight" style={{ fontFamily: 'PlayfairDisplay_700Bold' }} numberOfLines={2}>
             {route.title}
           </Text>
-
           {route.summary && (
-            <Text
-              className="text-sm mb-6 leading-relaxed"
-              style={{ fontFamily: 'Inter_300Light', maxWidth: '85%', color: 'rgba(255,255,255,0.65)', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
-              numberOfLines={2}
-            >
+            <Text className="text-sm mb-6 leading-relaxed" style={{ fontFamily: 'Inter_300Light', maxWidth: '85%', color: 'rgba(255,255,255,0.65)' }} numberOfLines={2}>
               {route.summary}
             </Text>
           )}
-
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
-              <Text
-                className="text-[10px] uppercase tracking-widest font-bold"
-                style={{ fontFamily: 'Inter_700Bold', color: '#D2B68A', textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
-              >
+              <Text className="text-[10px] uppercase tracking-widest font-bold" style={{ fontFamily: 'Inter_700Bold', color: '#D2B68A' }}>
                 {t.discover.beginRoute}
               </Text>
               <Ionicons name="arrow-forward" size={14} color="#D2B68A" />
             </View>
-
             <View className="flex-row items-center gap-1">
               <Ionicons name="location-outline" size={13} color="rgba(255,255,255,0.5)" />
               <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
@@ -111,46 +83,24 @@ export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps
         </View>
       </TouchableOpacity>
 
-      {/* Heart — SIBLING of TouchableOpacity, absolute over the card */}
-      <View
+      {/* Heart — sibling, 44×44 touch target */}
+      <RouteSaveButton
+        routeId={route.id}
+        snapshot={{ id: route.id, slug: route.slug, title: route.title, summary: route.summary, image: route.heroImage?.bucket && route.heroImage?.path ? { bucket: route.heroImage.bucket, path: route.heroImage.path } : null }}
+        size={18}
+        inactiveColor="#FFFFFF"
         style={{
           position: 'absolute',
-          top: 8,
-          right: 8,
+          top: 10,
+          right: 10,
           width: 44,
           height: 44,
+          borderRadius: 22,
+          backgroundColor: 'rgba(0,0,0,0.35)',
           alignItems: 'center',
           justifyContent: 'center',
         }}
-      >
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            backgroundColor: 'rgba(0,0,0,0.35)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <RouteSaveButton
-            routeId={route.id}
-            snapshot={{
-              id: route.id,
-              slug: route.slug,
-              title: route.title,
-              summary: route.summary,
-              image:
-                route.heroImage?.bucket && route.heroImage?.path
-                  ? { bucket: route.heroImage.bucket, path: route.heroImage.path }
-                  : null,
-            }}
-            size={18}
-            inactiveColor="#FFFFFF"
-            style={{ minWidth: 36, minHeight: 36 }}
-          />
-        </View>
-      </View>
+      />
     </View>
   );
 });

@@ -28,10 +28,7 @@ interface PlaceCardProps {
   width?: number;
 }
 
-// ─── Hidden Spots variant: horizontal row ─────────────────────────────────────
-// Heart is a SIBLING of the card row, not a child. This eliminates responder
-// competition between the navigation touchable and the save button on every
-// device and OS version.
+// ─── Horizontal row (Hidden Spots) ──────────────────────────────────────────
 
 function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
   const router = useRouter();
@@ -40,13 +37,11 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
 
   return (
     <View className="flex-row items-center gap-4">
-      {/* Card area — navigates to detail */}
       <TouchableOpacity
         onPress={() => router.push(`/places/${place.slug}` as any)}
         activeOpacity={0.85}
         className="flex-row items-center gap-4 flex-1"
       >
-        {/* Thumbnail */}
         <View className="flex-shrink-0" style={{ width: 80, height: 80 }}>
           <ProgressiveImage
             uri={imageUrl}
@@ -56,16 +51,7 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
             placeholderColor="#222D52"
             style={{ width: 80 }}
           />
-          {place.isSponsored && (
-            <View style={{ position: 'absolute', top: 4, left: 4 }}>
-              <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 7, letterSpacing: 0.2 }}>
-                {t.common.sponsored}
-              </Text>
-            </View>
-          )}
         </View>
-
-        {/* Text */}
         <View className="flex-1">
           <Text className="font-bold text-navy text-sm leading-snug" numberOfLines={2}>
             {place.name}
@@ -84,17 +70,12 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
         </View>
       </TouchableOpacity>
 
-      {/* Heart — SIBLING, not child of TouchableOpacity. No responder conflict. */}
-      <PlaceSaveButton placeId={place.id} snapshot={toSnapshot(place)} size={20} />
+      <PlaceSaveButton placeId={place.id} snapshot={toSnapshot(place)} size={22} />
     </View>
   );
 }
 
-// ─── Golden Picks variant: tall portrait card with overlay ───────────────────
-// The card and heart are siblings inside a plain View. The card (TouchableOpacity)
-// handles navigation; the heart (Pressable, absolute-positioned) handles save.
-// They never compete for the same touch event because they are at the same
-// level in the component tree, not nested.
+// ─── Portrait card (Golden Picks) ───────────────────────────────────────────
 
 function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCard; width?: number }) {
   const router = useRouter();
@@ -108,7 +89,6 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
 
   return (
     <View className="mr-6" style={{ width }}>
-      {/* Card body — navigates to detail */}
       <TouchableOpacity
         onPress={() => router.push(`/places/${place.slug}` as any)}
         activeOpacity={0.92}
@@ -131,7 +111,6 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
             placeholderColor="#222D52"
             style={{ position: 'absolute', top: 0, left: 0, right: 0 }}
           />
-
           <LinearGradient
             colors={[
               'transparent',
@@ -145,7 +124,6 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             pointerEvents="none"
           />
-
           {place.isSponsored && (
             <View className="absolute top-3 left-3">
               <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 8, letterSpacing: 0.3 }}>
@@ -153,7 +131,6 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
               </Text>
             </View>
           )}
-
           <View className="absolute bottom-0 left-0 right-0" style={{ paddingHorizontal: 14, paddingBottom: 16 }}>
             <Text
               className="font-bold text-[15px] leading-tight text-white"
@@ -175,39 +152,24 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
         </View>
       </TouchableOpacity>
 
-      {/* Heart — SIBLING of TouchableOpacity, absolute-positioned over it.
-          This is the only architecture that guarantees zero responder conflicts
-          on every device (iPhone XS, SE, any Android, any RN version). */}
-      <View
+      {/* Heart — sibling, 44×44 touch area, icon + bg in one element */}
+      <PlaceSaveButton
+        placeId={place.id}
+        snapshot={toSnapshot(place)}
+        size={18}
+        inactiveColor="#FFFFFF"
         style={{
           position: 'absolute',
-          top: 4,
-          right: 4,
+          top: 6,
+          right: 6,
           width: 44,
           height: 44,
+          borderRadius: 22,
+          backgroundColor: 'rgba(0,0,0,0.35)',
           alignItems: 'center',
           justifyContent: 'center',
         }}
-      >
-        <View
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 17,
-            backgroundColor: 'rgba(0,0,0,0.35)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <PlaceSaveButton
-            placeId={place.id}
-            snapshot={toSnapshot(place)}
-            size={18}
-            inactiveColor="#FFFFFF"
-            style={{ minWidth: 34, minHeight: 34 }}
-          />
-        </View>
-      </View>
+      />
     </View>
   );
 }

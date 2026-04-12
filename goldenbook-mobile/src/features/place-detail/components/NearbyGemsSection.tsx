@@ -21,82 +21,39 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
 
   return (
     <View className="mr-6" style={{ width: CARD_WIDTH }}>
-      {/* Image + navigation area */}
       <TouchableOpacity
         onPress={() => router.push(`/places/${gem.slug}` as any)}
         activeOpacity={0.88}
       >
         <View
           className="rounded-2xl overflow-hidden mb-4"
-          style={{
-            height: CARD_HEIGHT,
-            shadowColor: '#222D52',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.07,
-            shadowRadius: 8,
-            elevation: 2,
-          }}
+          style={{ height: CARD_HEIGHT, shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 8, elevation: 2 }}
         >
-          <ProgressiveImage
-            uri={imageUrl}
-            height={CARD_HEIGHT}
-            borderRadius={16}
-            placeholderColor="#222D52"
-            fadeDuration={350}
-          />
+          <ProgressiveImage uri={imageUrl} height={CARD_HEIGHT} borderRadius={16} placeholderColor="#222D52" fadeDuration={350} />
         </View>
       </TouchableOpacity>
 
-      {/* Heart — SIBLING of TouchableOpacity, absolute over the image */}
-      <View
+      {/* Heart — sibling, 40×40 */}
+      <PlaceSaveButton
+        placeId={gem.id}
+        snapshot={{ id: gem.id, slug: gem.slug, name: gem.name, shortDescription: null, image: gem.heroImage?.bucket && gem.heroImage?.path ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path } : null }}
+        size={16}
         style={{
           position: 'absolute',
-          top: 6,
-          right: 6,
-          width: 44,
-          height: 44,
+          top: 8,
+          right: 8,
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          backgroundColor: 'rgba(253,253,251,0.85)',
           alignItems: 'center',
           justifyContent: 'center',
         }}
-      >
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            backgroundColor: 'rgba(253,253,251,0.85)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <PlaceSaveButton
-            placeId={gem.id}
-            snapshot={{
-              id: gem.id,
-              slug: gem.slug,
-              name: gem.name,
-              shortDescription: null,
-              image:
-                gem.heroImage?.bucket && gem.heroImage?.path
-                  ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path }
-                  : null,
-            }}
-            size={16}
-            style={{ minWidth: 32, minHeight: 32 }}
-          />
-        </View>
-      </View>
+      />
 
-      {/* Name */}
-      <Text
-        className="text-lg text-navy mb-1"
-        style={{ fontFamily: 'PlayfairDisplay_400Regular' }}
-        numberOfLines={1}
-      >
+      <Text className="text-lg text-navy mb-1" style={{ fontFamily: 'PlayfairDisplay_400Regular' }} numberOfLines={1}>
         {gem.name}
       </Text>
-
-      {/* Distance */}
       <Text className="text-[10px] text-navy/40 font-bold uppercase tracking-widest">
         {distanceText}
       </Text>

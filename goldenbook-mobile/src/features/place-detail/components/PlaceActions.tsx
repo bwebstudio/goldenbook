@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Pressable, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '@/i18n';
@@ -153,29 +153,27 @@ export function PlaceActions({ placeId, actions, booking, location, city, onSave
           </TouchableOpacity>
         )}
 
-        {/* Save (heart) — Pressable for reliable hitSlop on all devices */}
+        {/* Save (heart) */}
         {actions.canSave && onSave && (
-          <Pressable
+          <TouchableOpacity
             onPress={onSave}
             disabled={isSaving}
-            hitSlop={8}
+            activeOpacity={0.6}
             accessibilityRole="button"
             accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
-            style={({ pressed }) => ({
+            className="items-center justify-center rounded-full border border-navy/5"
+            style={{
               width: 48, height: 48, backgroundColor: '#FDFDFB',
-              alignItems: 'center' as const, justifyContent: 'center' as const,
-              borderRadius: 9999,
-              borderWidth: 1, borderColor: 'rgba(34,45,82,0.05)',
               shadowColor: '#222D52', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 1,
-              opacity: pressed ? 0.5 : isSaving ? 0.6 : 1,
-            })}
+              opacity: isSaving ? 0.6 : 1,
+            }}
           >
             <Ionicons
               name={isSaved ? 'heart' : 'heart-outline'}
-              size={20}
+              size={22}
               color={isSaving ? 'rgba(210,182,138,0.6)' : isSaved ? '#D2B68A' : '#222D52'}
             />
-          </Pressable>
+          </TouchableOpacity>
         )}
 
         {/* Website — only when no booking CTA is active (avoid two URL buttons) */}
