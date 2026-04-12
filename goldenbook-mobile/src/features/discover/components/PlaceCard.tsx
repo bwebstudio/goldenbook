@@ -156,26 +156,42 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
           </View>
         )}
 
-        {/* Save heart (top-right over hero) */}
+        {/* Save heart (top-right over hero).
+            The outer View is 44×44 (Apple HIG minimum) so the Pressable
+            inside fills the full touch target. zIndex ensures this layer
+            wins over the card's own TouchableOpacity on all screen sizes,
+            including iPhone XS where the tighter layout used to let touches
+            fall through to the card navigation instead of the heart. */}
         <View
           style={{
             position: 'absolute',
-            top: 10,
-            right: 10,
-            width: 34,
-            height: 34,
-            borderRadius: 17,
-            backgroundColor: 'rgba(0,0,0,0.35)',
+            top: 4,
+            right: 4,
+            width: 44,
+            height: 44,
+            zIndex: 10,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <PlaceSaveButton
-            placeId={place.id}
-            snapshot={toSnapshot(place)}
-            size={18}
-            inactiveColor="#FFFFFF"
-          />
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: 'rgba(0,0,0,0.35)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <PlaceSaveButton
+              placeId={place.id}
+              snapshot={toSnapshot(place)}
+              size={18}
+              inactiveColor="#FFFFFF"
+              style={{ minWidth: 34, minHeight: 34 }}
+            />
+          </View>
         </View>
 
         {/* Bottom content — directly on gradient */}

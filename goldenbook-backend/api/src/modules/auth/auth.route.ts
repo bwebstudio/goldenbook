@@ -879,72 +879,80 @@ export async function authRoutes(app: FastifyInstance) {
 
     app.log.info({ userId }, '[auth/account] Account deletion requested')
 
+    // ── Helper: run a query that may reference a table / column that
+    // doesn't exist on older deployments. Returns silently on error so
+    // one missing table never aborts the entire deletion flow.
+    const safeDelete = async (label: string, sql: string, params: unknown[]) => {
+      try {
+        await db.query(sql, params)
+      } catch (e: any) {
+        app.log.warn({ userId, err: e?.message }, `[auth/account] ${label} — skipped`)
+      }
+    }
+
     try {
-      // 1. Delete place_now_tags for user's places
-      await db.query(
-        `DELETE FROM place_now_tags
-         WHERE place_id IN (
-           SELECT id FROM places WHERE business_client_id IN (
-             SELECT id FROM business_clients WHERE auth_user_id = $1
-           )
-         )`,
-        [userId],
-      )
+      // ── 1. Tables WITHOUT FK cascade to users(id) — must be cleaned
+      // manually BEFORE the `DELETE FROM users` below, or Postgres
+      // rejects with 23503 foreign_key_violation.
+      //
+      // The previous handler used the wrong column name (`auth_user_id`
+      // instead of `user_id`), which made every query fail on the first
+      // line and the entire deletion was dead on arrival.
 
-      // 2. Delete purchases
-      await db.query(
+      // Direct user data rows (NOT NULL user_id, no FK cascade)
+      await safeDelete('user_segments',              'DELETE FROM user_segments WHERE user_id = $1', [userId])
+      await safeDelete('place_users',                'DELETE FROM place_users WHERE user_id = $1', [userId])
+      await safeDelete('notifications',              'DELETE FROM notifications WHERE user_id = $1', [userId])
+      await safeDelete('email_verification_tokens',  'DELETE FROM email_verification_tokens WHERE user_id = $1', [userId])
+      await safeDelete('password_reset_tokens',      'DELETE FROM password_reset_tokens WHERE user_id = $1', [userId])
+
+      // Business portal: correct column is `user_id` (not auth_user_id)
+      // Delete purchases via business_client first (FK to business_clients)
+      await safeDelete('purchases (via bc)',
         `DELETE FROM purchases WHERE business_client_id IN (
-           SELECT id FROM business_clients WHERE auth_user_id = $1
-         )`,
-        [userId],
-      )
+           SELECT id FROM business_clients WHERE user_id = $1
+         )`, [userId])
+      await safeDelete('placement_requests (via bc)',
+        `DELETE FROM placement_requests WHERE client_id IN (
+           SELECT id FROM business_clients WHERE user_id = $1
+         )`, [userId])
+      await safeDelete('place_now_tags (via bc)',
+        `DELETE FROM place_now_tags WHERE place_id IN (
+           SELECT place_id FROM business_clients WHERE user_id = $1
+         )`, [userId])
+      await safeDelete('business_clients',
+        'DELETE FROM business_clients WHERE user_id = $1', [userId])
 
-      // 3. Delete admin_users
-      await db.query(
-        'DELETE FROM admin_users WHERE auth_user_id = $1',
-        [userId],
-      )
+      // ── 2. Nullable analytics rows: anonymise instead of delete so
+      // historical event data survives for business analytics.
+      await safeDelete('booking_click_events',       'UPDATE booking_click_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('booking_impression_events',  'UPDATE booking_impression_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('now_impressions',            'UPDATE now_impressions SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('now_clicks',                 'UPDATE now_clicks SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('place_view_events',          'UPDATE place_view_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('place_website_click_events', 'UPDATE place_website_click_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('place_direction_events',     'UPDATE place_direction_events SET user_id = NULL WHERE user_id = $1', [userId])
 
-      // 4. Delete business_clients
-      await db.query(
-        'DELETE FROM business_clients WHERE auth_user_id = $1',
-        [userId],
-      )
+      // ── 3. admin_users: the column linking to the auth user is `id`
+      // (admin_users.id is NOT the auth user UUID — it's a separate PK).
+      // There is no user_id / auth_user_id column. Admin records are
+      // matched by email. Only delete if the admin's email matches.
+      await safeDelete('admin_users (by email)',
+        `DELETE FROM admin_users WHERE email = (
+           SELECT email FROM auth.users WHERE id = $1
+         )`, [userId])
 
-      // 4b. Anonymise analytics rows that reference users(id) WITHOUT a
-      // cascade rule. These FK columns block `DELETE FROM users` if any
-      // event row exists for the user. We null them so the historical
-      // analytics survives anonymously and the cascade can proceed.
-      // Wrapped in try/catch so a missing table on older environments
-      // never breaks the whole deletion flow.
-      try {
-        await db.query(
-          'UPDATE booking_click_events SET user_id = NULL WHERE user_id = $1',
-          [userId],
-        )
-      } catch (e: any) {
-        app.log.warn({ userId, err: e?.message }, '[auth/account] booking_click_events anonymise skipped')
-      }
-      try {
-        await db.query(
-          'UPDATE booking_impression_events SET user_id = NULL WHERE user_id = $1',
-          [userId],
-        )
-      } catch (e: any) {
-        app.log.warn({ userId, err: e?.message }, '[auth/account] booking_impression_events anonymise skipped')
-      }
+      // ── 4. Delete the app user row. Tables with FK CASCADE
+      // (user_favorites, user_saved_routes, user_recently_viewed_places,
+      // user_bookmarks, user_lists, user_route_journeys, audit_logs) are
+      // handled automatically by Postgres on DELETE CASCADE.
+      await db.query('DELETE FROM users WHERE id = $1', [userId])
 
-      // 5. Delete app user row
-      await db.query(
-        'DELETE FROM users WHERE id = $1',
-        [userId],
-      )
-
-      // 6. Delete Supabase auth user via admin API.
+      // ── 5. Delete Supabase auth user via admin API.
       // Treat 404 as success — the row might already be gone (e.g. a
       // previous attempt removed it but failed before clearing the app
-      // tables). Without this the user got stuck in a state where the
-      // backend kept reporting "deletion failed" forever.
+      // tables). Without this the user would get stuck in a state where
+      // the backend kept reporting "deletion failed" forever.
       const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
@@ -962,7 +970,7 @@ export async function authRoutes(app: FastifyInstance) {
       app.log.info({ userId }, '[auth/account] Account deleted successfully')
       return reply.status(204).send()
     } catch (err: any) {
-      app.log.error({ userId, err: err.message }, '[auth/account] Account deletion failed')
+      app.log.error({ userId, err: err.message, stack: err.stack }, '[auth/account] Account deletion failed')
       throw new AppError(500, 'Could not delete account. Please try again or contact us at hello@goldenbook.app.', 'DELETION_FAILED')
     }
   })

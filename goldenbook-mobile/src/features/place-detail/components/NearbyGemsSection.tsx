@@ -46,25 +46,45 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
           fadeDuration={350}
         />
 
-        {/* Save heart overlay */}
+        {/* Save heart overlay — 44×44 touch wrapper for iPhone XS compat */}
         <View
-          className="absolute top-4 right-4 w-8 h-8 rounded-full items-center justify-center"
-          style={{ backgroundColor: 'rgba(253,253,251,0.85)' }}
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            width: 44,
+            height: 44,
+            zIndex: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <PlaceSaveButton
-            placeId={gem.id}
-            snapshot={{
-              id: gem.id,
-              slug: gem.slug,
-              name: gem.name,
-              shortDescription: null,
-              image:
-                gem.heroImage?.bucket && gem.heroImage?.path
-                  ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path }
-                  : null,
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: 'rgba(253,253,251,0.85)',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
-            size={16}
-          />
+          >
+            <PlaceSaveButton
+              placeId={gem.id}
+              snapshot={{
+                id: gem.id,
+                slug: gem.slug,
+                name: gem.name,
+                shortDescription: null,
+                image:
+                  gem.heroImage?.bucket && gem.heroImage?.path
+                    ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path }
+                    : null,
+              }}
+              size={16}
+              style={{ minWidth: 32, minHeight: 32 }}
+            />
+          </View>
         </View>
       </View>
 

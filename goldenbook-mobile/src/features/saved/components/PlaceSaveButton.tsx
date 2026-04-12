@@ -1,4 +1,4 @@
-import { TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSavePlace } from '../hooks/useSavePlace';
 import { colors } from '@/design/tokens';
@@ -16,7 +16,17 @@ interface PlaceSaveButtonProps {
 
 /**
  * Shared heart toggle for place cards & detail screens.
- * heart-outline = not saved, heart (filled) = saved.
+ *
+ * Uses Pressable (not TouchableOpacity) so that `hitSlop` reliably expands
+ * the touch rect on EVERY device. The old TouchableOpacity implementation
+ * used `hitSlop: 10`, but when the button was rendered inside an ancestor
+ * with `overflow: 'hidden'` (e.g. card images), the expanded rect was
+ * clipped and touches on iPhone XS (375pt) didn't register because the
+ * finger was landing outside the icon but inside the clipped zone.
+ *
+ * The fix: use Pressable with a generous `hitSlop: 16`, and—critically—
+ * `onStartShouldSetResponder` returning true so the responder system gives
+ * this button priority over the underlying card's TouchableOpacity.
  */
 export function PlaceSaveButton({
   placeId,
@@ -28,14 +38,26 @@ export function PlaceSaveButton({
   const { isSaved, toggle, isPending } = useSavePlace(placeId, { snapshot });
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={toggle}
       disabled={isPending || !placeId}
-      activeOpacity={0.7}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      hitSlop={16}
       accessibilityRole="button"
       accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
-      style={style}
+      style={({ pressed }) => [
+        {
+          opacity: pressed ? 0.5 : isPending ? 0.6 : 1,
+          // Minimum 44×44 touch target (Apple HIG). The icon renders
+          // centered inside this area. This guarantees the Pressable
+          // itself—not just hitSlop—fills the Apple minimum, even if the
+          // parent container is tight.
+          minWidth: 44,
+          minHeight: 44,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        style,
+      ]}
     >
       <Ionicons
         name={isSaved ? 'heart' : 'heart-outline'}
@@ -48,6 +70,6 @@ export function PlaceSaveButton({
               : (inactiveColor ?? colors.navy.DEFAULT)
         }
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 }

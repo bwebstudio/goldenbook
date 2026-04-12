@@ -67,35 +67,46 @@ export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps
         pointerEvents="none"
       />
 
-      {/* Save heart (top-right over hero) */}
+      {/* Save heart — 44×44 touch target wrapper for iPhone XS compat */}
       <View
         style={{
           position: 'absolute',
-          top: 14,
-          right: 14,
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: 'rgba(0,0,0,0.35)',
+          top: 8,
+          right: 8,
+          width: 44,
+          height: 44,
+          zIndex: 10,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <RouteSaveButton
-          routeId={route.id}
-          snapshot={{
-            id: route.id,
-            slug: route.slug,
-            title: route.title,
-            summary: route.summary,
-            image:
-              route.heroImage?.bucket && route.heroImage?.path
-                ? { bucket: route.heroImage.bucket, path: route.heroImage.path }
-                : null,
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
-          size={18}
-          inactiveColor="#FFFFFF"
-        />
+        >
+          <RouteSaveButton
+            routeId={route.id}
+            snapshot={{
+              id: route.id,
+              slug: route.slug,
+              title: route.title,
+              summary: route.summary,
+              image:
+                route.heroImage?.bucket && route.heroImage?.path
+                  ? { bucket: route.heroImage.bucket, path: route.heroImage.path }
+                  : null,
+            }}
+            size={18}
+            inactiveColor="#FFFFFF"
+            style={{ minWidth: 36, minHeight: 36 }}
+          />
+        </View>
       </View>
 
       {/* Content — positioned over gradient */}

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -91,25 +91,28 @@ export default function RouteDetailScreen() {
             <Text className="text-primary text-sm font-bold">→</Text>
           </TouchableOpacity>
 
-          {/* Save / unsave */}
-          <TouchableOpacity
+          {/* Save / unsave — Pressable for reliable hitSlop on all devices */}
+          <Pressable
             onPress={toggleSave}
             disabled={isPending}
-            activeOpacity={0.8}
-            className="rounded-xl items-center justify-center"
-            style={{
+            hitSlop={8}
+            style={({ pressed }) => ({
               width: 56,
+              borderRadius: 12,
+              alignItems: 'center' as const,
+              justifyContent: 'center' as const,
               backgroundColor: isSaved ? '#222D52' : '#FDFDFB',
               borderWidth: 1,
               borderColor: isSaved ? '#222D52' : 'rgba(34,45,82,0.10)',
-            }}
+              opacity: pressed ? 0.5 : isPending ? 0.6 : 1,
+            })}
           >
             <Ionicons
               name={isSaved ? 'heart' : 'heart-outline'}
               size={20}
               color={isSaved ? '#D2B68A' : '#222D52'}
             />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </SafeAreaView>
     </View>

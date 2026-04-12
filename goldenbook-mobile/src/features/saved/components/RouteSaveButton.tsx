@@ -1,4 +1,4 @@
-import { TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { Pressable, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSaveRoute } from '../hooks/useSaveRoute';
 import { colors } from '@/design/tokens';
@@ -16,6 +16,7 @@ interface RouteSaveButtonProps {
 
 /**
  * Heart toggle for route cards & detail screens. Mirrors PlaceSaveButton.
+ * See PlaceSaveButton for documentation on Pressable / hitSlop / responder.
  */
 export function RouteSaveButton({
   routeId,
@@ -27,14 +28,22 @@ export function RouteSaveButton({
   const { isSaved, toggle, isPending } = useSaveRoute(routeId, { snapshot });
 
   return (
-    <TouchableOpacity
+    <Pressable
       onPress={toggle}
       disabled={isPending || !routeId}
-      activeOpacity={0.7}
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      hitSlop={16}
       accessibilityRole="button"
       accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
-      style={style}
+      style={({ pressed }) => [
+        {
+          opacity: pressed ? 0.5 : isPending ? 0.6 : 1,
+          minWidth: 44,
+          minHeight: 44,
+          alignItems: 'center' as const,
+          justifyContent: 'center' as const,
+        },
+        style,
+      ]}
     >
       <Ionicons
         name={isSaved ? 'heart' : 'heart-outline'}
@@ -47,6 +56,6 @@ export function RouteSaveButton({
               : (inactiveColor ?? colors.navy.DEFAULT)
         }
       />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
