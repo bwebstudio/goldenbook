@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,19 +21,17 @@ function isHttpUrl(url: string | null | undefined): url is string {
 }
 
 /**
- * Action bar below the hero. Only 4 possible buttons:
+ * Action bar below the hero image. Maximum 4 buttons:
  *
- *   [RESERVE]  [MAP]  [SAVE ♡]  [🌐 WEB]
+ *   [WEBSITE]  [MAP]  [SAVE ♡]  [CALL]
  *
  * Rules:
- *   - RESERVE: only when there's a phone number or a direct booking URL
- *              (NOT affiliate platforms like Viator/TheFork/GetYourGuide)
- *   - MAP:     when coordinates or a navigateUrl exist
- *   - SAVE:    always (canSave is true for all published places)
- *   - WEB:     when the venue has its own website (globe icon, no text label)
+ *   - WEBSITE: only the venue's own websiteUrl. Never affiliate links.
+ *   - MAP: when coordinates or navigateUrl exist.
+ *   - SAVE: always.
+ *   - CALL: only when a phone number exists.
  *
- * The old "VISITAR SITIO WEB" / "OPEN WEBSITE" text button is gone.
- * Goldenbook does not use affiliate links (Viator, TheFork, etc.).
+ * NO globe icon. NO booking CTA. NO Viator/TheFork/Booking/affiliate.
  */
 export function PlaceActions({
   placeId,
@@ -52,15 +49,11 @@ export function PlaceActions({
     Linking.openURL(url.trim()).catch(() => Alert.alert('Cannot open link'));
   };
 
-  // ── Reserve: phone or direct booking URL (never affiliate) ────────────
-  const canReserve = !!(actions.reservationPhone || actions.bookingUrl);
-  const handleReserve = () => {
-    if (actions.reservationPhone) openUrl(`tel:${actions.reservationPhone}`);
-    else if (actions.bookingUrl) openUrl(actions.bookingUrl);
-  };
-  const reserveLabel = actions.reservationPhone && !actions.bookingUrl
-    ? t.place.reserve
-    : t.place.visitWebsite;
+  // ── Website: only the venue's own site ────────────────────────────────
+  const hasWebsite = isHttpUrl(actions.websiteUrl);
+
+  // ── Phone: direct call ────────────────────────────────────────────────
+  const hasPhone = !!actions.reservationPhone;
 
   // ── Map ───────────────────────────────────────────────────────────────
   const canShowMap = !!(location?.latitude && location?.longitude) || !!actions.navigateUrl;
@@ -72,23 +65,20 @@ export function PlaceActions({
     }
   };
 
-  // ── Website (globe icon only, no text) ────────────────────────────────
-  const canShowWeb = isHttpUrl(actions.websiteUrl);
-
   return (
     <View className="px-5 pt-6 pb-2">
       <View className="flex-row gap-3">
-        {/* Reserve — only direct booking, never affiliate */}
-        {canReserve && (
+        {/* Website — the venue's own site, never affiliate */}
+        {hasWebsite && (
           <TouchableOpacity
-            onPress={handleReserve}
+            onPress={() => openUrl(actions.websiteUrl!)}
             activeOpacity={0.85}
             className="items-center justify-center bg-navy rounded-full"
             style={{ flex: 1, height: 48 }}
             accessibilityRole="link"
           >
             <Text className="text-ivory text-[10px] font-bold uppercase tracking-widest" numberOfLines={1}>
-              {reserveLabel}
+              {t.place.visitWebsite}
             </Text>
           </TouchableOpacity>
         )}
@@ -144,10 +134,10 @@ export function PlaceActions({
           </TouchableOpacity>
         )}
 
-        {/* Website (globe icon only — no "VISITAR SITIO WEB" text button) */}
-        {canShowWeb && (
+        {/* Call */}
+        {hasPhone && (
           <TouchableOpacity
-            onPress={() => openUrl(actions.websiteUrl!)}
+            onPress={() => openUrl(`tel:${actions.reservationPhone}`)}
             activeOpacity={0.6}
             className="items-center justify-center rounded-full border border-navy/5"
             style={{
@@ -161,7 +151,7 @@ export function PlaceActions({
               elevation: 1,
             }}
           >
-            <Ionicons name="globe-outline" size={20} color="#222D52" />
+            <Ionicons name="call-outline" size={20} color="#222D52" />
           </TouchableOpacity>
         )}
       </View>
