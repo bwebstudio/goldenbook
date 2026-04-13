@@ -64,10 +64,13 @@
         {
           "android": {
             "compileSdkVersion": 35,
-            "targetSdkVersion": 35
+            "targetSdkVersion": 35,
+            "enableProguardInReleaseBuilds": true,
+            "useLegacyPackaging": false
           }
         }
-      ]
+      ],
+      "./plugins/withAndroid16KBPages.js"
     ],
     "scheme": "goldenbook",
     "experiments": {
