@@ -172,7 +172,7 @@ export default function RootLayout() {
   // the locale is already correct by the time the splash exits.
   useEffect(() => {
     if (!settingsHydrated) return;
-    const tag = Localization.getLocales?.()[0]?.languageTag ?? Localization.locale;
+    const tag = Localization.getLocales()[0]?.languageTag ?? 'en';
     setLocaleFromDevice(tag);
   }, [settingsHydrated, setLocaleFromDevice]);
 

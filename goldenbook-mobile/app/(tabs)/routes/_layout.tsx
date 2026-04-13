@@ -4,11 +4,13 @@ import { useEffect } from 'react';
 
 export default function RoutesLayout() {
   const navigation = useNavigation();
+  const parentNavigation = useNavigation().getParent();
   const router = useRouter();
 
   // When the Routes tab is tapped while already focused, pop back to index
   useEffect(() => {
-    const unsubscribe = navigation.addListener('tabPress', () => {
+    if (!parentNavigation) return;
+    const unsubscribe = parentNavigation.addListener('tabPress' as any, () => {
       if (navigation.canGoBack()) {
         try {
           navigation.dispatch(StackActions.popToTop());
