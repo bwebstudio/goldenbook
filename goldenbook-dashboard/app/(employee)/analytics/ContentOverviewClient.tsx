@@ -27,12 +27,29 @@ export default function ContentOverviewClient() {
   const ca = t.campAnalytics as Record<string, string>;
 
   const [places, setPlaces] = useState<AdminPlaceListItem[] | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetchAdminPlacesList().then(setPlaces).catch(() => setPlaces([]));
+    fetchAdminPlacesList()
+      .then(setPlaces)
+      .catch((err) => { console.error('[ContentOverview] fetch failed:', err); setError(true); setPlaces([]); });
   }, []);
 
-  if (!places || places.length === 0) return null;
+  if (places === null) {
+    return (
+      <Card className="!py-8 text-center">
+        <p className="text-sm text-muted">{t.common.loading}</p>
+      </Card>
+    );
+  }
+
+  if (error || places.length === 0) {
+    return (
+      <Card className="!py-8 text-center">
+        <p className="text-sm text-muted">{error ? "Could not load content data" : "No places found"}</p>
+      </Card>
+    );
+  }
 
   const total = places.length;
   const published = places.filter((p) => p.status === "published").length;
