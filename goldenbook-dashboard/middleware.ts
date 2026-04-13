@@ -58,6 +58,14 @@ export async function middleware(request: NextRequest) {
       applySessionCookies(response, refreshedSession);
       return response;
     } catch {
+      // Refresh failed — likely "Already Used" from a concurrent request.
+      // If we still have an access token (it may still be valid for a few
+      // more seconds), let this request through instead of kicking the
+      // user to login. The next request will retry the refresh.
+      if (session?.accessToken && !loginPath) {
+        return NextResponse.next();
+      }
+
       if (loginPath) {
         const response = NextResponse.next();
         clearSessionCookies(response);

@@ -191,13 +191,7 @@ export interface DiscoverRoute {
 
 // --- Booking CTA (matches backend BookingCTA / BookingDTO) ---
 
-export type BookingPlatform =
-  | 'booking'
-  | 'thefork'
-  | 'viator'
-  | 'getyourguide'
-  | 'website'
-  | 'contact';
+export type BookingPlatform = 'website' | 'contact';
 
 export interface BookingCTA {
   enabled: boolean;
@@ -231,7 +225,7 @@ export interface PlaceDetailDTO {
     navigateUrl: string | null;
   };
   goldenbookNote: string | null;
-  whyWeLoveIt: string | null;
+
   insiderTip: string | null;
   shortDescription: string | null;
   fullDescription: string | null;

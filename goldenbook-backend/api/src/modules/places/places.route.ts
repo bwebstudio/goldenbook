@@ -11,7 +11,7 @@ import {
   getOtherLocations,
 } from './places.query'
 import { toPlaceDetailDTO } from './places.dto'
-import { getActiveCandidateForPlace, getBestValidCandidateForPlace } from '../booking-candidates/candidates.query'
+import { getManualBookingCandidate } from '../booking-candidates/candidates.query'
 import { normalizeLocale } from '../../shared/i18n/locale'
 
 const paramsSchema = z.object({ slug: z.string().min(1) })
@@ -35,29 +35,23 @@ export async function placesRoutes(app: FastifyInstance) {
 
     const hasCoords = place.latitude != null && place.longitude != null
 
-    // Fetch active booking candidate (if candidates table exists)
-    let candidateUrl: string | null = null
-    let candidateProvider: string | null = null
-    try {
-      const active = await getActiveCandidateForPlace(place.id)
-      if (active?.is_valid !== false && active?.candidate_url) {
-        candidateUrl = active.candidate_url
-        candidateProvider = active.provider
-      } else {
-        // Fallback: best valid candidate
-        const best = await getBestValidCandidateForPlace(place.id)
-        if (best?.candidate_url) {
-          candidateUrl = best.candidate_url
-          candidateProvider = best.provider
+    // ── Booking URL resolution ────────────────────────────────────────────
+    //
+    // Priority:
+    //   1. places.booking_url (set directly on the place row)
+    //   2. Manual candidate from dashboard (set by editor via PlaceCandidates)
+    //
+    // Google Maps URLs are NOT used as booking links.
+    // Affiliate candidates are NOT used.
+    if (!place.booking_url) {
+      try {
+        const manual = await getManualBookingCandidate(place.id)
+        if (manual?.candidate_url) {
+          place.booking_url = manual.candidate_url
         }
+      } catch {
+        // candidates table may not exist — ignore
       }
-    } catch {
-      // candidates table may not exist yet — ignore
-    }
-
-    // If a candidate was found, override booking_url so the resolver picks it up
-    if (candidateUrl) {
-      place.booking_url = candidateUrl
     }
 
     const [categories, openingHours, gallery, nearbyGems, otherLocations, citySlugs] = await Promise.all([

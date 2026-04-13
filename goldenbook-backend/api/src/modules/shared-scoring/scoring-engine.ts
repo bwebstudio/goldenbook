@@ -398,11 +398,18 @@ function isEligibleForTimeWindow(
     }
   }
 
-  // ── Landmarks/activities/hotels in deep night ─────────────────────────
-  if (pt === 'landmark' && timeOfDay === 'deep_night' && !hasTag('viewpoint')) {
-    return false
-  }
-  if (pt === 'activity' && timeOfDay === 'deep_night') {
+  // ── DEEP NIGHT: only bars and hotels ──────────────────────────────────
+  // After 02:00, Goldenbook only recommends:
+  //   - bars (cocktail bars, wine bars, jazz bars that are genuinely open)
+  //   - hotels (as accommodation / hotel bars)
+  //   - restaurants with explicit late-night signal (functioning as bars)
+  // Everything else — landmarks, beaches, activities, cafes, shops,
+  // museums, venues without late-night — is excluded.
+  if (timeOfDay === 'deep_night') {
+    if (pt === 'bar') return true
+    if (pt === 'hotel') return true
+    if (pt === 'restaurant' && hasTag('late-night')) return true
+    // Everything else is out
     return false
   }
 
@@ -511,16 +518,15 @@ export function scoreCandidate(
                                                          timeAdjustment -= 10
   }
   else if (tod === 'deep_night') {
-    // 02:00–07:00: late bars, viewpoints as scenic fallback
-    if (pt === 'bar')                                    timeAdjustment += 12
+    // 02:00–06:00: ONLY bars and hotels. No walks, beaches, nature.
+    if (pt === 'bar')                                    timeAdjustment += 20
     if (hasTag('late-night'))                             timeAdjustment += 15
-    if (hasTag('viewpoint'))                              timeAdjustment += 12
-    if (pt === 'beach')                                  timeAdjustment += 8
-    // Hotels with bar/lounge
-    if (pt === 'hotel' && (hasTag('cocktails') || hasTag('wine')))
+    if (hasTag('cocktails') || hasTag('wine'))            timeAdjustment += 12
+    if (hasTag('live-music'))                             timeAdjustment += 8
+    // Hotels: always shown (as accommodation), boost if they have F&B
+    if (pt === 'hotel')                                  timeAdjustment += 10
+    if (pt === 'hotel' && (hasTag('cocktails') || hasTag('wine') || hasTag('rooftop')))
                                                          timeAdjustment += 8
-    if (pt === 'hotel' && !hasTag('cocktails') && !hasTag('wine'))
-                                                         timeAdjustment -= 15
   }
   else if (tod === 'night') {
     // Legacy bucket — getNowTimeOfDay no longer returns 'night' (22:00 onward

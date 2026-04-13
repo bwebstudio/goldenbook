@@ -43,7 +43,6 @@ export interface UIPlaceDetail {
   shortDescription: string | null;
   fullDescription: string | null;
   goldenbookNote: string | null;
-  whyWeLoveIt: string | null;
   insiderTip: string | null;
   address: string | null;
   latitude: number | null;

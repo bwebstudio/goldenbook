@@ -10,6 +10,7 @@ export interface AdminPlaceListRow {
   booking_enabled: boolean
   booking_mode: string
   reservation_relevant: boolean
+  has_booking_link: boolean
   has_suggestion: boolean
   suggestion_relevant: boolean | null
   suggestion_mode: string | null
@@ -47,6 +48,10 @@ const FULL_QUERY = `
     p.booking_enabled,
     p.booking_mode::text AS booking_mode,
     p.reservation_relevant,
+    (p.booking_url IS NOT NULL OR EXISTS (
+      SELECT 1 FROM place_booking_candidates bc
+      WHERE bc.place_id = p.id AND bc.is_active = true AND bc.candidate_url IS NOT NULL
+    )) AS has_booking_link,
     (p.suggestion_generated_at IS NOT NULL) AS has_suggestion,
     p.suggestion_relevant,
     p.suggestion_mode,
@@ -79,6 +84,7 @@ export async function getAdminPlacesList(): Promise<AdminPlaceListRow[]> {
       booking_enabled: false,
       booking_mode: 'none',
       reservation_relevant: false,
+      has_booking_link: false,
       has_suggestion: false,
       suggestion_relevant: null,
       suggestion_mode: null,

@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   fetchCandidatesForPlace,
-  generateCandidatesForPlace,
   activateCandidate,
   deactivateCandidate,
   addManualCandidate,
@@ -14,13 +13,13 @@ import {
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
 
-const PROVIDER_NAMES: Record<string, string> = {
-  booking: "Booking.com",
-  thefork: "TheFork",
-  viator: "Viator",
-  getyourguide: "GetYourGuide",
-  website: "Website",
-};
+function friendlyDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url.length > 40 ? url.slice(0, 40) + '…' : url;
+  }
+}
 
 interface PlaceCandidatesProps {
   placeId: string;
@@ -122,7 +121,7 @@ export default function PlaceCandidates({ placeId, reservable, onReservableChang
                 /* Showing active link */
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
-                    <p className="text-base font-semibold text-text">{PROVIDER_NAMES[active.provider] ?? active.provider}</p>
+                    <p className="text-base font-semibold text-text">{friendlyDomain(active.candidate_url)}</p>
                     <a href={active.candidate_url} target="_blank" rel="noopener noreferrer" className="text-sm text-gold hover:text-gold-dark transition-colors truncate block mt-0.5" title={active.candidate_url}>
                       {active.candidate_url}
                     </a>
@@ -199,7 +198,7 @@ export default function PlaceCandidates({ placeId, reservable, onReservableChang
                     ) : (
                       <>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-text">{PROVIDER_NAMES[c.provider] ?? c.provider}</p>
+                          <p className="text-sm font-semibold text-text">{friendlyDomain(c.candidate_url)}</p>
                           <a href={c.candidate_url} target="_blank" rel="noopener noreferrer" className="text-xs text-gold hover:text-gold-dark transition-colors truncate block mt-0.5" title={c.candidate_url}>
                             {c.candidate_url.replace(/^https?:\/\/(www\.)?/, '').slice(0, 60)}
                           </a>
@@ -217,14 +216,6 @@ export default function PlaceCandidates({ placeId, reservable, onReservableChang
             </div>
           )}
 
-          {/* ── Auto-search ── */}
-          <button
-            onClick={() => withBusy(async () => { await generateCandidatesForPlace(placeId); })}
-            disabled={busy}
-            className="self-start px-4 py-2 rounded-lg border border-border text-sm font-semibold text-muted hover:text-text hover:border-gold/50 transition-colors bg-white cursor-pointer disabled:opacity-50"
-          >
-            {t.empCandidates.searchAuto}
-          </button>
         </>
       )}
     </div>

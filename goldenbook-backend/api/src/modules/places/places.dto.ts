@@ -58,7 +58,6 @@ export interface PlaceDetailDTO {
     navigateUrl: string | null
   }
   goldenbookNote: string | null
-  whyWeLoveIt: string | null
   insiderTip: string | null
   shortDescription: string | null
   fullDescription: string | null
@@ -180,7 +179,6 @@ export function toPlaceDetailDTO(
       navigateUrl,
     },
     goldenbookNote: place.goldenbook_note,
-    whyWeLoveIt: place.why_we_love_it,
     insiderTip: place.insider_tip,
     shortDescription: place.short_description,
     fullDescription: place.full_description,

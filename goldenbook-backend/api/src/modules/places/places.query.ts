@@ -13,7 +13,6 @@ export interface PlaceRow {
   hero_path: string | null
   popularity_score: number | null
   goldenbook_note: string | null
-  why_we_love_it: string | null
   insider_tip: string | null
   short_description: string | null
   full_description: string | null
@@ -67,7 +66,6 @@ const CORE_SELECT = `
   hero_img.path                                                                                     AS hero_path,
   ps.popularity_score,
   COALESCE(NULLIF(pt.goldenbook_note,''), NULLIF(pt_lang.goldenbook_note,''), NULLIF(pt_fb.goldenbook_note,''))                     AS goldenbook_note,
-  COALESCE(NULLIF(pt.why_we_love_it,''),  NULLIF(pt_lang.why_we_love_it,''),  NULLIF(pt_fb.why_we_love_it,''))                     AS why_we_love_it,
   COALESCE(NULLIF(pt.insider_tip,''),     NULLIF(pt_lang.insider_tip,''),     NULLIF(pt_fb.insider_tip,''))                         AS insider_tip,
   COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
   COALESCE(NULLIF(pt.full_description,''),  NULLIF(pt_lang.full_description,''),  NULLIF(pt_fb.full_description,''),  p.full_description)  AS full_description,

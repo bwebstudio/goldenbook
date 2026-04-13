@@ -223,11 +223,11 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     const { id } = idParamsSchema.parse(request.params)
     const { rows } = await db.query<{
       locale: string; name: string; short_description: string | null; full_description: string | null
-      goldenbook_note: string | null; why_we_love_it: string | null; insider_tip: string | null
+      goldenbook_note: string | null; insider_tip: string | null
       translation_override: boolean
     }>(`
       SELECT locale, name, short_description, full_description,
-             goldenbook_note, why_we_love_it, insider_tip,
+             goldenbook_note, insider_tip,
              COALESCE(translation_override, false) AS translation_override
       FROM place_translations WHERE place_id = $1
       ORDER BY locale
@@ -245,7 +245,6 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       shortDescription: z.string().nullable().optional(),
       fullDescription: z.string().nullable().optional(),
       goldenbookNote: z.string().nullable().optional(),
-      whyWeLoveIt: z.string().nullable().optional(),
       insiderTip: z.string().nullable().optional(),
     }).parse(request.body)
 
@@ -258,7 +257,6 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     if (body.shortDescription !== undefined) add('short_description', body.shortDescription)
     if (body.fullDescription !== undefined) add('full_description', body.fullDescription)
     if (body.goldenbookNote !== undefined) add('goldenbook_note', body.goldenbookNote)
-    if (body.whyWeLoveIt !== undefined) add('why_we_love_it', body.whyWeLoveIt)
     if (body.insiderTip !== undefined) add('insider_tip', body.insiderTip)
 
     if (sets.length === 0) return reply.send({ updated: false })
@@ -278,8 +276,8 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     // EN is the source of truth for auto-generated locales.
     const { rows } = await db.query<{
       name: string; short_description: string | null; full_description: string | null
-      goldenbook_note: string | null; why_we_love_it: string | null; insider_tip: string | null
-    }>('SELECT name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip FROM place_translations WHERE place_id = $1 AND locale = \'en\' LIMIT 1', [id])
+      goldenbook_note: string | null; insider_tip: string | null
+    }>('SELECT name, short_description, full_description, goldenbook_note, insider_tip FROM place_translations WHERE place_id = $1 AND locale = \'en\' LIMIT 1', [id])
 
     if (!rows[0]) {
       return reply.status(400).send({ error: 'NO_EN_TRANSLATION', message: 'No English translation found for this place.' })
@@ -299,7 +297,6 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
             short_description: en.short_description,
             full_description: en.full_description,
             goldenbook_note: en.goldenbook_note,
-            why_we_love_it: en.why_we_love_it,
             insider_tip: en.insider_tip,
           },
           targetLocale,
@@ -307,11 +304,11 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
         )
 
         await db.query(`
-          INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip, translation_override)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
+          INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, false)
           ON CONFLICT (place_id, locale) DO UPDATE SET
             name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-            goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
+            goldenbook_note = EXCLUDED.goldenbook_note, insider_tip = EXCLUDED.insider_tip,
             translation_override = false, updated_at = now()
         `, [
           id,
@@ -320,7 +317,6 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
           translated.short_description,
           translated.full_description,
           translated.goldenbook_note,
-          translated.why_we_love_it,
           translated.insider_tip,
         ])
         succeeded.push(targetLocale)
@@ -361,8 +357,8 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       // Fetch EN fields
       const { rows: enRows } = await db.query<{
         name: string; short_description: string | null; full_description: string | null
-        goldenbook_note: string | null; why_we_love_it: string | null; insider_tip: string | null
-      }>('SELECT name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip FROM place_translations WHERE place_id = $1 AND locale = \'en\' LIMIT 1', [place_id])
+        goldenbook_note: string | null; insider_tip: string | null
+      }>('SELECT name, short_description, full_description, goldenbook_note, insider_tip FROM place_translations WHERE place_id = $1 AND locale = \'en\' LIMIT 1', [place_id])
 
       if (!enRows[0]) continue
       const en = enRows[0]
@@ -370,18 +366,18 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       for (const locale of missing_locales) {
         try {
           const translated = await translatePlaceFields(
-            { name: en.name, short_description: en.short_description, full_description: en.full_description, goldenbook_note: en.goldenbook_note, why_we_love_it: en.why_we_love_it, insider_tip: en.insider_tip },
+            { name: en.name, short_description: en.short_description, full_description: en.full_description, goldenbook_note: en.goldenbook_note, insider_tip: en.insider_tip },
             locale,
             'en',
           )
           await db.query(`
-            INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip, translation_override)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
+            INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, false)
             ON CONFLICT (place_id, locale) DO UPDATE SET
               name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-              goldenbook_note = EXCLUDED.goldenbook_note, why_we_love_it = EXCLUDED.why_we_love_it, insider_tip = EXCLUDED.insider_tip,
+              goldenbook_note = EXCLUDED.goldenbook_note, insider_tip = EXCLUDED.insider_tip,
               translation_override = false, updated_at = now()
-          `, [place_id, locale, translated.name, translated.short_description, translated.full_description, translated.goldenbook_note, translated.why_we_love_it, translated.insider_tip])
+          `, [place_id, locale, translated.name, translated.short_description, translated.full_description, translated.goldenbook_note, translated.insider_tip])
           details.push({ placeId: place_id, locale, status: 'ok' })
         } catch (err) {
           app.log.error({ placeId: place_id, locale, error: err instanceof Error ? err.message : err }, 'bulk_regenerate_failed')

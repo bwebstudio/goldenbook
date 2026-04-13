@@ -3,22 +3,20 @@ import {
   fetchCampaignPerformance,
   fetchEstablishmentPerformance,
   fetchTimePerformance,
-  fetchBookingProviderAnalytics,
 } from "@/lib/api/campaign-analytics";
 import { fetchAdminInsights } from "@/lib/api/recommendations";
 import { fetchBehaviorAnalytics } from "@/lib/api/tracking";
 import CampaignAnalyticsClient from "./CampaignAnalyticsClient";
-import BookingAnalyticsClient from "./BookingAnalyticsClient";
 import AdminInsightsClient from "./AdminInsightsClient";
 import BehaviorAnalyticsClient from "./BehaviorAnalyticsClient";
+import ContentOverviewClient from "./ContentOverviewClient";
 
 export default async function AnalyticsPage() {
-  const [overviewResult, campaignsResult, establishmentsResult, timeResult, bookingResult, insightsResult, behaviorResult] = await Promise.allSettled([
+  const [overviewResult, campaignsResult, establishmentsResult, timeResult, insightsResult, behaviorResult] = await Promise.allSettled([
     fetchAnalyticsOverview("30"),
     fetchCampaignPerformance(),
     fetchEstablishmentPerformance(),
     fetchTimePerformance(),
-    fetchBookingProviderAnalytics(),
     fetchAdminInsights(),
     fetchBehaviorAnalytics("30"),
   ]);
@@ -27,13 +25,14 @@ export default async function AnalyticsPage() {
   const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : [];
   const establishments = establishmentsResult.status === "fulfilled" ? establishmentsResult.value : [];
   const time = timeResult.status === "fulfilled" ? timeResult.value : null;
-  const booking = bookingResult.status === "fulfilled" ? bookingResult.value : null;
   const insights = insightsResult.status === "fulfilled" ? insightsResult.value : null;
   const behavior = behaviorResult.status === "fulfilled" ? behaviorResult.value : null;
 
   return (
     <div className="flex flex-col gap-10">
       {insights && <AdminInsightsClient insights={insights} />}
+
+      <ContentOverviewClient />
 
       <CampaignAnalyticsClient
         overview={overview}
@@ -44,12 +43,6 @@ export default async function AnalyticsPage() {
       />
 
       <BehaviorAnalyticsClient data={behavior} />
-
-      <BookingAnalyticsClient
-        providers={booking?.providers ?? []}
-        dailyClicks={booking?.dailyClicks ?? []}
-        topPlaces={booking?.topPlaces ?? []}
-      />
     </div>
   );
 }

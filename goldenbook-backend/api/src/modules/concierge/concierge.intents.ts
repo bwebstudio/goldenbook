@@ -276,7 +276,8 @@ export const INTENT_REGISTRY: ConciergeIntent[] = [
     tags: ['viewpoint', 'night-walk', 'scenic', 'city-lights', 'waterfront'],
     canonicalTags: ['viewpoint', 'sunset', 'romantic', 'nature'],
     canonicalExcludeTags: ['dinner', 'shopping'],
-    preferredTimeOfDay: ['evening', 'late_evening', 'deep_night'],
+    // Removed deep_night: at 02:00+ Goldenbook only recommends bars and hotels.
+    preferredTimeOfDay: ['evening', 'late_evening'],
     keywords: ['night walk', 'city lights', 'walk', 'stroll', 'paseo', 'promenade', 'viewpoint at night'],
     priority: 5,
   },
@@ -349,9 +350,10 @@ export const BOOTSTRAP_MATRIX: Record<TimeOfDay, string[][]> = {
     ['late_night_drinks', 'cocktail_bars', 'late_night_jazz'],
   ],
   deep_night: [
-    ['late_night_drinks', 'late_night_jazz', 'night_walk'],
-    ['late_night_drinks', 'night_walk', 'cocktail_bars'],
+    // After 02:00: only bars and hotels. No walks, beaches, nature.
     ['late_night_drinks', 'late_night_jazz', 'cocktail_bars'],
+    ['late_night_drinks', 'cocktail_bars', 'quiet_wine_bar'],
+    ['cocktail_bars', 'late_night_jazz', 'quiet_wine_bar'],
   ],
 }
 

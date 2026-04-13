@@ -130,16 +130,15 @@ export const TIME_TAG_BOOSTS: Record<NowTimeOfDay, Partial<Record<ContextTag, nu
     'local-secret': 0.4,
   },
   deep_night: {
-    // 02:00–06:00 — after-hours. Late-night bars, scenic city-lights spots.
-    // Dinner / fine-dining are forbidden here for the same reason as above.
+    // 02:00–06:00 — only bars and hotels. No nature, beaches, landmarks.
+    // The eligibility filter in scoring-engine.ts enforces this hard:
+    // only bar, hotel, and restaurant+late-night survive.
     'late-night':   1.0,
-    'cocktails':    0.8,
-    'viewpoint':    0.9,   // scenic nighttime fallback — city lights, bridges
-    'sunset':       0.3,   // low but allows coastal/waterfront places
-    'wine':         0.6,
-    'live-music':   0.5,
-    'local-secret': 0.5,
-    'terrace':      0.4,   // late-night outdoor seating
+    'cocktails':    1.0,
+    'wine':         0.8,
+    'wellness':     0.5,   // hotel spas
+    'romantic':     0.4,   // hotel bars
+    'rooftop':      0.4,   // hotel rooftops
   },
 }
 

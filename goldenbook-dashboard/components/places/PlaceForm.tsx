@@ -83,7 +83,6 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       shortDescription: place.shortDescription ?? "",
       fullDescription:  place.fullDescription  ?? "",
       goldenbookNote:   place.goldenbookNote    ?? "",
-      whyWeLoveIt:      place.whyWeLoveIt       ?? "",
       insiderTip:       place.insiderTip        ?? "",
       citySlug:         place.citySlug,
       citySlugs:        place.citySlugs?.length ? place.citySlugs : [place.citySlug],

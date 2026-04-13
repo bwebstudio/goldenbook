@@ -11,7 +11,6 @@ interface PlaceSourceRow {
   short_description: string | null
   full_description: string | null
   goldenbook_note: string | null
-  why_we_love_it: string | null
   insider_tip: string | null
 }
 
@@ -25,14 +24,13 @@ async function upsertPlaceTranslation(
   await db.query(
     `
     INSERT INTO place_translations (
-      place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (place_id, locale) DO UPDATE SET
       name = EXCLUDED.name,
       short_description = EXCLUDED.short_description,
       full_description = EXCLUDED.full_description,
       goldenbook_note = EXCLUDED.goldenbook_note,
-      why_we_love_it = EXCLUDED.why_we_love_it,
       insider_tip = EXCLUDED.insider_tip,
       updated_at = now()
     `,
@@ -43,7 +41,6 @@ async function upsertPlaceTranslation(
       fields.short_description,
       fields.full_description,
       fields.goldenbook_note,
-      fields.why_we_love_it,
       fields.insider_tip,
     ],
   )
@@ -58,7 +55,6 @@ async function loadSourcePlaces(): Promise<PlaceSourceRow[]> {
       COALESCE(en.short_description, p.short_description)       AS short_description,
       COALESCE(en.full_description, p.full_description)         AS full_description,
       en.goldenbook_note                                        AS goldenbook_note,
-      en.why_we_love_it                                         AS why_we_love_it,
       en.insider_tip                                            AS insider_tip
     FROM places p
     LEFT JOIN place_translations en
@@ -81,7 +77,6 @@ async function main() {
       short_description: place.short_description,
       full_description: place.full_description,
       goldenbook_note: place.goldenbook_note,
-      why_we_love_it: place.why_we_love_it,
       insider_tip: place.insider_tip,
     }
 

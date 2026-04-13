@@ -245,3 +245,25 @@ function detectProviderFromUrl(url: string): string | null {
   if (url.includes('getyourguide.com')) return 'getyourguide'
   return null
 }
+
+// ─── Get manual booking candidate (set by owner/editor via dashboard) ────────
+//
+// Only returns candidates with source='manual' and is_active=true.
+// Auto-scraped affiliate candidates (source='generated') are ignored.
+
+export async function getManualBookingCandidate(placeId: string): Promise<BookingCandidate | null> {
+  const { rows } = await db.query<BookingCandidate>(`
+    SELECT
+      id, place_id, provider::text, candidate_url, candidate_type::text,
+      is_valid, validation_status::text, validation_details,
+      confidence, source::text, discovered_at, last_checked_at,
+      notes, is_active, priority
+    FROM place_booking_candidates
+    WHERE place_id = $1
+      AND is_active = true
+      AND source = 'manual'
+    ORDER BY priority DESC, confidence DESC
+    LIMIT 1
+  `, [placeId])
+  return rows[0] ?? null
+}

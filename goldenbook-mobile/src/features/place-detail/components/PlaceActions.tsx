@@ -20,18 +20,35 @@ function isHttpUrl(url: string | null | undefined): url is string {
   return !!url && /^https?:\/\/.+/i.test(url.trim());
 }
 
+const ICON_BTN = {
+  width: 48,
+  height: 48,
+  backgroundColor: '#FDFDFB',
+  shadowColor: '#222D52',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.06,
+  shadowRadius: 8,
+  elevation: 1,
+} as const;
+
 /**
- * Action bar below the hero image. Maximum 4 buttons:
+ * Action bar below the hero image.
  *
- *   [WEBSITE]  [MAP]  [SAVE ♡]  [CALL]
+ * Layout rules:
  *
- * Rules:
- *   - WEBSITE: only the venue's own websiteUrl. Never affiliate links.
- *   - MAP: when coordinates or navigateUrl exist.
- *   - SAVE: always.
- *   - CALL: only when a phone number exists.
+ *   With reservation link:  [RESERVAR]  [MAPA]  [♡]  [🌐]
+ *   Without reservation:    [MAPA]  [♡]  [🌐]
+ *   Without website:        [MAPA]  [♡]
+ *   With phone:             adds [📞] at the end
  *
- * NO globe icon. NO booking CTA. NO Viator/TheFork/Booking/affiliate.
+ * - RESERVAR: only the venue's own bookingUrl (never affiliate).
+ *   Shown as a text button (flex) because it's the primary CTA.
+ * - MAPA: icon + text button.
+ * - ♡: icon-only 48×48.
+ * - 🌐: icon-only 48×48. Opens the venue's websiteUrl.
+ * - 📞: icon-only 48×48. Direct call.
+ *
+ * No "VISITAR SITIO WEB" text button. No affiliate links.
  */
 export function PlaceActions({
   placeId,
@@ -49,14 +66,11 @@ export function PlaceActions({
     Linking.openURL(url.trim()).catch(() => Alert.alert('Cannot open link'));
   };
 
-  // ── Website: only the venue's own site ────────────────────────────────
+  const hasReservation = isHttpUrl(actions.bookingUrl);
   const hasWebsite = isHttpUrl(actions.websiteUrl);
-
-  // ── Phone: direct call ────────────────────────────────────────────────
   const hasPhone = !!actions.reservationPhone;
-
-  // ── Map ───────────────────────────────────────────────────────────────
   const canShowMap = !!(location?.latitude && location?.longitude) || !!actions.navigateUrl;
+
   const handleMap = () => {
     if (location?.latitude && location?.longitude) {
       router.push(`/map?lat=${location.latitude}&lng=${location.longitude}` as any);
@@ -68,17 +82,17 @@ export function PlaceActions({
   return (
     <View className="px-5 pt-6 pb-2">
       <View className="flex-row gap-3">
-        {/* Website — the venue's own site, never affiliate */}
-        {hasWebsite && (
+        {/* Reserve — the venue's own booking link, never affiliate */}
+        {hasReservation && (
           <TouchableOpacity
-            onPress={() => openUrl(actions.websiteUrl!)}
+            onPress={() => openUrl(actions.bookingUrl!)}
             activeOpacity={0.85}
             className="items-center justify-center bg-navy rounded-full"
             style={{ flex: 1, height: 48 }}
             accessibilityRole="link"
           >
             <Text className="text-ivory text-[10px] font-bold uppercase tracking-widest" numberOfLines={1}>
-              {t.place.visitWebsite}
+              {t.place.reserve}
             </Text>
           </TouchableOpacity>
         )}
@@ -89,16 +103,7 @@ export function PlaceActions({
             onPress={handleMap}
             activeOpacity={0.85}
             className="flex-row items-center justify-center gap-2 rounded-full border border-navy/5"
-            style={{
-              flex: 1,
-              height: 48,
-              backgroundColor: '#FDFDFB',
-              shadowColor: '#222D52',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 1,
-            }}
+            style={{ ...ICON_BTN, flex: 1, height: 48 }}
           >
             <Ionicons name="navigate-outline" size={18} color="#D2B68A" />
             <Text className="text-navy text-[10px] font-bold uppercase tracking-widest">{t.place.map}</Text>
@@ -114,17 +119,7 @@ export function PlaceActions({
             accessibilityRole="button"
             accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
             className="items-center justify-center rounded-full border border-navy/5"
-            style={{
-              width: 48,
-              height: 48,
-              backgroundColor: '#FDFDFB',
-              shadowColor: '#222D52',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 1,
-              opacity: isSaving ? 0.6 : 1,
-            }}
+            style={{ ...ICON_BTN, opacity: isSaving ? 0.6 : 1 }}
           >
             <Ionicons
               name={isSaved ? 'heart' : 'heart-outline'}
@@ -134,22 +129,25 @@ export function PlaceActions({
           </TouchableOpacity>
         )}
 
+        {/* Website (globe icon only) */}
+        {hasWebsite && (
+          <TouchableOpacity
+            onPress={() => openUrl(actions.websiteUrl!)}
+            activeOpacity={0.6}
+            className="items-center justify-center rounded-full border border-navy/5"
+            style={ICON_BTN}
+          >
+            <Ionicons name="globe-outline" size={20} color="#222D52" />
+          </TouchableOpacity>
+        )}
+
         {/* Call */}
         {hasPhone && (
           <TouchableOpacity
             onPress={() => openUrl(`tel:${actions.reservationPhone}`)}
             activeOpacity={0.6}
             className="items-center justify-center rounded-full border border-navy/5"
-            style={{
-              width: 48,
-              height: 48,
-              backgroundColor: '#FDFDFB',
-              shadowColor: '#222D52',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 1,
-            }}
+            style={ICON_BTN}
           >
             <Ionicons name="call-outline" size={20} color="#222D52" />
           </TouchableOpacity>

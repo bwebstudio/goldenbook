@@ -9,7 +9,6 @@ export interface PlaceFormValues {
   shortDescription: string;
   fullDescription: string;
   goldenbookNote: string;
-  whyWeLoveIt: string;
   insiderTip: string;
   /** Primary city slug — used as the API key. */
   citySlug: string;
@@ -48,7 +47,6 @@ export const EMPTY_PLACE_FORM: PlaceFormValues = {
   shortDescription: "",
   fullDescription: "",
   goldenbookNote: "",
-  whyWeLoveIt: "",
   insiderTip: "",
   citySlug: "",
   citySlugs: [],

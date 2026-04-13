@@ -15,8 +15,9 @@ import type {
 // GET /api/v1/admin/categories
 // Returns all categories (active + inactive) with their subcategories.
 // Includes: id, slug, name, description, iconName, sortOrder, isActive.
-export async function fetchCategories(): Promise<AdminCategoryDTO[]> {
-  const data = await apiGet<AdminCategoriesResponseDTO>("/api/v1/admin/categories");
+export async function fetchCategories(locale = 'en'): Promise<AdminCategoryDTO[]> {
+  const lang = locale.split('-')[0];
+  const data = await apiGet<AdminCategoriesResponseDTO>("/api/v1/admin/categories", { locale: lang });
   return data.items;
 }
 

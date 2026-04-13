@@ -9,7 +9,6 @@ export interface WebPlaceDTO {
   name: string
   category: string | null
   city: string
-  whyWeLoveIt: string | null
   address: string | null
   imageUrl: string | null
 }

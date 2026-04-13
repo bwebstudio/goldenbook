@@ -57,7 +57,6 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     shortDescription: dto.shortDescription,
     fullDescription: dto.fullDescription,
     goldenbookNote: dto.goldenbookNote,
-    whyWeLoveIt: dto.whyWeLoveIt,
     insiderTip: dto.insiderTip,
     address: dto.location.address,
     latitude: dto.location.latitude,

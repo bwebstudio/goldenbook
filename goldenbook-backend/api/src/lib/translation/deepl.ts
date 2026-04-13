@@ -176,7 +176,6 @@ export interface PlaceTranslationFields {
   short_description: string | null
   full_description: string | null
   goldenbook_note: string | null
-  why_we_love_it: string | null
   insider_tip: string | null
 }
 
@@ -195,7 +194,6 @@ export async function translatePlaceFields(
     short_description: source.short_description ? (translated.short_description ?? source.short_description) : null,
     full_description: source.full_description ? (translated.full_description ?? source.full_description) : null,
     goldenbook_note: source.goldenbook_note ? (translated.goldenbook_note ?? source.goldenbook_note) : null,
-    why_we_love_it: source.why_we_love_it ? (translated.why_we_love_it ?? source.why_we_love_it) : null,
     insider_tip: source.insider_tip ? (translated.insider_tip ?? source.insider_tip) : null,
   }
 }

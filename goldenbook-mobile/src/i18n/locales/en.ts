@@ -192,7 +192,7 @@ export const en = {
     couldNotLoad: 'Could not load this place.\nCheck your connection and try again.',
     goldenbookPerspective: 'The Goldenbook Go Perspective',
     editorialStaff: 'Editorial Staff',
-    whyWeLoveIt: 'Why We Love It',
+
     insiderTip: 'Insider Tip',
     gallery: 'Gallery',
     openingHours: 'Opening Hours',
@@ -443,6 +443,11 @@ export const en = {
     passwordPolicy: 'Password must be at least 8 characters and include both letters and numbers.',
     resetFailed: 'Could not send reset email. Please try again.',
     resetConfirmFailed: 'Could not reset password.',
+  },
+
+  // ─── Map ─────────────────────────────────────────────────────────────────
+  map: {
+    go: 'Go',
   },
 
   // ─── Global error boundary (caught render errors) ────────────────────────

@@ -18,8 +18,8 @@ import type {
 } from './web.dto'
 
 // ─── Web golden picks query ───────────────────────────────────────────────────
-// Extends the standard editors_picks pattern with why_we_love_it, address,
-// and primary category name — fields required by the editorial web layout.
+// Extends the standard editors_picks pattern with address and primary
+// category name — fields required by the editorial web layout.
 
 interface GoldenPickRow {
   id: string
@@ -27,7 +27,6 @@ interface GoldenPickRow {
   name: string
   hero_bucket: string | null
   hero_path: string | null
-  why_we_love_it: string | null
   address_line: string | null
   category_name: string | null
   city_slug: string
@@ -47,7 +46,6 @@ async function getWebGoldenPicks(
       COALESCE(pt.name, pt_fb.name, p.name)                              AS name,
       hero_img.bucket                                                     AS hero_bucket,
       hero_img.path                                                       AS hero_path,
-      COALESCE(pt.why_we_love_it, pt_fb.why_we_love_it)                 AS why_we_love_it,
       p.address_line,
       first_cat.cat_name                                                  AS category_name,
       d.slug                                                              AS city_slug
@@ -110,7 +108,6 @@ async function getWebGoldenPicks(
       COALESCE(pt.name, pt_fb.name, p.name)                              AS name,
       hero_img.bucket                                                     AS hero_bucket,
       hero_img.path                                                       AS hero_path,
-      COALESCE(pt.why_we_love_it, pt_fb.why_we_love_it)                 AS why_we_love_it,
       p.address_line,
       first_cat.cat_name                                                  AS category_name,
       d.slug                                                              AS city_slug
@@ -264,7 +261,6 @@ function toWebPlace(row: GoldenPickRow): WebPlaceDTO {
     name: row.name,
     category: row.category_name,
     city: row.city_slug,
-    whyWeLoveIt: row.why_we_love_it,
     address: row.address_line,
     imageUrl: resolveImageUrl({ bucket: row.hero_bucket, path: row.hero_path }),
   }

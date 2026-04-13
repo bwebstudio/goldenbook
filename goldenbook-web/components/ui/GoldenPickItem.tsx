@@ -46,11 +46,6 @@ export function GoldenPickItem({ place, index, layout = 'imageRight' }: GoldenPi
             {place.category && <p className="eyebrow mb-3">{place.category}</p>}
             <h3 className="headline-medium text-ivory mb-4">{place.name}</h3>
             <div className="w-8 h-px bg-primary mb-4" />
-            {place.whyWeLoveIt && (
-              <p className="font-sans text-ivory/70 text-body leading-relaxed line-clamp-2">
-                {place.whyWeLoveIt}
-              </p>
-            )}
           </div>
         </div>
       </motion.article>
@@ -99,17 +94,6 @@ export function GoldenPickItem({ place, index, layout = 'imageRight' }: GoldenPi
         {place.category && <p className="eyebrow mb-4">{place.category}</p>}
         <h3 className="headline-medium text-ink mb-6">{place.name}</h3>
         <div className="w-8 h-px bg-primary mb-6" />
-
-        {place.whyWeLoveIt && (
-          <div>
-            <p className="font-sans text-small text-primary uppercase tracking-wider font-medium mb-2">
-              {t('whyWeLoveIt')}
-            </p>
-            <p className="font-sans text-ink-muted text-body leading-relaxed">
-              {place.whyWeLoveIt}
-            </p>
-          </div>
-        )}
 
         {place.address && (
           <p className="font-sans text-caption text-ink-muted/60 mt-6 tracking-wide">

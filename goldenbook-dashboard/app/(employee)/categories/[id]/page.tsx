@@ -1,25 +1,56 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useLocale, useT } from "@/lib/i18n";
 import { fetchCategories } from "@/lib/api/categories";
 import { mapCategoriesToUI } from "@/lib/api/mappers/categoryMapper";
 import CategoryForm from "@/components/categories/CategoryForm";
 import type { UICategory, UISubcategory } from "@/types/ui/category";
 
-interface CategoryDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+export default function CategoryDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const { locale } = useLocale();
+  const t = useT();
+  const ct = t.employeePages.categories;
 
-export default async function CategoryDetailPage({ params }: CategoryDetailPageProps) {
-  const { id } = await params;
+  const [allCategories, setAllCategories] = useState<UICategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  let allCategories: UICategory[] = [];
-  let errorMessage: string | null = null;
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setErrorMessage(null);
 
-  try {
-    const dtos = await fetchCategories();
-    allCategories = mapCategoriesToUI(dtos);
-  } catch (err) {
-    console.error("[CategoryDetailPage] Failed to load categories:", err);
-    errorMessage = "Could not load category data. Please try again.";
+    fetchCategories(locale)
+      .then((dtos) => {
+        if (!cancelled) {
+          setAllCategories(mapCategoriesToUI(dtos));
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("[CategoryDetailPage] Failed to load categories:", err);
+        if (!cancelled) {
+          setErrorMessage(ct.couldNotLoadDetail);
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [locale, ct.couldNotLoadDetail]);
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl">
+        <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-20 flex items-center justify-center">
+          <p className="text-sm text-muted">{t.common.loading}</p>
+        </div>
+      </div>
+    );
   }
 
   if (errorMessage) {
@@ -32,7 +63,7 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
-          Back to categories
+          {ct.backToCategories}
         </Link>
         <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-16 flex flex-col items-center gap-5 text-center">
           <div className="w-14 h-14 rounded-xl bg-[#FBF7F0] flex items-center justify-center text-gold">
@@ -43,15 +74,15 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
             </svg>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-text">Could not load data</h3>
+            <h3 className="text-xl font-bold text-text">{ct.couldNotLoadDetail}</h3>
             <p className="text-base text-muted mt-2 max-w-sm">{errorMessage}</p>
           </div>
-          <a
-            href={`/categories/${id}`}
-            className="px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors"
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors cursor-pointer"
           >
-            Try again
-          </a>
+            {ct.tryAgain}
+          </button>
         </div>
       </div>
     );
@@ -87,7 +118,7 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
-          Back to categories
+          {ct.backToCategories}
         </Link>
         <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-16 flex flex-col items-center gap-5 text-center">
           <div className="w-14 h-14 rounded-xl bg-[#FBF7F0] flex items-center justify-center text-gold">
@@ -97,16 +128,16 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
             </svg>
           </div>
           <div>
-            <h3 className="text-xl font-bold text-text">Category not found</h3>
+            <h3 className="text-xl font-bold text-text">{ct.categoryNotFound}</h3>
             <p className="text-base text-muted mt-2 max-w-sm">
-              This category does not exist or may have been removed.
+              {ct.categoryNotFoundDesc}
             </p>
           </div>
           <Link
             href="/categories"
             className="px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors"
           >
-            Back to categories
+            {ct.backToCategories}
           </Link>
         </div>
       </div>
@@ -131,7 +162,7 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M19 12H5M12 5l-7 7 7 7" />
         </svg>
-        Back to categories
+        {ct.backToCategories}
       </Link>
 
       {/* Page header */}
@@ -140,11 +171,11 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
           <h1 className="text-3xl font-bold text-text">{displayName}</h1>
           {isSubcategory ? (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-[#F5F1EB] text-muted">
-              Subcategory of {foundSubcategory!.parentName}
+              {ct.subcategoryOf} {foundSubcategory!.parentName}
             </span>
           ) : (
             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-text/8 text-text">
-              Main category
+              {ct.mainCategoryBadge}
             </span>
           )}
         </div>
@@ -166,13 +197,13 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
         categoryId={id}
       />
 
-      {/* Usage info — subcategory count if it's a main category */}
+      {/* Subcategories list if it's a main category */}
       {!isSubcategory && foundCategory!.subcategoryCount > 0 && (
         <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="px-8 py-5 border-b border-border bg-surface">
-            <h2 className="text-xl font-bold text-text">Subcategories</h2>
+            <h2 className="text-xl font-bold text-text">{ct.subcategories}</h2>
             <p className="text-sm text-muted mt-1">
-              These subcategories belong to {foundCategory!.name}
+              {ct.theseSubcategoriesBelong} {foundCategory!.name}
             </p>
           </div>
           <div className="divide-y divide-border">
@@ -190,7 +221,7 @@ export default async function CategoryDetailPage({ params }: CategoryDetailPageP
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  View
+                  {ct.view}
                 </Link>
               </div>
             ))}

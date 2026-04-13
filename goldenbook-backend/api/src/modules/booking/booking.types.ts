@@ -1,5 +1,7 @@
 // ─── Booking Mode ────────────────────────────────────────────────────────────
-// Matches the DB enum `booking_mode`
+// Matches the DB enum `booking_mode`.
+// The enum in the DB still has affiliate_* values for historical data,
+// but the active system only uses these three:
 
 export type BookingMode =
   | 'none'
@@ -15,17 +17,11 @@ export type ReservationSource = 'manual' | 'ai_suggested' | 'imported'
 // ─── Booking CTA ─────────────────────────────────────────────────────────────
 // What the app renders for a place's booking action
 
-export type BookingPlatform =
-  | 'booking'
-  | 'thefork'
-  | 'viator'
-  | 'getyourguide'
-  | 'website'
-  | 'contact'
+export type BookingPlatform = 'website' | 'contact'
 
 export interface BookingCTA {
   enabled: boolean
-  mode: BookingMode
+  mode: string
   label: string
   url: string | null
   platform: BookingPlatform
@@ -40,15 +36,12 @@ export interface BookingDTO {
   cta: BookingCTA | null
 }
 
-// ─── Smart Booking Router ────────────────────────────────────────────────────
-// Internal decision type — not exposed to clients directly
+// ─── Internal decision type ─────────────────────────────────────────────────
 
 export type BookingRoutingReason =
-  | 'manual_override'
-  | 'explicit_none'
-  | 'category_match'
-  | 'has_affiliate_url'
-  | 'fallback_to_website'
+  | 'has_booking_url'
+  | 'has_website'
+  | 'has_phone'
   | 'not_reservation_relevant'
 
 export interface BookingRoutingDecision {
@@ -75,7 +68,6 @@ export interface PlaceBookingInput {
   google_maps_url: string | null
   phone: string | null
   reservation_relevant: boolean
-  // Category/subcategory slugs for heuristic inference
   category_slugs: string[]
   subcategory_slugs: string[]
 }

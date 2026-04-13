@@ -6,7 +6,6 @@ export interface PlaceTranslation {
   short_description: string | null;
   full_description: string | null;
   goldenbook_note: string | null;
-  why_we_love_it: string | null;
   insider_tip: string | null;
   translation_override: boolean;
 }

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useT } from "@/lib/i18n";
 import type { UICategory } from "@/types/ui/category";
 
 const filterSelectClass =
@@ -12,21 +13,10 @@ interface CategoriesClientProps {
 }
 
 export default function CategoriesClient({ categories }: CategoriesClientProps) {
+  const t = useT();
+  const ct = t.employeePages.categories;
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState<"all" | "main" | "sub">("all");
-
-  // Build a flat list of all items (categories + subcategories) for search
-  const allItems = useMemo(() => {
-    const items: Array<{ type: "category" | "subcategory"; categoryId: string }> = [];
-    for (const cat of categories) {
-      items.push({ type: "category", categoryId: cat.id });
-      for (const sub of cat.subcategories) {
-        void sub; // subcategories are shown under their parent
-      }
-    }
-    return items;
-  }, [categories]);
-  void allItems; // used indirectly via filteredCategories
 
   // Filter categories (and their subcategories) based on search and level
   const filteredCategories = useMemo(() => {
@@ -48,20 +38,17 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
 
         // Apply level filter
         if (levelFilter === "main") {
-          // Show only main categories, no subcategories
           if (!catMatches) return null;
           return { ...cat, subcategories: [] };
         }
 
         if (levelFilter === "sub") {
-          // Show only categories that have matching subcategories
           if (matchingSubs.length === 0 && !catMatches) return null;
           return { ...cat, subcategories: cat.subcategories };
         }
 
         // "all" level
         if (!catMatches && matchingSubs.length === 0) return null;
-        // If category name matches, show all its subcategories; else only matching ones
         return { ...cat, subcategories: catMatches ? cat.subcategories : matchingSubs };
       })
       .filter(Boolean) as typeof categories;
@@ -81,9 +68,9 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
 
       {/* Page header */}
       <div>
-        <h1 className="text-3xl font-bold text-text">Categories</h1>
+        <h1 className="text-3xl font-bold text-text">{ct.title}</h1>
         <p className="text-base text-muted mt-1">
-          Manage the sections used across Goldenbook
+          {ct.subtitle}
         </p>
       </div>
 
@@ -97,9 +84,9 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-text">Read-only for now</p>
+          <p className="text-sm font-semibold text-text">{ct.readOnlyTitle}</p>
           <p className="text-sm text-muted mt-0.5">
-            You can view all categories and subcategories. Creating and editing categories requires additional backend support — contact the development team to make changes.
+            {ct.readOnlyDesc}
           </p>
         </div>
       </div>
@@ -110,14 +97,14 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
           <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-text text-white text-xs font-bold">
             {categories.length}
           </span>
-          <span>main {categories.length === 1 ? "category" : "categories"}</span>
+          <span>{categories.length === 1 ? ct.mainCategory : ct.mainCategories}</span>
         </div>
         <div className="w-px h-4 bg-border" />
         <div className="flex items-center gap-2 text-sm text-muted">
           <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#F5F1EB] text-text text-xs font-bold">
             {totalSubcategories}
           </span>
-          <span>{totalSubcategories === 1 ? "subcategory" : "subcategories"} total</span>
+          <span>{totalSubcategories === 1 ? ct.subcategoryTotal : ct.subcategoriesTotal}</span>
         </div>
       </div>
 
@@ -135,7 +122,7 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search categories..."
+            placeholder={ct.searchPlaceholder}
             className="w-full rounded-xl border border-border bg-white pl-11 pr-5 py-3 text-base text-text placeholder:text-[#B0AAA3] focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition"
           />
         </div>
@@ -147,9 +134,9 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
             onChange={(e) => setLevelFilter(e.target.value as "all" | "main" | "sub")}
             className={filterSelectClass}
           >
-            <option value="all">All levels</option>
-            <option value="main">Main categories only</option>
-            <option value="sub">With subcategories</option>
+            <option value="all">{ct.allLevels}</option>
+            <option value="main">{ct.mainOnly}</option>
+            <option value="sub">{ct.withSubs}</option>
           </select>
 
           {hasActiveFilters && (
@@ -157,21 +144,21 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
               onClick={clearFilters}
               className="text-sm font-semibold text-muted hover:text-gold underline transition-colors cursor-pointer"
             >
-              Clear filters
+              {ct.clearFilters}
             </button>
           )}
 
           {/* Add category — disabled until backend supports it */}
           <button
             disabled
-            title="Creating categories requires backend support — contact the development team"
+            title={ct.addCategoryTooltip}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gold/40 text-white text-base font-semibold cursor-not-allowed whitespace-nowrap"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add category
+            {ct.addCategory}
           </button>
         </div>
       </div>
@@ -179,8 +166,8 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
       {/* Results count when filtering */}
       {hasActiveFilters && (
         <p className="text-sm text-muted -mt-4">
-          Showing <span className="font-semibold text-text">{filteredCategories.length}</span> of{" "}
-          <span className="font-semibold text-text">{categories.length}</span> categories
+          {ct.showingOf} <span className="font-semibold text-text">{filteredCategories.length}</span> {ct.of}{" "}
+          <span className="font-semibold text-text">{categories.length}</span> {ct.categoriesLabel}
         </p>
       )}
 
@@ -188,11 +175,11 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
       {filteredCategories.length > 0 ? (
         <div className="flex flex-col gap-4">
           {filteredCategories.map((category) => (
-            <CategoryGroup key={category.id} category={category} showSubs={levelFilter !== "main"} />
+            <CategoryGroup key={category.id} category={category} showSubs={levelFilter !== "main"} ct={ct} />
           ))}
         </div>
       ) : (
-        <EmptyState hasFilters={hasActiveFilters} onClear={clearFilters} />
+        <EmptyState hasFilters={hasActiveFilters} onClear={clearFilters} ct={ct} />
       )}
     </div>
   );
@@ -203,9 +190,10 @@ export default function CategoriesClient({ categories }: CategoriesClientProps) 
 interface CategoryGroupProps {
   category: UICategory;
   showSubs: boolean;
+  ct: Record<string, string>;
 }
 
-function CategoryGroup({ category, showSubs }: CategoryGroupProps) {
+function CategoryGroup({ category, showSubs, ct }: CategoryGroupProps) {
   return (
     <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
       {/* Main category row */}
@@ -223,11 +211,11 @@ function CategoryGroup({ category, showSubs }: CategoryGroupProps) {
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-lg font-bold text-text">{category.name}</span>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-text/8 text-text">
-              Main category
+              {ct.mainCategoryBadge}
             </span>
             {category.subcategoryCount > 0 && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F5F1EB] text-muted">
-                {category.subcategoryCount} {category.subcategoryCount === 1 ? "subcategory" : "subcategories"}
+                {category.subcategoryCount} {category.subcategoryCount === 1 ? ct.subcategory : ct.subcategories}
               </span>
             )}
           </div>
@@ -244,7 +232,7 @@ function CategoryGroup({ category, showSubs }: CategoryGroupProps) {
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            View
+            {ct.view}
           </Link>
         </div>
       </div>
@@ -270,7 +258,7 @@ function CategoryGroup({ category, showSubs }: CategoryGroupProps) {
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-base font-semibold text-text">{sub.name}</span>
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#F5F1EB] text-muted">
-                    Subcategory of {sub.parentName}
+                    {ct.subcategoryOf} {sub.parentName}
                   </span>
                 </div>
                 <p className="text-sm text-[#B0AAA3] mt-0.5 font-mono">{sub.slug}</p>
@@ -286,7 +274,7 @@ function CategoryGroup({ category, showSubs }: CategoryGroupProps) {
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
-                  View
+                  {ct.view}
                 </Link>
               </div>
             </div>
@@ -299,7 +287,7 @@ function CategoryGroup({ category, showSubs }: CategoryGroupProps) {
 
 // ── EmptyState ─────────────────────────────────────────────────────────────────
 
-function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () => void }) {
+function EmptyState({ hasFilters, onClear, ct }: { hasFilters: boolean; onClear: () => void; ct: Record<string, string> }) {
   return (
     <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-20 flex flex-col items-center gap-5 text-center">
       <div className="w-16 h-16 rounded-2xl bg-[#FBF7F0] flex items-center justify-center text-gold">
@@ -310,12 +298,10 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
       </div>
       <div>
         <h3 className="text-xl font-bold text-text">
-          {hasFilters ? "No categories found" : "No categories yet"}
+          {hasFilters ? ct.noCategoriesFound : ct.noCategoriesYet}
         </h3>
         <p className="text-base text-muted mt-2 max-w-xs">
-          {hasFilters
-            ? "No categories match your search. Try different words or clear the filters."
-            : "No categories have been created yet in Goldenbook."}
+          {hasFilters ? ct.noCategoriesFoundDesc : ct.noCategoriesYetDesc}
         </p>
       </div>
       {hasFilters && (
@@ -323,7 +309,7 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
           onClick={onClear}
           className="px-6 py-3 rounded-xl border border-border text-base font-semibold text-muted hover:border-gold/50 hover:text-text transition-colors bg-white cursor-pointer"
         >
-          Clear filters
+          {ct.clearFilters}
         </button>
       )}
     </div>

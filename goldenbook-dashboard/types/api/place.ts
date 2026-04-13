@@ -12,12 +12,13 @@ export interface MediaAssetDTO {
 // All fields optional on update except the URL param.
 export type BookingMode =
   | "none"
+  | "direct_website"
+  | "contact_only"
+  // Historical affiliate values (still in DB enum, not used in new logic)
   | "affiliate_booking"
   | "affiliate_thefork"
   | "affiliate_viator"
-  | "affiliate_getyourguide"
-  | "direct_website"
-  | "contact_only";
+  | "affiliate_getyourguide";
 
 export type ReservationSource = "manual" | "ai_suggested" | "imported";
 
@@ -27,7 +28,6 @@ export interface AdminPlacePayload {
   shortDescription?: string;
   fullDescription?:  string;
   goldenbookNote?:   string;
-  whyWeLoveIt?:      string;
   insiderTip?:       string;
   citySlug?:         string;
   addressLine?:      string;
@@ -108,6 +108,7 @@ export interface AdminPlaceListItem {
   booking_enabled: boolean;
   booking_mode: string;
   reservation_relevant: boolean;
+  has_booking_link: boolean;
   has_suggestion: boolean;
   suggestion_relevant: boolean | null;
   suggestion_mode: string | null;
@@ -152,7 +153,6 @@ export interface PlaceDetailDTO {
     } | null;
   };
   goldenbookNote: string | null;
-  whyWeLoveIt: string | null;
   insiderTip: string | null;
   shortDescription: string | null;
   fullDescription: string | null;

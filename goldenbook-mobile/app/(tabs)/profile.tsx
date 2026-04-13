@@ -104,10 +104,12 @@ export default function ProfileScreen() {
                 try {
                   setDeleting(true);
                   await api.deleteAccount();
-                  // Sign out FIRST so the navigation guard kicks the user
-                  // back to /auth before we show the success alert. This
-                  // matches the destructive UX users expect: the account
-                  // is gone, the app immediately reflects that.
+                  // Reset onboarding so the next account starts fresh.
+                  // signOut() intentionally does NOT reset onboarding
+                  // (so normal sign-out doesn't force re-onboarding), but
+                  // account deletion must clear everything — the user
+                  // expects a completely clean slate if they re-register.
+                  resetOnboarding();
                   await signOut();
                   Alert.alert('', t.profile.deleteAccountSuccess);
                 } catch (err: any) {

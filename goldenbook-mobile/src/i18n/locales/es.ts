@@ -194,7 +194,7 @@ export const es: Translations = {
     couldNotLoad: 'No se pudo cargar este lugar.\nComprueba tu conexión y vuelve a intentarlo.',
     goldenbookPerspective: 'La Perspectiva de Goldenbook Go',
     editorialStaff: 'Equipo Editorial',
-    whyWeLoveIt: 'Por Qué Nos Encanta',
+
     insiderTip: 'Consejo Insider',
     gallery: 'Galería',
     openingHours: 'Horario',
@@ -436,6 +436,10 @@ export const es: Translations = {
     passwordPolicy: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números.',
     resetFailed: 'No pudimos enviar el correo de restablecimiento. Inténtalo de nuevo.',
     resetConfirmFailed: 'No se pudo restablecer la contraseña.',
+  },
+
+  map: {
+    go: 'Ir',
   },
 
   // ─── Error boundary global ───────────────────────────────────────────────

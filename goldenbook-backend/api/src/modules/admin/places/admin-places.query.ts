@@ -52,14 +52,13 @@ async function upsertPlaceTranslation(
   await client.query(
     `
     INSERT INTO place_translations (
-      place_id, locale, name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (place_id, locale) DO UPDATE SET
       name = EXCLUDED.name,
       short_description = EXCLUDED.short_description,
       full_description = EXCLUDED.full_description,
       goldenbook_note = EXCLUDED.goldenbook_note,
-      why_we_love_it = EXCLUDED.why_we_love_it,
       insider_tip = EXCLUDED.insider_tip,
       updated_at = now()
     `,
@@ -70,7 +69,6 @@ async function upsertPlaceTranslation(
       fields.short_description,
       fields.full_description,
       fields.goldenbook_note,
-      fields.why_we_love_it,
       fields.insider_tip,
     ],
   )
@@ -227,7 +225,6 @@ export async function createPlace(
       short_description: nullify(input.shortDescription),
       full_description: nullify(input.fullDescription),
       goldenbook_note: nullify(input.goldenbookNote),
-      why_we_love_it: nullify(input.whyWeLoveIt),
       insider_tip: nullify(input.insiderTip),
     }
 
@@ -378,6 +375,16 @@ export async function updatePlace(
       if (input.bookingEnabled !== undefined || input.bookingMode !== undefined) {
         setClauses.push(`reservation_last_reviewed_at = now()`)
       }
+
+      // Auto-sync: when a booking URL is set, auto-enable booking fields
+      const newBookingUrl = input.bookingUrl !== undefined ? nullify(input.bookingUrl) : null
+      if (newBookingUrl && /^https?:\/\/.+/i.test(newBookingUrl)) {
+        if (input.bookingEnabled === undefined) addField('booking_enabled', true)
+        if (input.reservationRelevant === undefined) addField('reservation_relevant', true)
+        if (input.bookingMode === undefined) {
+          setClauses.push(`booking_mode = 'direct_website'::booking_mode`)
+        }
+      }
     }
 
     // NOW visibility fields
@@ -412,16 +419,15 @@ export async function updatePlace(
       input.shortDescription !== undefined ||
       input.fullDescription  !== undefined ||
       input.goldenbookNote   !== undefined ||
-      input.whyWeLoveIt      !== undefined ||
       input.insiderTip       !== undefined
 
     if (hasTranslationUpdate) {
       // EN is the base source-of-truth for auto-translations.
       const { rows: currentEn } = await client.query<{
         name: string | null; short_description: string | null; full_description: string | null
-        goldenbook_note: string | null; why_we_love_it: string | null; insider_tip: string | null
+        goldenbook_note: string | null; insider_tip: string | null
       }>(
-        `SELECT name, short_description, full_description, goldenbook_note, why_we_love_it, insider_tip
+        `SELECT name, short_description, full_description, goldenbook_note, insider_tip
          FROM place_translations WHERE place_id = $1 AND locale = 'en' LIMIT 1`,
         [placeId],
       )
@@ -431,7 +437,6 @@ export async function updatePlace(
         short_description: input.shortDescription !== undefined ? nullify(input.shortDescription) : (enPrev.short_description ?? null),
         full_description: input.fullDescription !== undefined ? nullify(input.fullDescription) : (enPrev.full_description ?? null),
         goldenbook_note: input.goldenbookNote !== undefined ? nullify(input.goldenbookNote) : (enPrev.goldenbook_note ?? null),
-        why_we_love_it: input.whyWeLoveIt !== undefined ? nullify(input.whyWeLoveIt) : (enPrev.why_we_love_it ?? null),
         insider_tip: input.insiderTip !== undefined ? nullify(input.insiderTip) : (enPrev.insider_tip ?? null),
       }
 
