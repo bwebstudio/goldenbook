@@ -293,6 +293,8 @@ export const en = {
     // Denied / dismissed fallback
     exploreCuratedTitle: 'Explore curated places',
     exploreCuratedBody: 'Location access helps us show nearby recommendations, but you can still browse our editorial selections.',
+    editorialFallbackHint: 'Curated picks in {city}. Enable location for nearby recommendations.',
+    enableShort: 'Enable',
     browsePlaces: 'Browse places',
     // Far from region
     outsideRegionsTitle: 'No nearby places yet',

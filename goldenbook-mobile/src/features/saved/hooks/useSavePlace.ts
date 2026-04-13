@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettingsStore } from '@/store/settingsStore';
 import { savedApi } from '../api';
@@ -6,34 +6,29 @@ import { useSaved, SAVED_QUERY_KEY } from './useSaved';
 import type { SavedResponse, SavedPlaceDTO } from '@/types/api';
 
 interface UseSavePlaceOptions {
-  /**
-   * Optional snapshot of the place data so optimistic SAVES can also
-   * appear immediately in the saved list. Fed by detail screens and
-   * cards that already have the data on hand.
-   */
   snapshot?: Partial<SavedPlaceDTO> & { id: string };
 }
 
-/**
- * Bidirectional optimistic toggle for saving / unsaving a place.
- *
- * Why this exists in this shape:
- * - The previous version only optimistically updated on UNSAVE, which made
- *   SAVE feel completely broken: tapping the heart did nothing visible until
- *   the request round-tripped, and most users assumed the button was dead.
- * - We now patch the cache in BOTH directions and roll back on error.
- */
 export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {}) {
   const queryClient = useQueryClient();
   const locale = useSettingsStore((s) => s.locale);
-  const { data: saved } = useSaved();
+  const { data: saved, isLoading: savedLoading } = useSaved();
 
   const isSaved = !!placeId && (saved?.savedPlaces.some((p) => p.id === placeId) ?? false);
+
+  // Use a ref so mutationFn always reads the CURRENT isSaved, not the
+  // stale closure from the render where mutation was created.
+  const isSavedRef = useRef(isSaved);
+  isSavedRef.current = isSaved;
 
   const mutation = useMutation({
     mutationFn: () => {
       if (!placeId) throw new Error('placeId is required');
-      return isSaved ? savedApi.unsavePlace(placeId) : savedApi.savePlace(placeId);
+      // Read from ref, not from the closure — fixes the race condition
+      // where isSaved was stale because useSaved() hadn't loaded yet.
+      return isSavedRef.current
+        ? savedApi.unsavePlace(placeId)
+        : savedApi.savePlace(placeId);
     },
 
     onMutate: async () => {
@@ -41,44 +36,48 @@ export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {})
       await queryClient.cancelQueries({ queryKey: ['saved'] });
       const prev = queryClient.getQueryData<SavedResponse>(key);
 
-      if (prev) {
-        const next: SavedResponse = isSaved
-          ? {
-              ...prev,
-              savedPlaces: prev.savedPlaces.filter((p) => p.id !== placeId),
-            }
-          : {
-              ...prev,
-              savedPlaces: [
-                {
-                  id: placeId,
-                  slug: options.snapshot?.slug ?? '',
-                  name: options.snapshot?.name ?? '',
-                  shortDescription: options.snapshot?.shortDescription ?? null,
-                  savedAt: new Date().toISOString(),
-                  image: options.snapshot?.image ?? null,
-                },
-                ...prev.savedPlaces,
-              ],
-            };
-        queryClient.setQueryData<SavedResponse>(key, next);
-      }
+      // If the saved list hasn't loaded yet, seed the cache with an empty
+      // response so the optimistic update still applies. This is the fix
+      // for the "nothing happens on slow devices" bug: on iPhone XS the
+      // useSaved query often hasn't returned by the time the user taps.
+      const base: SavedResponse = prev ?? { savedPlaces: [], savedRoutes: [] };
+      const currentlySaved = isSavedRef.current;
+
+      const next: SavedResponse = currentlySaved
+        ? {
+            ...base,
+            savedPlaces: base.savedPlaces.filter((p) => p.id !== placeId),
+          }
+        : {
+            ...base,
+            savedPlaces: [
+              {
+                id: placeId,
+                slug: options.snapshot?.slug ?? '',
+                name: options.snapshot?.name ?? '',
+                shortDescription: options.snapshot?.shortDescription ?? null,
+                savedAt: new Date().toISOString(),
+                image: options.snapshot?.image ?? null,
+              },
+              ...base.savedPlaces,
+            ],
+          };
+      queryClient.setQueryData<SavedResponse>(key, next);
       return { prev };
     },
 
-    onError: (_err, _vars, ctx) => {
+    onError: (err, _vars, ctx) => {
+      console.warn('[useSavePlace] mutation failed:', err);
       if (ctx?.prev) {
         queryClient.setQueryData(SAVED_QUERY_KEY(locale), ctx.prev);
       }
     },
 
     onSettled: () => {
-      // Refresh every cached locale variant.
       queryClient.invalidateQueries({ queryKey: ['saved'] });
     },
   });
 
-  // Stable callback so consumers can pass it straight to onPress.
   const toggle = useCallback(() => {
     if (!placeId || mutation.isPending) return;
     mutation.mutate();
@@ -88,5 +87,6 @@ export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {})
     isSaved,
     toggle,
     isPending: mutation.isPending,
+    isReady: !savedLoading,
   };
 }

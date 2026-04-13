@@ -75,10 +75,29 @@ export function HiddenGemsGate({ nearbyCount, cityName, children, editorialFallb
         />
       );
 
-    // ── Denied or dismissed → show editorial Hidden Gems for selected destination
+    // ── Denied or dismissed → show editorial Hidden Gems with context
     case 'denied_fallback':
-      // If we have editorial content for this destination, show it directly
-      if (editorialFallback) return <>{editorialFallback}</>;
+      if (editorialFallback) {
+        return (
+          <View>
+            {/* Context banner so the user knows these aren't "near you" */}
+            <View className="mx-6 mb-4 flex-row items-center gap-3 rounded-xl px-4 py-3"
+              style={{ backgroundColor: 'rgba(210,182,138,0.10)', borderWidth: 1, borderColor: 'rgba(210,182,138,0.18)' }}
+            >
+              <Ionicons name="compass-outline" size={18} color="#D2B68A" />
+              <View className="flex-1">
+                <Text className="text-navy/60 text-[12px] leading-relaxed">
+                  {t.location.editorialFallbackHint.replace('{city}', cityName)}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={openSettings} activeOpacity={0.7}>
+                <Text className="text-primary text-[11px] font-semibold">{t.location.enableShort}</Text>
+              </TouchableOpacity>
+            </View>
+            {editorialFallback}
+          </View>
+        );
+      }
       return (
         <GateCard
           icon="compass-outline"

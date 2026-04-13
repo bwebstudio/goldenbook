@@ -116,7 +116,6 @@ export default function PlaceDetailScreen() {
         <PlaceActions
           placeId={data.id}
           actions={data.actions}
-          booking={data.booking}
           location={data.location}
           city={data.city.slug}
           isSaved={isSaved}

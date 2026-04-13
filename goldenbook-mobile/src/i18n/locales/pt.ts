@@ -291,6 +291,8 @@ export const pt: Translations = {
     notNow: 'Agora não',
     exploreCuratedTitle: 'Explora recantos selecionados',
     exploreCuratedBody: 'A localização ajuda-nos a mostrar lugares próximos, mas podes continuar a descobrir a nossa seleção editorial em Portugal.',
+    editorialFallbackHint: 'Seleções em {city}. Ativa a localização para recomendações próximas.',
+    enableShort: 'Ativar',
     browsePlaces: 'Explorar lugares',
     outsideRegionsTitle: 'Ainda não há lugares perto de ti',
     outsideRegionsBody: 'O Goldenbook está centrado em lugares selecionados em Portugal. Podes explorar por destino ou descobrir a nossa seleção editorial.',
