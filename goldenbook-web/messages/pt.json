@@ -129,14 +129,14 @@
     "subtitle": "Mantemos os teus dados simples e a tua experiência limpa.",
     "body1": "O Goldenbook Go recolhe apenas os dados necessários para personalizar a tua experiência: os teus lugares guardados, cidade preferida e idioma. Não vendemos os teus dados.",
     "body2": "Usamos o Supabase para autenticação segura e armazenamento de dados. As análises são anonimizadas e nunca ligadas à tua identidade.",
-    "body3": "Para pedir a eliminação da tua conta e dados, contacta-nos em privacy@goldenbook.app."
+    "body3": "Para pedir a eliminação da tua conta e dados, contacta-nos em info@goldenbook.app."
   },
   "deleteAccount": {
     "title": "Eliminar a Tua Conta",
     "subtitle": "Como eliminar permanentemente a tua conta e dados do Goldenbook Go.",
     "body1": "Podes eliminar a tua conta diretamente na app Goldenbook Go. Abre a app, vai ao separador Perfil, faz scroll até ao fundo e toca em \"Eliminar Conta\". Ser-te-á pedido que confirmes duas vezes antes da tua conta ser permanentemente eliminada.",
     "body2": "Quando eliminas a tua conta, todos os teus dados pessoais são permanentemente removidos, incluindo os teus lugares guardados, preferências e credenciais de autenticação. Dados analíticos anonimizados (sem ligação à tua identidade) podem ser mantidos para melhoria do serviço.",
-    "body3": "Se não conseguires aceder à app, podes pedir a eliminação da conta enviando um email para privacy@goldenbook.app com o endereço de email associado à tua conta. Processaremos o teu pedido dentro de 30 dias."
+    "body3": "Se não conseguires aceder à app, podes pedir a eliminação da conta enviando um email para info@goldenbook.app com o endereço de email associado à tua conta. Processaremos o teu pedido dentro de 30 dias."
   },
   "terms": {
     "title": "Termos de Utilização",
@@ -157,6 +157,7 @@
       "about": "Sobre",
       "privacy": "Privacidade",
       "terms": "Termos",
+      "deleteAccount": "Eliminar Conta",
       "contact": "Contacto"
     },
     "cities": "Lisboa · Porto · Algarve · Madeira",

@@ -129,14 +129,14 @@
     "subtitle": "Mantenemos tus datos simples y tu experiencia limpia.",
     "body1": "Goldenbook Go recopila solo los datos necesarios para personalizar tu experiencia: tus lugares guardados, ciudad preferida e idioma. No vendemos tus datos.",
     "body2": "Usamos Supabase para autenticación segura y almacenamiento de datos. Los análisis son anonimizados y nunca vinculados a tu identidad.",
-    "body3": "Para solicitar la eliminación de tu cuenta y datos, contáctanos en privacy@goldenbook.app."
+    "body3": "Para solicitar la eliminación de tu cuenta y datos, contáctanos en info@goldenbook.app."
   },
   "deleteAccount": {
     "title": "Eliminar Tu Cuenta",
     "subtitle": "Cómo eliminar permanentemente tu cuenta y datos de Goldenbook Go.",
     "body1": "Puedes eliminar tu cuenta directamente desde la app Goldenbook Go. Abre la app, ve a la pestaña Perfil, baja hasta el final y toca \"Eliminar Cuenta\". Se te pedirá que confirmes dos veces antes de que tu cuenta sea eliminada permanentemente.",
     "body2": "Cuando eliminas tu cuenta, todos tus datos personales se eliminan permanentemente, incluyendo tus lugares guardados, preferencias y credenciales de autenticación. Los datos analíticos anonimizados (sin vínculo con tu identidad) pueden conservarse para mejorar el servicio.",
-    "body3": "Si no puedes acceder a la app, puedes solicitar la eliminación de tu cuenta enviando un email a privacy@goldenbook.app con la dirección de email asociada a tu cuenta. Procesaremos tu solicitud en un plazo de 30 días."
+    "body3": "Si no puedes acceder a la app, puedes solicitar la eliminación de tu cuenta enviando un email a info@goldenbook.app con la dirección de email asociada a tu cuenta. Procesaremos tu solicitud en un plazo de 30 días."
   },
   "terms": {
     "title": "Términos de Uso",
@@ -157,6 +157,7 @@
       "about": "Sobre nosotros",
       "privacy": "Privacidad",
       "terms": "Términos",
+      "deleteAccount": "Eliminar Cuenta",
       "contact": "Contacto"
     },
     "cities": "Lisboa · Porto · Algarve · Madeira",
