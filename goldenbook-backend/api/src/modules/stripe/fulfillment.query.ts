@@ -64,6 +64,7 @@ export interface PurchaseRow {
   inventory_position: number | null
   inventory_date: string | null
   inventory_time_bucket: string | null
+  hold_expires_at: string | null
 }
 
 export async function getPurchaseBySessionId(sessionId: string): Promise<PurchaseRow | null> {
@@ -85,7 +86,7 @@ export async function markPurchasePaid(
          stripe_payment_intent_id = COALESCE($2, stripe_payment_intent_id),
          stripe_customer_id = COALESCE($3, stripe_customer_id),
          updated_at = now()
-     WHERE stripe_checkout_session_id = $1 AND status = 'pending'
+     WHERE stripe_checkout_session_id = $1 AND status IN ('pending', 'expired')
      RETURNING *`,
     [sessionId, paymentIntentId, customerId],
   )
@@ -149,18 +150,11 @@ export async function refundPurchase(purchaseId: string): Promise<void> {
 
 // ─── Placement activation (creates place_visibility) ────────────────────────
 
-const SURFACE_MAP: Record<string, string> = {
-  golden_picks: 'golden_picks',
-  now: 'now',
-  hidden_gems: 'hidden_spots',
-  category_featured: 'category_featured',
-  search_priority: 'search_priority',
-  new_on_goldenbook: 'new_on_goldenbook',
-  route_featured_stop: 'route_featured',
-  route_sponsor: 'route_sponsor',
-  concierge: 'concierge',
-  curated_route: 'curated_route',
-}
+import {
+  PLACEMENT_TO_SURFACE as SURFACE_MAP,
+  DISCOVER_SURFACES,
+  ONE_PER_PLACE_SURFACES,
+} from '../../shared/constants/surfaces'
 
 const UPGRADE_TYPES = new Set(['extra_images', 'extended_description', 'listing_premium_pack'])
 
@@ -243,8 +237,7 @@ export async function createVisibilityFromPurchase(purchase: PurchaseRow): Promi
   const priority = purchase.position ? (100 - purchase.position) : 10
 
   // ── Per-place commercial rules (same as admin createVisibility) ────────
-  const DISCOVER_SURFACES = ['golden_picks', 'hidden_spots', 'new_on_goldenbook']
-  const ONE_PER_PLACE = ['now', 'search_priority', 'category_featured']
+  const ONE_PER_PLACE = [...ONE_PER_PLACE_SURFACES]
   const activeCheck = `AND is_active = true AND (ends_at IS NULL OR ends_at >= now())`
 
   // Discover exclusivity: max 1 Discover surface per place

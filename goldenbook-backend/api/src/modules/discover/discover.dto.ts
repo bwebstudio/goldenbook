@@ -135,6 +135,7 @@ export interface NowRecommendationDTO {
   categorySlugs: string[]
   featured: boolean
   timeSegment: TimeSegment
+  isSponsored?: boolean
 }
 
 export interface DiscoverDTO {
@@ -189,6 +190,7 @@ export function toDiscoverDTO(
   nowPick: NowCandidateRow | null,
   nowSegment: TimeSegment,
   locale = 'en',
+  nowIsSponsored = false,
 ): DiscoverDTO {
   const localeFamily = locale.split('-')[0]
   return {
@@ -209,6 +211,7 @@ export function toDiscoverDTO(
           categorySlugs: nowPick.category_slugs,
           featured: nowPick.featured,
           timeSegment: nowSegment,
+          ...(nowIsSponsored ? { isSponsored: true } : {}),
         }
       : null,
     editorialHero: hero

@@ -10,6 +10,10 @@
 // All slot mutations use atomic SQL to prevent race conditions.
 
 import { db } from '../../db/postgres'
+import {
+  PLACEMENT_TO_SURFACE,
+  SURFACE_TO_INVENTORY,
+} from '../../shared/constants/surfaces'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -19,38 +23,6 @@ export interface SlotAvailability {
   max_slots: number
   active_slots: number
   available: boolean
-}
-
-// ─── Map placement_type → surface name ──────────────────────────────────────
-
-// Maps placement_type (purchase/pricing) → surface (place_visibility).
-// MUST match SURFACE_MAP in fulfillment.query.ts.
-const PLACEMENT_TO_SURFACE: Record<string, string> = {
-  golden_picks: 'golden_picks',
-  now: 'now',
-  hidden_gems: 'hidden_spots',      // visibility uses 'hidden_spots'
-  category_featured: 'category_featured',
-  search_priority: 'search_priority',
-  new_on_goldenbook: 'new_on_goldenbook',
-  concierge: 'concierge',
-  route_featured_stop: 'route_featured',
-  route_sponsor: 'route_sponsor',
-  curated_route: 'curated_route',
-}
-
-// Maps surface (place_visibility) → inventory key (promotion_inventory).
-// promotion_inventory uses the placement_type naming convention.
-const SURFACE_TO_INVENTORY: Record<string, string> = {
-  golden_picks: 'golden_picks',
-  now: 'now',
-  hidden_spots: 'hidden_gems',      // inventory uses 'hidden_gems'
-  category_featured: 'category_featured',
-  search_priority: 'search_priority',
-  new_on_goldenbook: 'new_on_goldenbook',
-  concierge: 'concierge',
-  route_featured: 'route_featured_stop',
-  route_sponsor: 'route_sponsor',
-  curated_route: 'curated_route',
 }
 
 /** Convert placement_type (from purchases) → inventory key (promotion_inventory). */
@@ -261,6 +233,26 @@ export async function syncAllSlots(): Promise<number> {
 
   console.info(`[promotion-inventory] syncAllSlots completed: ${updated} rows updated from ${counts.length} visibility groups`)
   return updated
+}
+
+// ─── Expire stale visibility records ─────────────────────────────────────────
+// Marks is_active = false on records whose ends_at has passed.
+// Idempotent — safe to run frequently. Does NOT decrement promotion_inventory;
+// the subsequent syncAllSlots() call handles that.
+
+export async function expireStaleVisibility(): Promise<number> {
+  const { rowCount } = await db.query(
+    `UPDATE place_visibility
+     SET is_active = false, updated_at = now()
+     WHERE is_active = true
+       AND ends_at IS NOT NULL
+       AND ends_at < now()`,
+  )
+  const count = rowCount ?? 0
+  if (count > 0) {
+    console.info(`[promotion-inventory] Expired ${count} stale visibility records`)
+  }
+  return count
 }
 
 // ─── Get all inventory for a city ───────────────────────────────────────────

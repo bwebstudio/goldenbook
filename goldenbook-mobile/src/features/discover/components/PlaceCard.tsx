@@ -62,10 +62,21 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
             </Text>
           )}
           <View className="flex-row items-center gap-1 mt-2">
-            <Ionicons name="location-outline" size={10} color="#D2B68A" />
-            <Text className="text-primary text-[9px] uppercase tracking-widest font-bold">
-              {t.discover.nearYou}
-            </Text>
+            {place.isSponsored ? (
+              <>
+                <Ionicons name="sparkles-outline" size={10} color="#D2B68A" />
+                <Text className="text-primary/60 text-[9px] uppercase tracking-widest font-bold">
+                  {t.common.sponsoredGoldenbook}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="location-outline" size={10} color="#D2B68A" />
+                <Text className="text-primary text-[9px] uppercase tracking-widest font-bold">
+                  {t.discover.nearYou}
+                </Text>
+              </>
+            )}
           </View>
         </View>
       </TouchableOpacity>

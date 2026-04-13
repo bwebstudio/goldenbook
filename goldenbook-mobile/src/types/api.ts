@@ -158,6 +158,7 @@ export interface NowRecommendation {
   categorySlugs: string[];
   featured: boolean;
   timeSegment: TimeSegment;
+  isSponsored?: boolean;
 }
 
 export interface DiscoverPlaceCard {

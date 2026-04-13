@@ -14,6 +14,7 @@ import {
   linkStripeCustomer,
   refundPurchase,
 } from './fulfillment.query'
+import { queuePendingRefund, markRefundResolved } from './pending-refunds'
 
 // Extend FastifyRequest to carry raw body for Stripe signature verification
 declare module 'fastify' {
@@ -159,8 +160,18 @@ async function fulfillPlacementPurchase(
   }
 
   if (purchase.status !== 'pending') {
-    app.log.info(`[stripe-webhook] Purchase ${purchase.id} already ${purchase.status} — skipping`)
-    return
+    // Allow recently-expired holds: if the hold expired less than 1 hour ago
+    // but Stripe still confirmed payment, re-activate the purchase.
+    const isRecentExpiry = purchase.status === 'expired'
+      && purchase.hold_expires_at
+      && (Date.now() - new Date(purchase.hold_expires_at).getTime()) < 60 * 60 * 1000
+
+    if (!isRecentExpiry) {
+      app.log.info(`[stripe-webhook] Purchase ${purchase.id} already ${purchase.status} — skipping`)
+      return
+    }
+
+    app.log.info(`[stripe-webhook] Purchase ${purchase.id} expired but hold was recent — re-activating`)
   }
 
   const paymentIntentId = typeof session.payment_intent === 'string'
@@ -198,7 +209,13 @@ async function fulfillPlacementPurchase(
         })
         app.log.info(`[stripe-webhook] Auto-refund issued for purchase ${paid.id}`)
       } catch (refundErr) {
-        app.log.error(refundErr, `[stripe-webhook] Auto-refund FAILED for purchase ${paid.id} — manual intervention required`)
+        app.log.error(refundErr, `[stripe-webhook] Auto-refund FAILED for purchase ${paid.id} — queuing for retry`)
+        await queuePendingRefund(
+          paid.id,
+          paid.stripe_payment_intent_id!,
+          'inventory_conflict',
+          refundErr instanceof Error ? refundErr.message : 'unknown',
+        )
       }
     }
     return
@@ -360,6 +377,8 @@ async function handleChargeRefunded(
   }
 
   await refundPurchase(rows[0].id)
+  // Mark any pending retry as resolved
+  await markRefundResolved(paymentIntentId)
   app.log.info(`[stripe-webhook] Refunded purchase ${rows[0].id} — inventory released`)
 }
 

@@ -41,7 +41,8 @@ import { nowRoutes } from './modules/now/now.route'
 import { notificationsRoutes } from './modules/notifications/notifications.route'
 import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
 import { pricingConfigRoutes } from './modules/pricing-config/pricing-config.route'
-import { syncAllSlots } from './modules/inventory/promotion-inventory.query'
+import { syncAllSlots, expireStaleVisibility } from './modules/inventory/promotion-inventory.query'
+import { retryPendingRefunds } from './modules/stripe/pending-refunds'
 import { curatedRoutesRoutes, adminCuratedRoutesRoutes } from './modules/curated-routes/curated-routes.route'
 import { runCuratedRoutesCycle } from './modules/curated-routes/curated-routes.scheduler'
 
@@ -149,17 +150,32 @@ export function buildApp() {
     })
   })
 
-  // ── Promotion inventory: sync on startup + periodic self-heal ───────────
+  // ── Visibility expiry + promotion inventory sync ───────────────────────
   app.addHook('onReady', async () => {
+    // Startup: expire stale → sync slots
+    expireStaleVisibility().catch((err) =>
+      app.log.error(err, '[visibility] startup expiry failed'),
+    )
     syncAllSlots().catch((err) =>
       app.log.error(err, '[promotion-inventory] startup sync failed'),
     )
-    // Re-sync every 15 minutes to catch expired placements and counter drift
+
+    // Every 5 minutes: expire stale visibility, then re-sync slot counts
+    setInterval(async () => {
+      try {
+        await expireStaleVisibility()
+        await syncAllSlots()
+      } catch (err) {
+        app.log.error(err, '[promotion-inventory] periodic expire+sync failed')
+      }
+    }, 5 * 60 * 1000)
+
+    // Every 5 minutes: retry failed Stripe refunds
     setInterval(() => {
-      syncAllSlots().catch((err) =>
-        app.log.error(err, '[promotion-inventory] periodic sync failed'),
+      retryPendingRefunds().catch((err) =>
+        app.log.error(err, '[pending-refunds] retry job failed'),
       )
-    }, 15 * 60 * 1000)
+    }, 5 * 60 * 1000)
 
     // ── Curated routes: generate on startup + refresh every 30 minutes ────
     runCuratedRoutesCycle().catch((err) =>

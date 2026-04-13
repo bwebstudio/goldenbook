@@ -96,18 +96,21 @@ export async function discoverRoutes(app: FastifyInstance) {
 
     // Now recommendation: slot-based sponsored → generic sponsored → scoring
     let nowPick: NowCandidateRow | null = null
+    let nowIsSponsored = false
     try {
       // Try slot-specific sponsored first (e.g. now + morning)
       const slot = segmentToSlot(nowSegment)
       const slotIds = await getActiveVisibilityBySlot('now', slot, 1)
       if (slotIds.length > 0) {
         nowPick = nowCandidates.find(c => c.id === slotIds[0]) ?? null
+        if (nowPick) nowIsSponsored = true
       }
       // Fallback to any now placement without slot
       if (!nowPick) {
         const genericIds = await getActiveVisibilityPlaceIds('now', 1)
         if (genericIds.length > 0) {
           nowPick = nowCandidates.find(c => c.id === genericIds[0]) ?? null
+          if (nowPick) nowIsSponsored = true
         }
       }
     } catch {}
@@ -122,7 +125,7 @@ export async function discoverRoutes(app: FastifyInstance) {
       : rankedEditorsPicks
 
     return reply.send(
-      toDiscoverDTO(cityHeader, hero, rankedHiddenSpots, dedupedEditorsPicks, categories, goldenRoutes, rankedNewPlaces, nowPick, nowSegment, locale),
+      toDiscoverDTO(cityHeader, hero, rankedHiddenSpots, dedupedEditorsPicks, categories, goldenRoutes, rankedNewPlaces, nowPick, nowSegment, locale, nowIsSponsored),
     )
   })
 }
