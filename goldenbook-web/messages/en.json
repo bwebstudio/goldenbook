@@ -131,6 +131,13 @@
     "body2": "We use Supabase for secure authentication and data storage. Analytics are anonymised and never linked to your identity.",
     "body3": "To request deletion of your account and data, contact us at privacy@goldenbook.app."
   },
+  "deleteAccount": {
+    "title": "Delete Your Account",
+    "subtitle": "How to permanently delete your Goldenbook Go account and data.",
+    "body1": "You can delete your account directly from the Goldenbook Go app. Open the app, go to your Profile tab, scroll down and tap \"Delete Account\". You will be asked to confirm twice before your account is permanently deleted.",
+    "body2": "When you delete your account, all your personal data is permanently removed, including your saved places, preferences, and authentication credentials. Anonymised analytics data (with no link to your identity) may be retained for service improvement.",
+    "body3": "If you are unable to access the app, you can request account deletion by emailing privacy@goldenbook.app with the email address associated with your account. We will process your request within 30 days."
+  },
   "terms": {
     "title": "Terms of Use",
     "subtitle": "Simple rules for using Goldenbook Go.",
