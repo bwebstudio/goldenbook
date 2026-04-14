@@ -20,6 +20,12 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations.",
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyAccessedAPITypes": []
       }
     },
     "android": {
