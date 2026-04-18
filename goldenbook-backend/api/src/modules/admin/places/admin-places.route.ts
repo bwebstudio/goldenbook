@@ -17,6 +17,12 @@ import { createPlace, updatePlace, deletePlace } from './admin-places.query'
 import { getAdminPlacesList } from './admin-places-list.query'
 import { getPlaceImages, setCoverImage, setGalleryOrder, moveImageToGallery, removeImageFromGallery, deleteImage, addImageToPlace } from './admin-images.query'
 import { searchGooglePlaces, previewPlaceFromGoogle, ingestGooglePhotos } from './generate-place'
+import {
+  updatePlaceUnifiedSchema,
+  updatePlaceUnified,
+  getPlaceTranslationsForEditor,
+  SUPPORTED_LOCALES,
+} from './admin-places-unified.query'
 
 const idParamsSchema = z.object({ id: z.string().uuid('Place id must be a valid UUID') })
 
@@ -90,10 +96,34 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
   })
 
   // ── PUT /admin/places/:id ───────────────────────────────────────────────────
+  //
+  // Two payload shapes are accepted:
+  //
+  //  1) Unified (preferred): `{ canonical?: {...}, translations?: { en, es, pt } }`
+  //     Writes canonical + all supplied locales in a single transaction.
+  //     Each locale is first-class — DeepL is NOT invoked from this path.
+  //
+  //  2) Legacy flat shape: any of the fields from `updatePlaceSchema`.
+  //     Preserved so dashboards that haven't migrated to the three-tab editor
+  //     keep working. This path still calls DeepL to refresh PT/ES from EN
+  //     (deprecated — the unified path replaces it).
   app.put('/admin/places/:id', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = idParamsSchema.parse(request.params)
+    const body = (request.body ?? {}) as Record<string, unknown>
 
-    const parsed = updatePlaceSchema.safeParse(request.body)
+    const looksUnified = 'canonical' in body || 'translations' in body
+    if (looksUnified) {
+      const parsed = updatePlaceUnifiedSchema.safeParse(body)
+      if (!parsed.success) {
+        const first = parsed.error.errors[0]
+        throw new ValidationError(`${first.path.join('.')}: ${first.message}`)
+      }
+      const updatedBy = request.user?.sub ?? null
+      const result = await updatePlaceUnified(id, parsed.data, updatedBy)
+      return reply.send(result)
+    }
+
+    const parsed = updatePlaceSchema.safeParse(body)
     if (!parsed.success) {
       const first = parsed.error.errors[0]
       throw new ValidationError(`${first.path.join('.')}: ${first.message}`)
@@ -101,6 +131,68 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
 
     const place = await updatePlace(id, parsed.data)
     return reply.send(place)
+  })
+
+  // ── GET /admin/places/:id/translations/editor ─────────────────────────────
+  //
+  // Dashboard read for the three-tab translation editor. Returns all three
+  // locales with their provenance metadata so the UI can render badges like
+  // "Manual override" / "DeepL auto" per locale.
+  app.get('/admin/places/:id/translations/editor', {
+    preHandler: [authenticateDashboardUser],
+  }, async (request, reply) => {
+    const { id } = idParamsSchema.parse(request.params)
+    const translations = await getPlaceTranslationsForEditor(id)
+    return reply.send({ translations, supported: SUPPORTED_LOCALES })
+  })
+
+  // ── POST /admin/places/:id/translations/suggest ───────────────────────────
+  //
+  // Returns DeepL suggestions WITHOUT persisting them. The dashboard displays
+  // the output inline (as ghost text) in the target-locale tab; the editor
+  // accepts or rewrites before the save round-trip.
+  //
+  // Never write from this endpoint — the data-quality contract depends on it.
+  app.post('/admin/places/:id/translations/suggest', {
+    preHandler: [authenticateDashboardUser],
+  }, async (request, reply) => {
+    const { id } = idParamsSchema.parse(request.params)
+    const body = z.object({
+      source: z.enum(['en', 'es', 'pt']),
+      target: z.enum(['en', 'es', 'pt']),
+    }).parse(request.body)
+
+    if (body.source === body.target) {
+      throw new ValidationError('source and target locales must differ')
+    }
+
+    const { rows } = await db.query<{
+      name: string
+      short_description: string | null
+      full_description: string | null
+      goldenbook_note: string | null
+      insider_tip: string | null
+    }>(
+      `SELECT name, short_description, full_description, goldenbook_note, insider_tip
+         FROM place_translations
+        WHERE place_id = $1 AND locale = $2 LIMIT 1`,
+      [id, body.source],
+    )
+    if (!rows[0]) {
+      return reply.status(400).send({
+        error: 'NO_SOURCE_TRANSLATION',
+        message: `No ${body.source.toUpperCase()} translation exists to translate from.`,
+      })
+    }
+
+    const { translatePlaceFields } = await import('../../../lib/translation/deepl')
+    const suggestion = await translatePlaceFields(rows[0], body.target, body.source)
+    return reply.send({
+      source: body.source,
+      target: body.target,
+      suggestion,
+      persisted: false,
+    })
   })
 
   // ── NOW context tags (reference data) ───────────────────────────────────────

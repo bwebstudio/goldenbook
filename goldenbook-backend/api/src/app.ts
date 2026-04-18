@@ -36,6 +36,9 @@ import { campaignsRoutes } from './modules/campaigns/campaigns.route'
 import { campaignsTrackingRoutes } from './modules/campaigns/campaigns-tracking.route'
 import { trackingRoutes } from './modules/analytics/tracking.route'
 import { behaviorAnalyticsRoutes } from './modules/analytics/behavior-analytics.route'
+import { analyticsEventsRoutes, closeStaleSessions } from './modules/analytics/events.route'
+import { adminAnalyticsV2Routes } from './modules/admin/analytics/admin-analytics-v2.route'
+import { contentVersionRoutes } from './modules/content/content-version.route'
 import { recommendationsRoutes } from './modules/recommendations/recommendations.route'
 import { nowRoutes } from './modules/now/now.route'
 import { notificationsRoutes } from './modules/notifications/notifications.route'
@@ -98,6 +101,9 @@ export function buildApp() {
   app.register(campaignsTrackingRoutes, { prefix: env.API_PREFIX })
   app.register(trackingRoutes,         { prefix: env.API_PREFIX })
   app.register(behaviorAnalyticsRoutes, { prefix: env.API_PREFIX })
+  app.register(analyticsEventsRoutes,  { prefix: env.API_PREFIX })
+  app.register(adminAnalyticsV2Routes, { prefix: env.API_PREFIX })
+  app.register(contentVersionRoutes,   { prefix: env.API_PREFIX })
   app.register(recommendationsRoutes,  { prefix: env.API_PREFIX })
   app.register(nowRoutes,              { prefix: env.API_PREFIX })
   app.register(notificationsRoutes,   { prefix: env.API_PREFIX })
@@ -186,6 +192,16 @@ export function buildApp() {
         console.error('[curated-routes] periodic cycle failed:', err),
       )
     }, 30 * 60 * 1000)
+
+    // ── Analytics: close stale sessions every 5 minutes ───────────────────
+    // Any user_sessions row with last_seen_at older than 30 min and no
+    // ended_at is force-closed so duration metrics aren't polluted by
+    // force-quit apps that never emitted session_end.
+    setInterval(() => {
+      closeStaleSessions().catch((err) =>
+        app.log.error(err, '[analytics] close-stale-sessions failed'),
+      )
+    }, 5 * 60 * 1000)
   })
 
   return app

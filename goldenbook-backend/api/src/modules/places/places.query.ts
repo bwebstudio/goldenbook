@@ -59,16 +59,16 @@ const CORE_SELECT = `
   p.id,
   p.slug,
   p.place_type,
-  COALESCE(NULLIF(pt.name,''),      NULLIF(pt_lang.name,''),      NULLIF(pt_fb.name,''),      p.name)                              AS name,
+  COALESCE(NULLIF(pt.name,''),      NULLIF(pt_lang.name,''),      NULLIF(pt_fb.name,''),      NULLIF(pt_orig.name,''),      p.name)                              AS name,
   d.slug                                                                                            AS city_slug,
   COALESCE(NULLIF(dt.name,''),      NULLIF(dt_lang.name,''),      NULLIF(dt_fb.name,''),      d.name)                              AS city_name,
   hero_img.bucket                                                                                   AS hero_bucket,
   hero_img.path                                                                                     AS hero_path,
   ps.popularity_score,
-  COALESCE(NULLIF(pt.goldenbook_note,''), NULLIF(pt_lang.goldenbook_note,''), NULLIF(pt_fb.goldenbook_note,''))                     AS goldenbook_note,
-  COALESCE(NULLIF(pt.insider_tip,''),     NULLIF(pt_lang.insider_tip,''),     NULLIF(pt_fb.insider_tip,''))                         AS insider_tip,
-  COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), p.short_description) AS short_description,
-  COALESCE(NULLIF(pt.full_description,''),  NULLIF(pt_lang.full_description,''),  NULLIF(pt_fb.full_description,''),  p.full_description)  AS full_description,
+  COALESCE(NULLIF(pt.goldenbook_note,''), NULLIF(pt_lang.goldenbook_note,''), NULLIF(pt_fb.goldenbook_note,''), NULLIF(pt_orig.goldenbook_note,''))                     AS goldenbook_note,
+  COALESCE(NULLIF(pt.insider_tip,''),     NULLIF(pt_lang.insider_tip,''),     NULLIF(pt_fb.insider_tip,''),     NULLIF(pt_orig.insider_tip,''))                         AS insider_tip,
+  COALESCE(NULLIF(pt.short_description,''), NULLIF(pt_lang.short_description,''), NULLIF(pt_fb.short_description,''), NULLIF(pt_orig.short_description,''), p.short_description) AS short_description,
+  COALESCE(NULLIF(pt.full_description,''),  NULLIF(pt_lang.full_description,''),  NULLIF(pt_fb.full_description,''),  NULLIF(pt_orig.full_description,''),  p.full_description)  AS full_description,
   p.phone,
   p.email,
   p.website_url,
@@ -120,6 +120,10 @@ LEFT JOIN place_translations pt_lang
        ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
 LEFT JOIN place_translations pt_fb
        ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+-- pt_orig = 4th fallback tier: the row matching the place's original_locale.
+-- Only populated when neither the requested locale nor English has content.
+LEFT JOIN place_translations pt_orig
+       ON pt_orig.place_id = p.id AND pt_orig.locale = p.original_locale
 LEFT JOIN LATERAL (
   SELECT ma.bucket, ma.path
   FROM   place_images pi
