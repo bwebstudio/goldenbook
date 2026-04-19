@@ -1,5 +1,3 @@
-import { apiGet } from "./client";
-
 const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 
 // Session ID — persisted per browser tab
@@ -59,18 +57,3 @@ export function trackEvent(
   }
 }
 
-// ─── Admin: behavior analytics ──────────────────────────────────────────────
-
-export interface BehaviorAnalytics {
-  period: number;
-  totals: { views: number; clicks: number; saves: number };
-  topViewed: { placeId: string; placeName: string; count: number }[];
-  topClicked: { placeId: string; placeName: string; count: number }[];
-  topSaved: { placeId: string; placeName: string; count: number }[];
-  topCategories: { category: string; count: number }[];
-  daily: { date: string; views: number; clicks: number; saves: number; bookings: number }[];
-}
-
-export async function fetchBehaviorAnalytics(period = "30"): Promise<BehaviorAnalytics> {
-  return apiGet("/api/v1/admin/analytics/behavior", { period });
-}

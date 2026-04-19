@@ -5,20 +5,18 @@ import {
   fetchTimePerformance,
 } from "@/lib/api/campaign-analytics";
 import { fetchAdminInsights } from "@/lib/api/recommendations";
-import { fetchBehaviorAnalytics } from "@/lib/api/tracking";
 import CampaignAnalyticsClient from "./CampaignAnalyticsClient";
 import AdminInsightsClient from "./AdminInsightsClient";
-import BehaviorAnalyticsClient from "./BehaviorAnalyticsClient";
 import ContentOverviewClient from "./ContentOverviewClient";
+import UserBehaviorV2Client from "./UserBehaviorV2Client";
 
 export default async function AnalyticsPage() {
-  const [overviewResult, campaignsResult, establishmentsResult, timeResult, insightsResult, behaviorResult] = await Promise.allSettled([
+  const [overviewResult, campaignsResult, establishmentsResult, timeResult, insightsResult] = await Promise.allSettled([
     fetchAnalyticsOverview("30"),
     fetchCampaignPerformance(),
     fetchEstablishmentPerformance(),
     fetchTimePerformance(),
     fetchAdminInsights(),
-    fetchBehaviorAnalytics("30"),
   ]);
 
   const overview = overviewResult.status === "fulfilled" ? overviewResult.value : null;
@@ -26,11 +24,12 @@ export default async function AnalyticsPage() {
   const establishments = establishmentsResult.status === "fulfilled" ? establishmentsResult.value : [];
   const time = timeResult.status === "fulfilled" ? timeResult.value : null;
   const insights = insightsResult.status === "fulfilled" ? insightsResult.value : null;
-  const behavior = behaviorResult.status === "fulfilled" ? behaviorResult.value : null;
 
   return (
     <div className="flex flex-col gap-10">
       {insights && <AdminInsightsClient insights={insights} />}
+
+      <UserBehaviorV2Client />
 
       <ContentOverviewClient />
 
@@ -41,8 +40,6 @@ export default async function AnalyticsPage() {
         timeBuckets={time?.timeBuckets ?? []}
         dayOfWeek={time?.dayOfWeek ?? []}
       />
-
-      <BehaviorAnalyticsClient data={behavior} />
     </div>
   );
 }
