@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/appStore';
 import { useSearch } from '@/features/search/hooks/useSearch';
 import { useTranslation } from '@/i18n';
+import { track } from '@/analytics/track';
 import {
   SearchSectionLabel,
   SearchPlaceRow,
@@ -42,6 +43,19 @@ export default function SearchScreen() {
   }, []);
 
   const { data, isLoading } = useSearch(query, city);
+
+  // Fire search_query on committed (debounced) query changes. Skip the very
+  // short inputs (< 2 chars) that never hit the API.
+  useEffect(() => {
+    if (query.length < 2) return;
+    const resultCount =
+      (data?.places?.length ?? 0) +
+      (data?.routes?.length ?? 0) +
+      (data?.categories?.length ?? 0);
+    track('search_query', {
+      metadata: { query: query.slice(0, 80), result_count: resultCount, city },
+    });
+  }, [query, data, city]);
 
   const hasResults =
     data &&

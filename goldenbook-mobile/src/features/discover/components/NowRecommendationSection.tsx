@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { View, Text, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Ionicons } from '@expo/vector-icons'
@@ -10,6 +10,7 @@ import { useNowRecommendation, type NowEmotion } from '../hooks/useNowRecommenda
 import { useAppStore } from '@/store/appStore'
 import { useNowContextStore, type NowAdjustment } from '@/store/nowContextStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { track } from '@/analytics/track'
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.38
@@ -99,6 +100,23 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   const destinationTimeZone = getTimeZoneForCity(data?.place?.city || cityName)
   const liveTime = useLiveClock(destinationTimeZone, locale)
 
+  // Fire now_used once per loaded recommendation. Re-fires when the NOW
+  // engine surfaces a different place (data.place.id changes).
+  const nowFiredForPlaceRef = useRef<string | null>(null)
+  useEffect(() => {
+    const pid = data?.place?.id
+    if (pid && pid !== nowFiredForPlaceRef.current) {
+      nowFiredForPlaceRef.current = pid
+      track('now_used', {
+        placeId: pid,
+        metadata: {
+          moment: data?.context?.moment ?? null,
+          time_of_day: data?.context?.time_of_day ?? null,
+        },
+      })
+    }
+  }, [data?.place?.id, data?.context?.moment, data?.context?.time_of_day])
+
   // ── Navigate to Concierge with context ─────────────────────────────────────
 
   const navigateToConcierge = useCallback((adjustment?: NowAdjustment) => {
@@ -186,7 +204,10 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   return (
     <View>
       <TouchableOpacity
-        onPress={() => router.push(`/places/${place.slug}` as any)}
+        onPress={() => {
+          track('place_open', { placeId: place.id, source: 'concierge' })
+          router.push(`/places/${place.slug}` as any)
+        }}
         activeOpacity={0.96}
         className="mx-6 rounded-2xl overflow-hidden"
         style={{

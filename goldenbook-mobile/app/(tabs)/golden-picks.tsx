@@ -7,6 +7,7 @@ import { useDiscover } from '@/features/discover/hooks/useDiscover';
 import { useTranslation } from '@/i18n';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
+import { track } from '@/analytics/track';
 import type { DiscoverPlaceCard } from '@/types/api';
 
 // ─── Featured hero card (16:9 ratio, gradient overlay, editorial style) ────────
@@ -17,7 +18,10 @@ function FeaturedPickCard({ place }: { place: DiscoverPlaceCard }) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/places/${place.slug}` as any)}
+      onPress={() => {
+        track('place_open', { placeId: place.id, source: 'discover' });
+        router.push(`/places/${place.slug}` as any);
+      }}
       activeOpacity={0.9}
       className="mx-6 mb-4 rounded-2xl overflow-hidden"
       style={styles.featuredCard}
@@ -58,7 +62,10 @@ function PickGridCard({ place }: { place: DiscoverPlaceCard }) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/places/${place.slug}` as any)}
+      onPress={() => {
+        track('place_open', { placeId: place.id, source: 'discover' });
+        router.push(`/places/${place.slug}` as any);
+      }}
       activeOpacity={0.85}
       style={[styles.gridCard, { flex: 1 }]}
       className="rounded-xl overflow-hidden bg-ivory"

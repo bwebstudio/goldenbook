@@ -8,6 +8,8 @@ import { useAppStore } from '@/store/appStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useTranslation } from '@/i18n';
+import { useSessionLifecycle } from '@/analytics/useSessionLifecycle';
+import { useContentVersionSync } from '@/api/useContentVersion';
 import * as Localization from 'expo-localization';
 import { useFonts } from 'expo-font';
 import {
@@ -211,25 +213,38 @@ export default function RootLayout() {
   return (
     <AppErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen
-          name="select-destination"
-          options={{
-            animation: 'slide_from_bottom',
-            gestureEnabled: false,
-          }}
-        />
-        <Stack.Screen
-          name="onboarding"
-          options={{
-            animation: 'slide_from_bottom',
-            gestureEnabled: false,
-          }}
-        />
-      </Stack>
+      <AppShell />
     </QueryClientProvider>
     </AppErrorBoundary>
+  );
+}
+
+// AppShell must be a child of QueryClientProvider so useContentVersionSync can
+// call useQueryClient. It also owns the session lifecycle — mount once per app
+// process, emit session_start/ping/end, and invalidate editorial caches on
+// foreground when the dashboard has bumped content_version.
+function AppShell() {
+  useSessionLifecycle();
+  useContentVersionSync();
+
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="auth" />
+      <Stack.Screen
+        name="select-destination"
+        options={{
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="onboarding"
+        options={{
+          animation: 'slide_from_bottom',
+          gestureEnabled: false,
+        }}
+      />
+    </Stack>
   );
 }

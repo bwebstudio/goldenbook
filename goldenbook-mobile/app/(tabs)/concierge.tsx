@@ -23,6 +23,7 @@ import {
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { track } from '@/analytics/track'
 
 import {
   ConciergeMessageBubble,
@@ -287,7 +288,10 @@ export default function ConciergeScreen() {
                 <TouchableOpacity
                   key={option.id}
                   style={styles.quickOptionChip}
-                  onPress={() => handleIntentTap(option)}
+                  onPress={() => {
+                    track('concierge_used', { metadata: { intent: option.id } })
+                    handleIntentTap(option)
+                  }}
                   disabled={state.loadingRecommendation}
                   activeOpacity={0.74}
                 >

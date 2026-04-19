@@ -6,6 +6,7 @@ import { useTranslation } from '@/i18n';
 import { useRouteDetail } from '@/features/routes/hooks/useRouteDetail';
 import { useSaveRoute } from '@/features/saved/hooks/useSaveRoute';
 import { RouteHero, RoutePlacesTimeline } from '@/features/routes/components';
+import { track } from '@/analytics/track';
 
 export default function RouteDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -83,7 +84,15 @@ export default function RouteDetailScreen() {
             className="flex-1 rounded-xl py-4 items-center justify-center flex-row gap-2"
             style={{ backgroundColor: '#222D52' }}
             activeOpacity={0.85}
-            onPress={() => router.push(`/journey/${slug}`)}
+            onPress={() => {
+              if (data?.id) {
+                track('route_start', {
+                  routeId: data.id,
+                  metadata: { step_count: data.places?.length ?? 0 },
+                });
+              }
+              router.push(`/journey/${slug}`);
+            }}
           >
             <Text className="text-primary text-[11px] uppercase tracking-widest font-bold">
               {t.routes.startRoute}

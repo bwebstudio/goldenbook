@@ -3,19 +3,29 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
+import { track } from '@/analytics/track';
 import type { SearchPlaceDTO } from '@/types/api';
 
 interface Props {
   place: SearchPlaceDTO;
+  rank?: number;
 }
 
-export function SearchPlaceRow({ place }: Props) {
+export function SearchPlaceRow({ place, rank }: Props) {
   const router = useRouter();
   const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/places/${place.slug}` as any)}
+      onPress={() => {
+        track('search_result_click', {
+          placeId: place.id,
+          source: 'search',
+          metadata: rank != null ? { rank } : undefined,
+        });
+        track('place_open', { placeId: place.id, source: 'search' });
+        router.push(`/places/${place.slug}` as any);
+      }}
       activeOpacity={0.85}
       className="flex-row items-center gap-4"
     >

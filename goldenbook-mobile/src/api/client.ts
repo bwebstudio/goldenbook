@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { getAuthToken } from '@/auth/tokenStorage';
 
 // NOTE: Do NOT statically import `@/store/authStore` or `expo-router` here.
@@ -16,8 +18,15 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
   : 'https://goldenbook-production.up.railway.app/api/v1'
 );
 
-// Stable session ID for NOW anti-repetition tracking (persists until app restart)
-const SESSION_ID = `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+// Stable session ID for NOW anti-repetition tracking and analytics. Lives for
+// the process lifetime; a new ID is generated on cold boot.
+export const SESSION_ID = `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+// Device + app-version metadata for analytics enrichment. These headers travel
+// on every request; the backend only reads them from the analytics pipeline.
+const DEVICE_TYPE: 'ios' | 'android' | 'web' =
+  Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
+const APP_VERSION: string = Constants.expoConfig?.version ?? '0.0.0';
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -32,7 +41,32 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  config.headers['x-session-id'] = SESSION_ID;
+  config.headers['x-session-id']  = SESSION_ID;
+  config.headers['x-device-type'] = DEVICE_TYPE;
+  config.headers['x-app-version'] = APP_VERSION;
+
+  // Auto-inject the user's current locale as a query param on GET requests
+  // that don't already specify one. Eliminates the silent `locale='en'`
+  // default that was masking the wrong-language bug.
+  //
+  // Reads the store lazily so we don't introduce a circular import
+  // (settingsStore → persist middleware → secure store reads).
+  try {
+    if ((config.method ?? 'get').toLowerCase() === 'get') {
+      const params = (config.params = config.params ?? {});
+      if (params.locale == null) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { useSettingsStore } =
+          require('@/store/settingsStore') as typeof import('@/store/settingsStore');
+        const locale = useSettingsStore.getState().locale;
+        if (locale) params.locale = locale;
+      }
+    }
+  } catch {
+    // Best-effort. If the settings store isn't ready yet we simply omit
+    // the locale param and the backend falls back to its own default.
+  }
+
   return config;
 });
 

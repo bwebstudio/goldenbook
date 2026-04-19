@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,7 @@ import { useTranslation } from '@/i18n';
 import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
 import { sharePlace } from '@/features/place-detail/share';
+import { track } from '@/analytics/track';
 import {
   PlaceHero,
   PlaceActions,
@@ -46,6 +47,12 @@ export default function PlaceDetailScreen() {
       shortDescription: data.shortDescription,
     });
   }, [data]);
+
+  // Fire once per successfully loaded place. Re-fires when navigating between
+  // place detail screens since the effect key changes with data.id.
+  useEffect(() => {
+    if (data?.id) track('place_view', { placeId: data.id });
+  }, [data?.id]);
 
   if (isLoading) {
     return (

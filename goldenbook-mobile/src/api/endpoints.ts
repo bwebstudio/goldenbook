@@ -19,12 +19,15 @@ import type {
 export const api = {
   health: () => apiClient.get('/health'),
 
-  discover: (city: string, interests?: string[], style?: string, locale = 'en') =>
+  // locale is injected by the Axios request interceptor from the settings
+  // store when not supplied. Never hard-default to 'en' here — that was the
+  // source of the wrong-language bug in the field.
+  discover: (city: string, interests?: string[], style?: string, locale?: string) =>
     apiClient
       .get<DiscoverResponse>('/discover', {
         params: {
           city,
-          locale,
+          ...(locale ? { locale } : {}),
           ...(interests?.length ? { interests: interests.join(',') } : {}),
           ...(style ? { style } : {}),
         },
@@ -34,33 +37,51 @@ export const api = {
   destinations: () =>
     apiClient.get<Destination[]>('/destinations').then((r) => r.data),
 
-  placeBySlug: (slug: string, locale = 'en') =>
-    apiClient.get<PlaceDetailDTO>(`/places/${slug}`, { params: { locale } }).then((r) => r.data),
-
-  routes: (city: string, locale = 'en', limit = 20, offset = 0) =>
+  placeBySlug: (slug: string, locale?: string) =>
     apiClient
-      .get<RoutesResponseDTO>('/routes', { params: { city, locale, limit, offset } })
+      .get<PlaceDetailDTO>(`/places/${slug}`, { params: locale ? { locale } : {} })
       .then((r) => r.data),
 
-  routeBySlug: (slug: string, locale = 'en') =>
-    apiClient.get<RouteDetailDTO>(`/routes/${slug}`, { params: { locale } }).then((r) => r.data),
-
-  search: (query: string, city?: string, locale = 'en') =>
-    apiClient.get<SearchResults>('/search', { params: { q: query, city, locale } }).then((r) => r.data),
-
-  categoryBySlug: (slug: string, city: string, locale = 'en') =>
-    apiClient.get<CategoryDetailDTO>(`/categories/${slug}`, { params: { city, locale } }).then((r) => r.data),
-
-  mapPlaces: (city: string, locale = 'en', category?: string) =>
+  routes: (city: string, locale?: string, limit = 20, offset = 0) =>
     apiClient
-      .get<MapResponseDTO>('/map/places', { params: { city, locale, category } })
+      .get<RoutesResponseDTO>('/routes', {
+        params: { city, limit, offset, ...(locale ? { locale } : {}) },
+      })
+      .then((r) => r.data),
+
+  routeBySlug: (slug: string, locale?: string) =>
+    apiClient
+      .get<RouteDetailDTO>(`/routes/${slug}`, { params: locale ? { locale } : {} })
+      .then((r) => r.data),
+
+  search: (query: string, city?: string, locale?: string) =>
+    apiClient
+      .get<SearchResults>('/search', {
+        params: { q: query, ...(city ? { city } : {}), ...(locale ? { locale } : {}) },
+      })
+      .then((r) => r.data),
+
+  categoryBySlug: (slug: string, city: string, locale?: string) =>
+    apiClient
+      .get<CategoryDetailDTO>(`/categories/${slug}`, {
+        params: { city, ...(locale ? { locale } : {}) },
+      })
+      .then((r) => r.data),
+
+  mapPlaces: (city: string, locale?: string, category?: string) =>
+    apiClient
+      .get<MapResponseDTO>('/map/places', {
+        params: { city, ...(locale ? { locale } : {}), ...(category ? { category } : {}) },
+      })
       .then((r) => r.data.items),
 
   me: () =>
     apiClient.get<UserProfile>('/me').then((r) => r.data),
 
-  mySaved: (locale = 'en') =>
-    apiClient.get<SavedResponse>('/me/saved', { params: { locale } }).then((r) => r.data),
+  mySaved: (locale?: string) =>
+    apiClient
+      .get<SavedResponse>('/me/saved', { params: locale ? { locale } : {} })
+      .then((r) => r.data),
 
   savePlace: (placeId: string) =>
     apiClient.post(`/me/saved/places/${placeId}`).then((r) => r.data),
@@ -98,9 +119,11 @@ export const api = {
     apiClient.post('/booking/impression', params).catch(() => {}),
 
   // ── Concierge ─────────────────────────────────────────────────────────────
-  conciergeBootstrap: (city?: string, locale = 'en') =>
+  conciergeBootstrap: (city?: string, locale?: string) =>
     apiClient
-      .get<ConciergeBootstrapDTO>('/concierge/bootstrap', { params: { city, locale } })
+      .get<ConciergeBootstrapDTO>('/concierge/bootstrap', {
+        params: { ...(city ? { city } : {}), ...(locale ? { locale } : {}) },
+      })
       .then((r) => r.data),
 
   conciergeRecommend: (params: {

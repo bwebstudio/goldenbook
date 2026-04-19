@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '@/i18n';
+import { track } from '@/analytics/track';
 import type { PlaceDetailDTO } from '../types';
 
 type Actions = PlaceDetailDTO['actions'];
@@ -72,6 +73,7 @@ export function PlaceActions({
   const canShowMap = !!(location?.latitude && location?.longitude) || !!actions.navigateUrl;
 
   const handleMap = () => {
+    track('map_open', { placeId, source: 'route' });
     if (location?.latitude && location?.longitude) {
       router.push(`/map?lat=${location.latitude}&lng=${location.longitude}` as any);
     } else if (actions.navigateUrl) {
@@ -79,13 +81,23 @@ export function PlaceActions({
     }
   };
 
+  function safeDomain(url: string): string | undefined {
+    try { return new URL(url).hostname; } catch { return undefined; }
+  }
+
   return (
     <View className="px-5 pt-6 pb-2">
       <View className="flex-row gap-3">
         {/* Reserve — the venue's own booking link, never affiliate */}
         {hasReservation && (
           <TouchableOpacity
-            onPress={() => openUrl(actions.bookingUrl!)}
+            onPress={() => {
+              track('booking_click', {
+                placeId,
+                metadata: { url_domain: safeDomain(actions.bookingUrl!) },
+              });
+              openUrl(actions.bookingUrl!);
+            }}
             activeOpacity={0.85}
             className="items-center justify-center bg-navy rounded-full"
             style={{ flex: 1, height: 48 }}
@@ -132,7 +144,13 @@ export function PlaceActions({
         {/* Website (globe icon only) */}
         {hasWebsite && (
           <TouchableOpacity
-            onPress={() => openUrl(actions.websiteUrl!)}
+            onPress={() => {
+              track('website_click', {
+                placeId,
+                metadata: { url_domain: safeDomain(actions.websiteUrl!) },
+              });
+              openUrl(actions.websiteUrl!);
+            }}
             activeOpacity={0.6}
             className="items-center justify-center rounded-full border border-navy/5"
             style={ICON_BTN}

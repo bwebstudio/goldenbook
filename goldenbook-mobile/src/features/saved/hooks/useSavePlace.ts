@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettingsStore } from '@/store/settingsStore';
 import { savedApi } from '../api';
 import { useSaved, SAVED_QUERY_KEY } from './useSaved';
+import { track } from '@/analytics/track';
 import type { SavedResponse, SavedPlaceDTO } from '@/types/api';
 
 interface UseSavePlaceOptions {
@@ -26,7 +27,9 @@ export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {})
       if (!placeId) throw new Error('placeId is required');
       // Read from ref, not from the closure — fixes the race condition
       // where isSaved was stale because useSaved() hadn't loaded yet.
-      return isSavedRef.current
+      const currentlySaved = isSavedRef.current;
+      track(currentlySaved ? 'favorite_remove' : 'favorite_add', { placeId });
+      return currentlySaved
         ? savedApi.unsavePlace(placeId)
         : savedApi.savePlace(placeId);
     },

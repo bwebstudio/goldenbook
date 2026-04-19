@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -8,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { track } from '@/analytics/track';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -80,6 +82,22 @@ function JourneyContent({
 
   const { state, handleArrived, handleContinue, handleSkip } =
     useJourney(sortedPlaces);
+
+  // Fire route_complete exactly once when the journey transitions to 'completed'.
+  const completionFired = useRef(false);
+  useEffect(() => {
+    if (state.journeyStatus === 'completed' && !completionFired.current) {
+      completionFired.current = true;
+      const stepsCompleted = state.stepStatuses.filter(s => s === 'arrived' || s === 'completed').length;
+      track('route_complete', {
+        routeId: data.id,
+        metadata: {
+          step_count: sortedPlaces.length,
+          steps_completed: stepsCompleted,
+        },
+      });
+    }
+  }, [state.journeyStatus, state.stepStatuses, data.id, sortedPlaces.length]);
 
   // ── Completion view ────────────────────────────────────────────────────────
   if (state.journeyStatus === 'completed') {

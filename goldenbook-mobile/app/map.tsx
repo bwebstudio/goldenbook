@@ -1,20 +1,28 @@
+import { useEffect } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MapViewContainer } from '@/features/map/components';
 import { colors, typography, spacing, radius, elevation } from '@/design/tokens';
+import { track } from '@/analytics/track';
+import { useAppStore } from '@/store/appStore';
 
 export default function MapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const topOffset = insets.top + spacing.sm;
+  const selectedCity = useAppStore((s) => s.selectedCity);
 
   const { lat, lng } = useLocalSearchParams<{ lat?: string; lng?: string }>();
   const focusCoords =
     lat && lng
       ? { latitude: parseFloat(lat), longitude: parseFloat(lng) }
       : undefined;
+
+  useEffect(() => {
+    track('map_open', { metadata: { city: selectedCity } });
+  }, [selectedCity]);
 
   return (
     <View style={styles.container}>
