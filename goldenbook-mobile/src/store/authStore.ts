@@ -1,9 +1,13 @@
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/auth/supabaseClient';
 import { removeAuthToken, setAuthToken } from '@/auth/tokenStorage';
 import { useAppStore } from '@/store/appStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { sessionStart, track } from '@/analytics/track';
 import { api } from '@/api/endpoints';
 
 interface AuthState {
@@ -18,6 +22,34 @@ interface AuthState {
 }
 
 // ─── Local cleanup — always runs regardless of whether Supabase signOut succeeded ──
+
+// ─── Post-login session identify ───────────────────────────────────────────
+//
+// Why this exists: `useSessionLifecycle` runs once at app boot and fires
+// `sessionStart()` + `track('app_session_start')` with whatever auth state
+// exists at that moment. If the user signs in *after* boot, neither the
+// `user_sessions` row nor the `app_session_start` event gets a user_id,
+// and the analytics DAU/WAU count — which relies on `analytics_events.user_id`
+// with a session-JOIN fallback — under-reports that user until they navigate
+// somewhere else that fires a tracked event.
+//
+// Calling this right after the token is stored guarantees:
+//   1. `user_sessions.user_id` is backfilled for the current SESSION_ID
+//      via the backend's `COALESCE(existing, EXCLUDED)` upsert in
+//      /analytics/sessions/start.
+//   2. At least one `analytics_events` row exists for the signed-in user,
+//      even if they close the app immediately after login.
+function identifyCurrentSession() {
+  const ctx = {
+    locale:     useSettingsStore.getState().locale,
+    city:       useAppStore.getState().selectedCity ?? undefined,
+    appVersion: Constants.expoConfig?.version,
+    deviceType: (Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web') as
+      'ios' | 'android' | 'web',
+  };
+  sessionStart(ctx);
+  track('app_session_start', { metadata: ctx });
+}
 
 async function cleanupLocalState(set: (state: Partial<AuthState>) => void) {
   try {
@@ -59,13 +91,20 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ session: null, user: null, isLoading: false });
     }
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.access_token) {
         await setAuthToken(session.access_token).catch(() => {});
       } else {
         await removeAuthToken().catch(() => {});
       }
       set({ session, user: session?.user ?? null });
+
+      // Only fire identify on a genuine sign-in, not on INITIAL_SESSION /
+      // TOKEN_REFRESHED / SIGNED_OUT / USER_UPDATED. `useSessionLifecycle`
+      // already handles the already-signed-in boot path on mount.
+      if (event === 'SIGNED_IN' && session?.user) {
+        identifyCurrentSession();
+      }
     });
   },
 

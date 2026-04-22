@@ -31,9 +31,16 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
     const d = days(period)
 
     const [dauRows, sessionsRows, durationAgg, kpis] = await Promise.all([
+      // DAU series. We count DISTINCT COALESCE(event.user_id, session.user_id)
+      // so that events whose JWT wasn't attached (typical for the first
+      // `app_session_start` that fires before login) still count — provided
+      // the linked `user_sessions` row has a user_id (backfilled by a
+      // subsequent `sessionStart` after sign-in via the backend's COALESCE
+      // upsert). Fixes the case where a user who logged in but didn't
+      // otherwise interact was invisible to DAU.
       db.query<{ date: string; dau: string }>(`
         SELECT d::date::text AS date,
-               COALESCE(COUNT(DISTINCT ae.user_id), 0)::text AS dau
+               COALESCE(COUNT(DISTINCT COALESCE(ae.user_id, s.user_id)), 0)::text AS dau
           FROM generate_series(
                  (now() - ($1 || ' days')::interval)::date,
                  now()::date,
@@ -41,7 +48,8 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                ) d
           LEFT JOIN analytics_events ae
                  ON ae.created_at::date = d::date
-                AND ae.user_id IS NOT NULL
+          LEFT JOIN user_sessions s
+                 ON s.session_id = ae.session_id
          GROUP BY d ORDER BY d
       `, [d]),
 
@@ -72,14 +80,24 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
            AND started_at >= now() - ($1 || ' days')::interval
       `, [d]),
 
+      // Headline KPIs. Same session-fallback logic as the DAU series — counts
+      // a user whose JWT wasn't attached to the event if we can resolve their
+      // identity from the linked user_sessions row. COUNT(DISTINCT ...) drops
+      // NULLs naturally, so genuinely anonymous traffic is still excluded.
       db.query<{ dau_today: string; wau: string; mau: string; sessions_per_user: string | null }>(`
         SELECT
-          (SELECT COUNT(DISTINCT user_id) FROM analytics_events
-             WHERE user_id IS NOT NULL AND created_at >= now() - interval '1 day')::text AS dau_today,
-          (SELECT COUNT(DISTINCT user_id) FROM analytics_events
-             WHERE user_id IS NOT NULL AND created_at >= now() - interval '7 days')::text AS wau,
-          (SELECT COUNT(DISTINCT user_id) FROM analytics_events
-             WHERE user_id IS NOT NULL AND created_at >= now() - interval '30 days')::text AS mau,
+          (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
+             FROM analytics_events ae
+             LEFT JOIN user_sessions s ON s.session_id = ae.session_id
+            WHERE ae.created_at >= now() - interval '1 day')::text AS dau_today,
+          (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
+             FROM analytics_events ae
+             LEFT JOIN user_sessions s ON s.session_id = ae.session_id
+            WHERE ae.created_at >= now() - interval '7 days')::text AS wau,
+          (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
+             FROM analytics_events ae
+             LEFT JOIN user_sessions s ON s.session_id = ae.session_id
+            WHERE ae.created_at >= now() - interval '30 days')::text AS mau,
           (SELECT (COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0))::text
              FROM user_sessions
             WHERE user_id IS NOT NULL AND started_at >= now() - ($1 || ' days')::interval) AS sessions_per_user
@@ -208,6 +226,8 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
     const { period } = periodSchema.parse(request.query)
     const d = days(period)
 
+    // Same session-fallback pattern: resolve user_id via the linked
+    // user_sessions row when the event itself doesn't carry one.
     const { rows } = await db.query<{
       now_count: string; now_users: string
       concierge_count: string; concierge_users: string
@@ -215,16 +235,17 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       route_starts: string; route_completes: string
     }>(`
       SELECT
-        COUNT(*) FILTER (WHERE event_name='now_used')::text                        AS now_count,
-        COUNT(DISTINCT user_id) FILTER (WHERE event_name='now_used')::text         AS now_users,
-        COUNT(*) FILTER (WHERE event_name='concierge_used')::text                  AS concierge_count,
-        COUNT(DISTINCT user_id) FILTER (WHERE event_name='concierge_used')::text   AS concierge_users,
-        COUNT(*) FILTER (WHERE event_name='search_query')::text                    AS search_count,
-        COUNT(DISTINCT user_id) FILTER (WHERE event_name='search_query')::text     AS search_users,
-        COUNT(*) FILTER (WHERE event_name='route_start')::text                     AS route_starts,
-        COUNT(*) FILTER (WHERE event_name='route_complete')::text                  AS route_completes
-        FROM analytics_events
-       WHERE created_at >= now() - ($1 || ' days')::interval
+        COUNT(*) FILTER (WHERE ae.event_name='now_used')::text                                             AS now_count,
+        COUNT(DISTINCT COALESCE(ae.user_id, s.user_id)) FILTER (WHERE ae.event_name='now_used')::text      AS now_users,
+        COUNT(*) FILTER (WHERE ae.event_name='concierge_used')::text                                       AS concierge_count,
+        COUNT(DISTINCT COALESCE(ae.user_id, s.user_id)) FILTER (WHERE ae.event_name='concierge_used')::text AS concierge_users,
+        COUNT(*) FILTER (WHERE ae.event_name='search_query')::text                                         AS search_count,
+        COUNT(DISTINCT COALESCE(ae.user_id, s.user_id)) FILTER (WHERE ae.event_name='search_query')::text  AS search_users,
+        COUNT(*) FILTER (WHERE ae.event_name='route_start')::text                                          AS route_starts,
+        COUNT(*) FILTER (WHERE ae.event_name='route_complete')::text                                       AS route_completes
+        FROM analytics_events ae
+        LEFT JOIN user_sessions s ON s.session_id = ae.session_id
+       WHERE ae.created_at >= now() - ($1 || ' days')::interval
     `, [d])
 
     const r = rows[0] ?? {} as Record<string, string>
