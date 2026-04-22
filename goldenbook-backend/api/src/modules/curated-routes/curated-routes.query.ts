@@ -79,11 +79,33 @@ function buildRouteWithStops(
   }
 }
 
+// Fallback chain for translatable fields on a stop:
+//   1. requested locale (full, e.g. 'pt-PT')
+//   2. requested language code (e.g. 'pt' from 'pt-PT')
+//   3. Portuguese ('pt') — Goldenbook's primary market, the editorial source of truth
+//   4. Spanish ('es')
+//   5. English ('en') — baseline fallback
+//   6. raw columns on `places` / `curated_route_stops`
+// This lets a Spanish user see Portuguese when Spanish is missing, and keeps
+// English as the last resort before the raw editorial row.
 const STOPS_SELECT = `
   crs.place_id,
   crs.stop_order,
-  COALESCE(crs.note_translations ->> split_part($LOCALE$::text, '-', 1), crs.editorial_note) AS editorial_note,
-  COALESCE(NULLIF(pt.name,''), NULLIF(pt_lang.name,''), NULLIF(pt_fb.name,''), p.name)   AS place_name,
+  COALESCE(
+    NULLIF(crs.note_translations ->> split_part($LOCALE$::text, '-', 1), ''),
+    NULLIF(crs.note_translations ->> 'pt', ''),
+    NULLIF(crs.note_translations ->> 'es', ''),
+    NULLIF(crs.note_translations ->> 'en', ''),
+    crs.editorial_note
+  ) AS editorial_note,
+  COALESCE(
+    NULLIF(pt.name, ''),
+    NULLIF(pt_lang.name, ''),
+    NULLIF(pt_primary.name, ''),
+    NULLIF(pt_es.name, ''),
+    NULLIF(pt_fb.name, ''),
+    p.name
+  ) AS place_name,
   p.slug          AS place_slug,
   p.place_type,
   hero_img.bucket AS hero_bucket,
@@ -91,9 +113,11 @@ const STOPS_SELECT = `
   p.latitude,
   p.longitude,
   COALESCE(
-    NULLIF(pt.short_description,''),
-    NULLIF(pt_lang.short_description,''),
-    NULLIF(pt_fb.short_description,''),
+    NULLIF(pt.short_description, ''),
+    NULLIF(pt_lang.short_description, ''),
+    NULLIF(pt_primary.short_description, ''),
+    NULLIF(pt_es.short_description, ''),
+    NULLIF(pt_fb.short_description, ''),
     p.short_description
   ) AS short_description`
 
@@ -104,6 +128,10 @@ const STOPS_FROM = `
          ON pt.place_id = p.id AND pt.locale = $LOCALE$
   LEFT JOIN place_translations pt_lang
          ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($LOCALE$, '-', 1) AND $LOCALE$ LIKE '%-%'
+  LEFT JOIN place_translations pt_primary
+         ON pt_primary.place_id = p.id AND pt_primary.locale = 'pt'
+  LEFT JOIN place_translations pt_es
+         ON pt_es.place_id = p.id AND pt_es.locale = 'es'
   LEFT JOIN place_translations pt_fb
          ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
   LEFT JOIN LATERAL (
@@ -122,12 +150,25 @@ export async function getActiveCuratedRoutes(
   citySlug: string,
   locale: string,
 ): Promise<CuratedRouteWithStops[]> {
-  // 1. Fetch active routes for the city
+  // 1. Fetch active routes for the city.
+  //    Fallback chain: requested language → Portuguese (primary market) → Spanish → raw column.
   const lang = locale.split('-')[0]
   const { rows: routeRows } = await db.query<Record<string, unknown>>(
     `SELECT id, city_slug, route_type, template_type, sponsor_place_id,
-            COALESCE(title_translations ->> $2, title) AS title,
-            COALESCE(summary_translations ->> $2, summary) AS summary,
+            COALESCE(
+              NULLIF(title_translations ->> $2, ''),
+              NULLIF(title_translations ->> 'pt', ''),
+              NULLIF(title_translations ->> 'es', ''),
+              NULLIF(title_translations ->> 'en', ''),
+              title
+            ) AS title,
+            COALESCE(
+              NULLIF(summary_translations ->> $2, ''),
+              NULLIF(summary_translations ->> 'pt', ''),
+              NULLIF(summary_translations ->> 'es', ''),
+              NULLIF(summary_translations ->> 'en', ''),
+              summary
+            ) AS summary,
             starts_at, expires_at, is_active
      FROM   curated_routes
      WHERE  city_slug = $1
@@ -173,11 +214,24 @@ export async function getCuratedRouteById(
   // Translation keys are stored as the language code only (`'pt'`, `'es'`),
   // matching the JSON shape produced by createCuratedRoute / seed scripts.
   // Fallback chain: requested locale → English (raw `title` / `summary` columns).
+  // Fallback chain: requested language → Portuguese (primary market) → Spanish → raw column (typically English).
   const lang = locale.split('-')[0]
   const { rows: routeRows } = await db.query<Record<string, unknown>>(
     `SELECT id, city_slug, route_type, template_type, sponsor_place_id,
-            COALESCE(NULLIF(title_translations   ->> $2, ''), title)   AS title,
-            COALESCE(NULLIF(summary_translations ->> $2, ''), summary) AS summary,
+            COALESCE(
+              NULLIF(title_translations ->> $2, ''),
+              NULLIF(title_translations ->> 'pt', ''),
+              NULLIF(title_translations ->> 'es', ''),
+              NULLIF(title_translations ->> 'en', ''),
+              title
+            ) AS title,
+            COALESCE(
+              NULLIF(summary_translations ->> $2, ''),
+              NULLIF(summary_translations ->> 'pt', ''),
+              NULLIF(summary_translations ->> 'es', ''),
+              NULLIF(summary_translations ->> 'en', ''),
+              summary
+            ) AS summary,
             starts_at, expires_at, is_active
      FROM   curated_routes
      WHERE  id = $1

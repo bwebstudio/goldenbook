@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/lib/i18n";
-import { deactivateRoute, type CuratedRouteDTO } from "@/lib/api/curated-routes";
+import { deactivateRoute, fetchRouteById, type CuratedRouteDTO } from "@/lib/api/curated-routes";
 import { isAdmin } from "@/lib/auth/permissions";
 import { getStorageUrl } from "@/lib/utils/storage";
 import type { DashboardRole } from "@/types/auth";
@@ -70,14 +70,19 @@ function useLabels() {
 }
 
 export default function RouteDetailClient({
-  route,
+  initialRoute,
+  initialLocale,
+  id,
   userRole,
 }: {
-  route: CuratedRouteDTO;
+  initialRoute: CuratedRouteDTO;
+  initialLocale: "en" | "pt";
+  id: string;
   userRole: DashboardRole;
 }) {
   const router = useRouter();
   const labels = useLabels();
+  const [route, setRoute] = useState<CuratedRouteDTO>(initialRoute);
   const expired = isExpired(route);
   const isSponsored = route.routeType === "sponsored";
   const canEdit = isAdmin(userRole) && !expired;
@@ -86,6 +91,22 @@ export default function RouteDetailClient({
   const [deactivating, setDeactivating] = useState(false);
   const [deactivated, setDeactivated] = useState(!route.isActive);
   const [error, setError] = useState<string | null>(null);
+
+  // If the user switches language after the server-rendered fetch, pull
+  // fresh translations so the title/summary/stop text all re-localize
+  // without a full page reload.
+  useEffect(() => {
+    if (labels.locale === initialLocale) return;
+    let cancelled = false;
+    fetchRouteById(id, labels.locale)
+      .then((fresh) => {
+        if (!cancelled) setRoute(fresh);
+      })
+      .catch((err) => {
+        console.error("[RouteDetail] failed to re-fetch for locale", labels.locale, err);
+      });
+    return () => { cancelled = true; };
+  }, [labels.locale, initialLocale, id]);
 
   const cityLabel =
     CITY_LABELS[route.citySlug]?.[labels.locale === "pt" ? "pt" : "en"] ?? route.citySlug;

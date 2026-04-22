@@ -189,44 +189,99 @@ function UsersBlock({ d, t: a }: { d: UsersAnalytics; t: BehaviorTxt }) {
     <div className="flex flex-col gap-4">
       <h3 className="text-base font-bold text-text">{a.usersTitle}</h3>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label={a.dauToday} value={d.kpis.dauToday.toLocaleString()} />
-        <KpiCard label={a.wau}      value={d.kpis.wau.toLocaleString()} />
-        <KpiCard label={a.mau}      value={d.kpis.mau.toLocaleString()} />
-        <KpiCard label={a.sessionsPerUser} value={d.kpis.sessionsPerUser.toFixed(1)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard label={a.activeToday}   hint={a.activeTodayHint}   value={d.kpis.dauToday.toLocaleString()} />
+        <KpiCard label={a.active7d}      hint={a.active7dHint}      value={d.kpis.wau.toLocaleString()} />
+        <KpiCard label={a.active30d}     hint={a.active30dHint}     value={d.kpis.mau.toLocaleString()} />
+        <KpiCard label={a.visitsPerUser} hint={a.visitsPerUserHint} value={d.kpis.sessionsPerUser.toFixed(1)} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label={a.avgSession} value={formatSec(d.kpis.avgSessionSec)} />
-        <KpiCard label="P50" value={formatSec(d.kpis.sessionP50Sec)} />
-        <KpiCard label="P75" value={formatSec(d.kpis.sessionP75Sec)} />
-        <KpiCard label="P95" value={formatSec(d.kpis.sessionP95Sec)} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard label={a.avgTime}         hint={a.avgTimeHint}         value={formatSec(d.kpis.avgSessionSec)} />
+        <KpiCard label={a.typicalSession}  hint={a.typicalSessionHint}  value={formatSec(d.kpis.sessionP50Sec)} />
+        <KpiCard label={a.longSession}     hint={a.longSessionHint}     value={formatSec(d.kpis.sessionP75Sec)} />
+        <KpiCard label={a.veryLongSession} hint={a.veryLongSessionHint} value={formatSec(d.kpis.sessionP95Sec)} />
       </div>
 
-      {d.dau.length > 0 && <DauChart data={d.dau.slice(-30)} label={a.dauChart} />}
-      {d.sessions.length > 0 && <SessionsChart data={d.sessions.slice(-30)} labels={{ title: a.sessionsChart, ios: "iOS", android: "Android", web: "Web" }} />}
+      {/* Chart always renders as long as the backend returned a date series — its
+          own empty-state handles "all zero" visually, so the user never sees a
+          blank rectangle. */}
+      {d.dau.length > 0 && (
+        <DauChart
+          data={d.dau.slice(-30)}
+          label={a.dauChart}
+          subLabel={a.dauChartSub}
+          emptyLabel={a.dauChartEmpty}
+        />
+      )}
+      {d.sessions.length > 0 && (
+        <SessionsChart
+          data={d.sessions.slice(-30)}
+          labels={{ title: a.sessionsChart, ios: "iOS", android: "Android", web: "Web", empty: a.dauChartEmpty }}
+        />
+      )}
     </div>
   );
 }
 
-function DauChart({ data, label }: { data: { date: string; dau: number }[]; label: string }) {
+function DauChart({
+  data,
+  label,
+  subLabel,
+  emptyLabel,
+}: {
+  data: { date: string; dau: number }[];
+  label: string;
+  subLabel: string;
+  emptyLabel: string;
+}) {
+  const totalDau = data.reduce((sum, r) => sum + r.dau, 0);
   const max = Math.max(...data.map((r) => r.dau), 1);
   const BAR_H = 120;
+  // When a date falls on the 1st of the month, include the short month name
+  // so a 30/90-day window doesn't look like a string of ambiguous numbers.
+  const fmtDay = (iso: string) => {
+    const [, m, d] = iso.split("-");
+    return d === "01" ? `${d}/${m}` : d;
+  };
+
   return (
     <Card>
-      <p className="text-sm font-bold text-text mb-4">{label}</p>
-      <div className="flex items-end gap-1" style={{ height: `${BAR_H + 20}px` }}>
-        {data.map((d) => {
-          const h = d.dau > 0 ? Math.max(4, Math.round((d.dau / max) * BAR_H)) : 0;
-          return (
-            <div key={d.date} className="flex-1 flex flex-col items-center justify-end" title={`${d.date}: ${d.dau}`}>
-              {h > 0 ? <div className="w-full rounded-t" style={{ height: `${h}px`, backgroundColor: "#A5835A" }} />
-                     : <div className="w-full rounded-t" style={{ height: "2px", backgroundColor: "#F0ECE6" }} />}
-              <span className="text-[8px] text-muted mt-1">{d.date.slice(8)}</span>
-            </div>
-          );
-        })}
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-sm font-bold text-text">{label}</p>
       </div>
+      <p className="text-xs text-muted mb-4">{subLabel}</p>
+
+      {totalDau === 0 ? (
+        <div
+          className="flex items-center justify-center text-center rounded-lg bg-[#FBF8F3] border border-dashed border-border"
+          style={{ height: `${BAR_H + 20}px` }}
+        >
+          <p className="text-sm text-muted">{emptyLabel}</p>
+        </div>
+      ) : (
+        <div className="flex items-end gap-1" style={{ height: `${BAR_H + 20}px` }}>
+          {data.map((d) => {
+            // Minimum 6px for any day with activity — prevents tiny values
+            // from looking identical to zero days.
+            const h = d.dau > 0 ? Math.max(6, Math.round((d.dau / max) * BAR_H)) : 0;
+            return (
+              <div
+                key={d.date}
+                className="flex-1 flex flex-col items-center justify-end"
+                title={`${d.date}: ${d.dau}`}
+              >
+                {h > 0 ? (
+                  <div className="w-full rounded-t" style={{ height: `${h}px`, backgroundColor: "#A5835A" }} />
+                ) : (
+                  <div className="w-full rounded-t" style={{ height: "2px", backgroundColor: "#E8E1D5" }} />
+                )}
+                <span className="text-[8px] text-muted mt-1">{fmtDay(d.date)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </Card>
   );
 }
@@ -235,37 +290,59 @@ function SessionsChart({
   data, labels,
 }: {
   data: { date: string; ios: number; android: number; web: number; total: number }[];
-  labels: { title: string; ios: string; android: string; web: string };
+  labels: { title: string; ios: string; android: string; web: string; empty: string };
 }) {
+  const totalSessions = data.reduce((sum, d) => sum + d.total, 0);
   const max = Math.max(...data.map((d) => d.total), 1);
   const BAR_H = 120;
+  const fmtDay = (iso: string) => {
+    const [, m, d] = iso.split("-");
+    return d === "01" ? `${d}/${m}` : d;
+  };
+
   return (
     <Card>
       <p className="text-sm font-bold text-text mb-4">{labels.title}</p>
-      <div className="flex items-end gap-1" style={{ height: `${BAR_H + 20}px` }}>
-        {data.map((d) => {
-          const hTotal = d.total > 0 ? Math.max(4, Math.round((d.total / max) * BAR_H)) : 0;
-          const hIos = hTotal * (d.ios / Math.max(d.total, 1));
-          const hAndroid = hTotal * (d.android / Math.max(d.total, 1));
-          const hWeb = hTotal * (d.web / Math.max(d.total, 1));
-          return (
-            <div key={d.date} className="flex-1 flex flex-col items-center justify-end" title={`${d.date}: iOS ${d.ios} · Android ${d.android} · Web ${d.web}`}>
-              <div className="w-full flex flex-col items-stretch">
-                {hIos > 0 && <div style={{ height: `${hIos}px`, backgroundColor: "#A5835A" }} />}
-                {hAndroid > 0 && <div style={{ height: `${hAndroid}px`, backgroundColor: "#D2B68A" }} />}
-                {hWeb > 0 && <div style={{ height: `${hWeb}px`, backgroundColor: "#EBDCC2" }} />}
-                {hTotal === 0 && <div style={{ height: "2px", backgroundColor: "#F0ECE6" }} />}
-              </div>
-              <span className="text-[8px] text-muted mt-1">{d.date.slice(8)}</span>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-4 mt-3 text-[10px] text-muted">
-        <LegendDot color="#A5835A" label={labels.ios} />
-        <LegendDot color="#D2B68A" label={labels.android} />
-        <LegendDot color="#EBDCC2" label={labels.web} />
-      </div>
+
+      {totalSessions === 0 ? (
+        <div
+          className="flex items-center justify-center text-center rounded-lg bg-[#FBF8F3] border border-dashed border-border"
+          style={{ height: `${BAR_H + 20}px` }}
+        >
+          <p className="text-sm text-muted">{labels.empty}</p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-end gap-1" style={{ height: `${BAR_H + 20}px` }}>
+            {data.map((d) => {
+              const hTotal = d.total > 0 ? Math.max(6, Math.round((d.total / max) * BAR_H)) : 0;
+              const hIos = hTotal * (d.ios / Math.max(d.total, 1));
+              const hAndroid = hTotal * (d.android / Math.max(d.total, 1));
+              const hWeb = hTotal * (d.web / Math.max(d.total, 1));
+              return (
+                <div
+                  key={d.date}
+                  className="flex-1 flex flex-col items-center justify-end"
+                  title={`${d.date}: iOS ${d.ios} · Android ${d.android} · Web ${d.web}`}
+                >
+                  <div className="w-full flex flex-col items-stretch">
+                    {hIos > 0 && <div style={{ height: `${hIos}px`, backgroundColor: "#A5835A" }} />}
+                    {hAndroid > 0 && <div style={{ height: `${hAndroid}px`, backgroundColor: "#D2B68A" }} />}
+                    {hWeb > 0 && <div style={{ height: `${hWeb}px`, backgroundColor: "#EBDCC2" }} />}
+                    {hTotal === 0 && <div style={{ height: "2px", backgroundColor: "#E8E1D5" }} />}
+                  </div>
+                  <span className="text-[8px] text-muted mt-1">{fmtDay(d.date)}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-4 mt-3 text-[10px] text-muted">
+            <LegendDot color="#A5835A" label={labels.ios} />
+            <LegendDot color="#D2B68A" label={labels.android} />
+            <LegendDot color="#EBDCC2" label={labels.web} />
+          </div>
+        </>
+      )}
     </Card>
   );
 }
@@ -323,9 +400,9 @@ function FeaturesBlock({ d, t: a }: { d: FeaturesAnalytics; t: BehaviorTxt }) {
     <div className="flex flex-col gap-4">
       <h3 className="text-base font-bold text-text">{a.featuresTitle}</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <FeatureTile label={a.now}       count={d.now.count}       users={d.now.uniqueUsers} />
-        <FeatureTile label={a.concierge} count={d.concierge.count} users={d.concierge.uniqueUsers} />
-        <FeatureTile label={a.searches}  count={d.search.count}    users={d.search.uniqueUsers} />
+        <FeatureTile label={a.now}       count={d.now.count}       users={d.now.uniqueUsers}       usersLabel={a.users} />
+        <FeatureTile label={a.concierge} count={d.concierge.count} users={d.concierge.uniqueUsers} usersLabel={a.users} />
+        <FeatureTile label={a.searches}  count={d.search.count}    users={d.search.uniqueUsers}    usersLabel={a.users} />
         <Card className="!p-5">
           <p className="text-sm text-muted">{a.routes}</p>
           <p className="text-2xl font-bold text-text mt-1">{d.routes.starts.toLocaleString()}</p>
@@ -338,12 +415,12 @@ function FeaturesBlock({ d, t: a }: { d: FeaturesAnalytics; t: BehaviorTxt }) {
   );
 }
 
-function FeatureTile({ label, count, users }: { label: string; count: number; users: number }) {
+function FeatureTile({ label, count, users, usersLabel }: { label: string; count: number; users: number; usersLabel: string }) {
   return (
     <Card className="!p-5">
       <p className="text-sm text-muted">{label}</p>
       <p className="text-2xl font-bold text-text mt-1">{count.toLocaleString()}</p>
-      <p className="text-xs text-muted mt-1">{users.toLocaleString()} users</p>
+      <p className="text-xs text-muted mt-1">{users.toLocaleString()} {usersLabel}</p>
     </Card>
   );
 }
@@ -411,11 +488,12 @@ function SearchBlock({ d, t: a }: { d: SearchAnalytics; t: BehaviorTxt }) {
 
 // ─── Shared atoms ───────────────────────────────────────────────────────────
 
-function KpiCard({ label, value }: { label: string; value: string }) {
+function KpiCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <Card className="!p-5">
-      <p className="text-sm text-muted">{label}</p>
+      <p className="text-sm font-semibold text-text">{label}</p>
       <p className="text-2xl font-bold text-text mt-1">{value}</p>
+      {hint && <p className="text-xs text-muted mt-1 leading-snug">{hint}</p>}
     </Card>
   );
 }
@@ -465,12 +543,27 @@ type BehaviorTxt = {
   contentTitle: string;
   featuresTitle: string;
   searchTitle: string;
-  dauToday: string;
-  wau: string;
-  mau: string;
-  sessionsPerUser: string;
-  avgSession: string;
+  // Headline KPIs (human-friendly replacements for DAU / WAU / MAU / sessions-per-user)
+  activeToday: string;
+  activeTodayHint: string;
+  active7d: string;
+  active7dHint: string;
+  active30d: string;
+  active30dHint: string;
+  visitsPerUser: string;
+  visitsPerUserHint: string;
+  // Session duration (human-friendly replacements for avg / P50 / P75 / P95)
+  avgTime: string;
+  avgTimeHint: string;
+  typicalSession: string;
+  typicalSessionHint: string;
+  longSession: string;
+  longSessionHint: string;
+  veryLongSession: string;
+  veryLongSessionHint: string;
   dauChart: string;
+  dauChartSub: string;
+  dauChartEmpty: string;
   sessionsChart: string;
   mostViewed: string;
   mostSaved: string;
@@ -493,6 +586,7 @@ type BehaviorTxt = {
   results: string;
   views: string;
   clicks: string;
+  users: string;
   loadError: string;
   retry: string;
   emptyTitle: string;

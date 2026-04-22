@@ -117,10 +117,15 @@ export async function adminCuratedRoutesRoutes(app: FastifyInstance) {
     return reply.status(201).send({ id: result.id, title: generated.title })
   })
 
-  // GET /admin/curated-routes/:id — single route detail for editing
+  // GET /admin/curated-routes/:id?locale=pt — single route detail for editing.
+  // Locale drives the translation fallback chain (requested → raw columns).
+  // Valid values: any 2–5 char locale code; defaults to 'en' for back-compat.
   app.get('/admin/curated-routes/:id', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
-    const route = await getCuratedRouteById(id, 'en')
+    const { locale } = z.object({
+      locale: z.string().min(2).max(5).default('en'),
+    }).parse(request.query)
+    const route = await getCuratedRouteById(id, locale)
     if (!route) return reply.status(404).send({ error: 'Route not found' })
     return reply.send(route)
   })

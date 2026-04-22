@@ -72,8 +72,8 @@ export async function deactivateRoute(id: string): Promise<void> {
   await apiPost(`/api/v1/admin/curated-routes/${id}/deactivate`, {});
 }
 
-export async function fetchRouteById(id: string): Promise<CuratedRouteDTO> {
-  return apiGet<CuratedRouteDTO>(`/api/v1/admin/curated-routes/${id}`);
+export async function fetchRouteById(id: string, locale: string = "en"): Promise<CuratedRouteDTO> {
+  return apiGet<CuratedRouteDTO>(`/api/v1/admin/curated-routes/${id}`, { locale });
 }
 
 export async function createRouteFromScratch(data: {
