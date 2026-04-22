@@ -75,3 +75,16 @@ export async function authenticateDashboardUser(
 
   request.adminUser = adminUser
 }
+
+// preHandler chain for actions restricted to super_admin (edit/delete).
+// Editors retain view/create/deactivate, but edit & delete are admin-only.
+export async function requireSuperAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): Promise<void> {
+  await authenticateDashboardUser(request, reply)
+
+  if (request.adminUser?.dashboardRole !== 'super_admin') {
+    throw new AppError(403, 'This action requires super admin privileges', 'FORBIDDEN')
+  }
+}

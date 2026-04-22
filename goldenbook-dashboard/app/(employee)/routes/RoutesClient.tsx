@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useLocale } from "@/lib/i18n";
 import {
   generateEditorialRoute,
@@ -135,6 +137,8 @@ interface Props {
 export default function RoutesClient({ initialRoutes, userRole }: Props) {
   const { locale } = useLocale();
   const labels = useLabels();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const isSuperAdmin = isAdmin(userRole);
 
   const [routes, setRoutes] = useState(initialRoutes);
@@ -169,7 +173,7 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
     if (placesLoaded) return;
     try {
       const places = await fetchAdminPlacesList();
-      setAllPlaces(places.map((p: any) => ({ id: p.id, name: p.name, slug: p.slug, city_name: p.city_name })));
+      setAllPlaces(places.map((p) => ({ id: p.id, name: p.name, slug: p.slug, city_name: p.city_name })));
       setPlacesLoaded(true);
     } catch { /* ignore */ }
   }, [placesLoaded]);
@@ -189,20 +193,39 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
     loadPlaces();
   }
 
-  function openEditModal(route: CuratedRouteDTO) {
-    setEditingRoute(route);
-    setModalTitle(route.title);
-    setModalSummary(route.summary ?? "");
-    setModalCity(route.citySlug);
-    setModalType(route.routeType);
-    setModalStops(
-      route.stops.length > 0
-        ? route.stops.map((s) => ({ placeId: s.placeId, editorialNote: s.editorialNote ?? "" }))
-        : [{ placeId: "", editorialNote: "" }, { placeId: "", editorialNote: "" }, { placeId: "", editorialNote: "" }]
-    );
-    setModalOpen(true);
-    loadPlaces();
-  }
+  const openEditModal = useCallback(
+    (route: CuratedRouteDTO) => {
+      setEditingRoute(route);
+      setModalTitle(route.title);
+      setModalSummary(route.summary ?? "");
+      setModalCity(route.citySlug);
+      setModalType(route.routeType);
+      setModalStops(
+        route.stops.length > 0
+          ? route.stops.map((s) => ({ placeId: s.placeId, editorialNote: s.editorialNote ?? "" }))
+          : [
+              { placeId: "", editorialNote: "" },
+              { placeId: "", editorialNote: "" },
+              { placeId: "", editorialNote: "" },
+            ],
+      );
+      setModalOpen(true);
+      loadPlaces();
+    },
+    [loadPlaces],
+  );
+
+  // When navigated here from the detail page's "Edit" button, auto-open the
+  // modal for the matching route (admin only — the backend rejects editor
+  // writes anyway). The `?edit=<id>` query param is cleaned up once consumed.
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (!editId || !isSuperAdmin) return;
+    const route = initialRoutes.find((r) => r.id === editId);
+    if (!route) return;
+    openEditModal(route);
+    router.replace("/routes");
+  }, [searchParams, isSuperAdmin, initialRoutes, openEditModal, router]);
 
   async function handleModalSave() {
     setModalSaving(true);
@@ -240,6 +263,8 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
     }
   }
 
+  // Only super admins can edit. Editors are restricted to create + deactivate + view.
+  // Expired routes cannot be edited by anyone.
   function canEdit(route: CuratedRouteDTO): boolean {
     return isSuperAdmin && !isExpired(route);
   }
@@ -316,11 +341,10 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
 
   // ── Permission helpers ─────────────────────────────────────────────────────
 
+  // Admin and editor can both deactivate any non-expired route.
+  // (Admins additionally get edit + delete; editors get view/create/deactivate only.)
   function canDeactivate(route: CuratedRouteDTO): boolean {
-    if (isExpired(route)) return false;
-    if (isSuperAdmin) return true;
-    // Editors can only deactivate editorial routes
-    return route.routeType === "editorial";
+    return !isExpired(route);
   }
 
   // ── Stats ───────────────────────────────────────────────────────────────────
@@ -435,14 +459,13 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
                 </svg>
                 {labels.generateRoute}
               </button>
-              {isSuperAdmin && (
-                <button
-                  onClick={openCreateModal}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border text-text text-base font-semibold hover:border-gold/50 hover:text-gold transition-colors whitespace-nowrap cursor-pointer"
-                >
-                  {labels.createRoute}
-                </button>
-              )}
+              {/* Both admin and editor can create routes. */}
+              <button
+                onClick={openCreateModal}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-border text-text text-base font-semibold hover:border-gold/50 hover:text-gold transition-colors whitespace-nowrap cursor-pointer"
+              >
+                {labels.createRoute}
+              </button>
             </div>
           )}
         </div>
@@ -510,7 +533,22 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
             return (
               <div
                 key={route.id}
-                className={`bg-white rounded-xl border shadow-sm px-5 py-4 flex flex-col gap-3 transition-colors ${
+                onClick={(e) => {
+                  // Click anywhere on the card navigates to detail, except clicks
+                  // that originated on interactive children (buttons, links).
+                  const target = e.target as HTMLElement;
+                  if (target.closest("button, a")) return;
+                  router.push(`/routes/${route.id}`);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/routes/${route.id}`);
+                  }
+                }}
+                className={`bg-white rounded-xl border shadow-sm px-5 py-4 flex flex-col gap-3 transition-colors cursor-pointer hover:border-gold/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gold/30 ${
                   expired ? "border-border/60 opacity-75" : "border-border"
                 }`}
               >
@@ -519,7 +557,12 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-lg font-bold text-text leading-tight flex items-center gap-1.5">
                       {isSponsored && <SponsoredStar />}
-                      {route.title}
+                      <Link
+                        href={`/routes/${route.id}`}
+                        className="hover:text-gold transition-colors"
+                      >
+                        {route.title}
+                      </Link>
                     </h3>
 
                     {/* City badge */}
@@ -637,8 +680,8 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
         </div>
       )}
 
-      {/* ── Create/Edit Modal (admin only) ─────────────────────────────────── */}
-      {modalOpen && isSuperAdmin && (
+      {/* ── Create (all) / Edit (admin only) Modal ───────────────────────── */}
+      {modalOpen && (editingRoute ? isSuperAdmin : true) && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-5 border-b border-border">

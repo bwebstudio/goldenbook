@@ -686,6 +686,8 @@ const pt: TranslationKeys = {
     cities: "Cidades",
     published: "publicadas",
     nonePublished: "nenhuma publicada ainda",
+    editorialActive: "editorial ativa",
+    noActiveRoutes: "sem rotas ativas",
     subcategories: "subcategorias",
     activeDestinations: "destinos ativos",
     across: "em",
@@ -813,6 +815,7 @@ const pt: TranslationKeys = {
     views: "visualizações",
     clicks: "cliques",
     loadError: "Não foi possível carregar a analítica de comportamento.",
+    retry: "Tentar novamente",
     emptyTitle: "Sem dados de comportamento ainda",
     emptyBody: "A atualização OTA da app móvel acabou de ser publicada — os eventos começarão a chegar à medida que os utilizadores abrirem a app. Volte a consultar em algumas horas.",
     period: { d7: "7 d", d30: "30 d", d90: "90 d" },
@@ -861,6 +864,9 @@ const pt: TranslationKeys = {
     places: "estabelecimentos",
     coverage: "Cobertura",
     ofTotal: "de",
+    loadError: "Não foi possível carregar os dados de conteúdo",
+    retry: "Tentar novamente",
+    noPlaces: "Nenhum estabelecimento encontrado",
   },
 
   recs: {

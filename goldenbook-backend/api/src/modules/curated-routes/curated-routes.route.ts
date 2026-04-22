@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { authenticateDashboardUser } from '../../shared/auth/dashboardAuth'
+import { authenticateDashboardUser, requireSuperAdmin } from '../../shared/auth/dashboardAuth'
 import {
   getActiveCuratedRoutes,
   getCuratedRouteById,
@@ -164,7 +164,8 @@ export async function adminCuratedRoutesRoutes(app: FastifyInstance) {
   })
 
   // PUT /admin/curated-routes/:id — update route (title, summary, stops)
-  app.put('/admin/curated-routes/:id', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+  // Edit is a super_admin-only action. Editors can view/create/deactivate only.
+  app.put('/admin/curated-routes/:id', { preHandler: [requireSuperAdmin] }, async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
     const schema = z.object({
       title:   z.string().min(1).optional(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { fetchAdminPlacesList } from "@/lib/api/places";
 import type { AdminPlaceListItem } from "@/types/api/place";
@@ -28,12 +28,29 @@ export default function ContentOverviewClient() {
 
   const [places, setPlaces] = useState<AdminPlaceListItem[] | null>(null);
   const [error, setError] = useState(false);
+  const [loadKey, setLoadKey] = useState(0);
+
+  const reload = useCallback(() => {
+    setPlaces(null);
+    setError(false);
+    setLoadKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
+    let cancelled = false;
     fetchAdminPlacesList()
-      .then(setPlaces)
-      .catch((err) => { console.error('[ContentOverview] fetch failed:', err); setError(true); setPlaces([]); });
-  }, []);
+      .then((list) => {
+        if (cancelled) return;
+        setPlaces(list);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('[ContentOverview] fetch failed:', err);
+        setError(true);
+        setPlaces([]);
+      });
+    return () => { cancelled = true; };
+  }, [loadKey]);
 
   if (places === null) {
     return (
@@ -43,10 +60,24 @@ export default function ContentOverviewClient() {
     );
   }
 
-  if (error || places.length === 0) {
+  if (error) {
+    return (
+      <Card className="!py-8 text-center flex flex-col items-center gap-3">
+        <p className="text-sm text-muted">{ca.loadError}</p>
+        <button
+          onClick={reload}
+          className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-text hover:border-gold/50 hover:text-gold transition-colors cursor-pointer"
+        >
+          {ca.retry}
+        </button>
+      </Card>
+    );
+  }
+
+  if (places.length === 0) {
     return (
       <Card className="!py-8 text-center">
-        <p className="text-sm text-muted">{error ? "Could not load content data" : "No places found"}</p>
+        <p className="text-sm text-muted">{ca.noPlaces}</p>
       </Card>
     );
   }

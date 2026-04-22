@@ -50,7 +50,7 @@ export default function DashboardContent({ totalPlaces, totalCities, totalRoutes
     <div className="max-w-5xl flex flex-col gap-6 sm:gap-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatTile label={d.places} value={totalPlaces} sub={`${d.across} ${totalCities} ${totalCities === 1 ? d.city : d.citiesPlural}`} href="/places" />
-        <StatTile label={d.routes} value={totalRoutes} sub={publishedRoutes > 0 ? `${publishedRoutes} ${d.published}` : d.nonePublished} href="/routes" />
+        <StatTile label={d.routes} value={totalRoutes} sub={publishedRoutes > 0 ? `${publishedRoutes} ${d.editorialActive}` : d.noActiveRoutes} href="/routes" />
         <StatTile label={d.categories} value={totalCategories} sub={totalSubcategories > 0 ? `${totalSubcategories} ${d.subcategories}` : undefined} href="/categories" />
         <StatTile label={d.cities} value={totalCities} sub={d.activeDestinations} href="/places" />
       </div>

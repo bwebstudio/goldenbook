@@ -12,7 +12,7 @@
  * enough sessions land in analytics_events.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useT } from "@/lib/i18n";
 import Card from "@/components/ui/Card";
 import {
@@ -38,14 +38,20 @@ export default function UserBehaviorV2Client() {
   const t = useT();
   const a = t.behaviorV2;
   const [period, setPeriod] = useState<AnalyticsPeriod>("30");
-  const [data, setData] = useState<Bundle | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  // `fetchState` is keyed on (period, reloadKey) so a fresh fetch starts in
+  // the "loading" phase without a separate setState + cascading render.
+  const [fetchState, setFetchState] = useState<
+    | { phase: "loading"; key: string }
+    | { phase: "error"; key: string }
+    | { phase: "data"; key: string; data: Bundle }
+  >(() => ({ phase: "loading", key: `${period}:${reloadKey}` }));
+
+  const retry = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
+    const key = `${period}:${reloadKey}`;
     let cancelled = false;
-    setLoading(true);
-    setError(false);
     Promise.allSettled([
       fetchUsersAnalytics(period),
       fetchContentAnalytics(period),
@@ -55,20 +61,37 @@ export default function UserBehaviorV2Client() {
       if (cancelled) return;
       const [u, c, f, s] = results;
       if (results.every((r) => r.status === "rejected")) {
-        setError(true);
-        setLoading(false);
+        // Log each rejection so the underlying cause (auth, 500, CORS, etc.)
+        // is visible in the browser console — previously all four errors were
+        // swallowed and the user only saw "Could not load" with no signal.
+        const names = ["users", "content", "features", "search"];
+        results.forEach((r, i) => {
+          if (r.status === "rejected") {
+            console.error(`[UserBehaviorV2] ${names[i]} analytics failed:`, r.reason);
+          }
+        });
+        setFetchState({ phase: "error", key });
         return;
       }
-      setData({
-        users:    u.status === "fulfilled" ? u.value : null,
-        content:  c.status === "fulfilled" ? c.value : null,
-        features: f.status === "fulfilled" ? f.value : null,
-        search:   s.status === "fulfilled" ? s.value : null,
+      setFetchState({
+        phase: "data",
+        key,
+        data: {
+          users:    u.status === "fulfilled" ? u.value : null,
+          content:  c.status === "fulfilled" ? c.value : null,
+          features: f.status === "fulfilled" ? f.value : null,
+          search:   s.status === "fulfilled" ? s.value : null,
+        },
       });
-      setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [period]);
+  }, [period, reloadKey]);
+
+  // Reset to "loading" whenever the request key changes (period or retry).
+  const currentKey = `${period}:${reloadKey}`;
+  const loading = fetchState.phase === "loading" || fetchState.key !== currentKey;
+  const error = !loading && fetchState.phase === "error";
+  const data = !loading && fetchState.phase === "data" ? fetchState.data : null;
 
   const hasAnyData = useMemo(() => {
     if (!data) return false;
@@ -94,8 +117,14 @@ export default function UserBehaviorV2Client() {
       {loading && <Card className="!py-8 text-center"><p className="text-sm text-muted">{t.common.loading}</p></Card>}
 
       {!loading && error && (
-        <Card className="!py-8 text-center">
+        <Card className="!py-8 text-center flex flex-col items-center gap-3">
           <p className="text-sm text-muted">{a.loadError}</p>
+          <button
+            onClick={retry}
+            className="px-4 py-2 rounded-lg border border-border text-sm font-semibold text-text hover:border-gold/50 hover:text-gold transition-colors cursor-pointer"
+          >
+            {a.retry}
+          </button>
         </Card>
       )}
 
@@ -465,6 +494,7 @@ type BehaviorTxt = {
   views: string;
   clicks: string;
   loadError: string;
+  retry: string;
   emptyTitle: string;
   emptyBody: string;
   period: { d7: string; d30: string; d90: string };

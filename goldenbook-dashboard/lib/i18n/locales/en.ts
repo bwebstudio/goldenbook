@@ -690,6 +690,8 @@ const en = {
     cities: "Cities",
     published: "published",
     nonePublished: "none published yet",
+    editorialActive: "editorial active",
+    noActiveRoutes: "no active routes yet",
     subcategories: "subcategories",
     activeDestinations: "active destinations",
     across: "across",
@@ -821,6 +823,7 @@ const en = {
     views: "views",
     clicks: "clicks",
     loadError: "Could not load behavior analytics.",
+    retry: "Retry",
     emptyTitle: "No behavior data yet",
     emptyBody: "The mobile OTA update has just been published — events start landing as users foreground the app. Re-check in a few hours.",
     period: { d7: "7 d", d30: "30 d", d90: "90 d" },
@@ -870,6 +873,9 @@ const en = {
     places: "places",
     coverage: "Coverage",
     ofTotal: "of",
+    loadError: "Could not load content data",
+    retry: "Retry",
+    noPlaces: "No places found",
   },
 
   // ─── Recommendations ─────────────────────────────────────────────────────
