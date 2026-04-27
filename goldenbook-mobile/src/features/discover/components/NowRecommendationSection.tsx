@@ -10,6 +10,7 @@ import { useNowRecommendation, type NowEmotion } from '../hooks/useNowRecommenda
 import { useAppStore } from '@/store/appStore'
 import { useNowContextStore, type NowAdjustment } from '@/store/nowContextStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore'
 import { track } from '@/analytics/track'
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -97,6 +98,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   const citySlug = useAppStore((s) => s.selectedCity)
   const { data, loading, refreshing, error, refresh, reload } = useNowRecommendation()
   const setNowContext = useNowContextStore((s) => s.set)
+  const isOffline = useNetworkStore(selectIsOffline)
   const destinationTimeZone = getTimeZoneForCity(data?.place?.city || cityName)
   const liveTime = useLiveClock(destinationTimeZone, locale)
 
@@ -152,6 +154,11 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   // ── Fallback: error or no place → editorial destination card ───────────────
   // This section NEVER disappears. If there's no geo recommendation,
   // we show a destination-based editorial card so the section stays alive.
+  // Offline takes priority over `error` because a network failure WHILE
+  // offline isn't really an error from the user's perspective — it's just
+  // "no internet right now". The fallback presents that as an intentional
+  // state (no Retry surface, just a route into Concierge) instead of as
+  // failure copy.
   if (error || !data?.place) {
     return (
       <NowEditorialFallback
@@ -159,6 +166,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
         liveTime={liveTime}
         t={t}
         isError={error}
+        isOffline={isOffline}
         onRetry={reload}
         onConcierge={() => navigateToConcierge()}
       />
@@ -394,19 +402,48 @@ interface NowEditorialFallbackProps {
   liveTime: string
   t: any
   isError?: boolean
+  isOffline?: boolean
   onRetry: () => void
   onConcierge: () => void
 }
 
-function NowEditorialFallback({ cityName, liveTime, t, isError = false, onRetry, onConcierge }: NowEditorialFallbackProps) {
+function NowEditorialFallback({
+  cityName,
+  liveTime,
+  t,
+  isError = false,
+  isOffline = false,
+  onRetry,
+  onConcierge,
+}: NowEditorialFallbackProps) {
   const timeSegment = getClientTimeSegment()
   const headlineKey = `headline${capitalize(timeSegment)}`
-  // When the API actually errored, use the error copy so users understand
-  // why the section is in fallback mode. Otherwise show the time-of-day
-  // editorial headline as a soft fallback.
-  const headline: string = isError
+  // Three-way split for the headline copy:
+  //   • offline → intentional "connect to internet" message. NOT framed as
+  //     a failure; the user is in a known state, not a broken one.
+  //   • online + error → errorLoading copy.
+  //   • neither (no place but no error/offline) → soft editorial headline
+  //     for the current time-of-day so the section never feels empty.
+  const headline: string = isOffline
+    ? ((t.now as any).offlineMessage ?? t.now.headlineMorning)
+    : isError
     ? ((t.now as any).errorLoading ?? t.now.headlineMorning)
     : ((t.now as any)[headlineKey] ?? t.now.headlineMorning)
+
+  // Adaptive padding: small iPhones (≤375px wide, e.g. iPhone SE / mini)
+  // get tighter horizontal padding so two buttons + their labels still fit
+  // on one line in the typical case, and so the headline doesn't wrap mid-
+  // phrase. Falls back to the original 28px layout on standard devices.
+  const isNarrow = SCREEN_WIDTH <= 380
+  const contentPadding = {
+    paddingHorizontal: isNarrow ? 18 : 28,
+    paddingVertical: isNarrow ? 22 : 28,
+  }
+
+  // Retry only makes sense online — offline taps would just re-fail. We
+  // also hide it when we're not in an error state at all (the soft-
+  // editorial path) so a healthy section doesn't carry a stale CTA.
+  const showRetry = isError && !isOffline
 
   return (
     <View>
@@ -415,7 +452,9 @@ function NowEditorialFallback({ cityName, liveTime, t, isError = false, onRetry,
         activeOpacity={0.96}
         className="mx-6 rounded-2xl overflow-hidden"
         style={{
-          height: SCREEN_HEIGHT * 0.28,
+          // Use minHeight (not fixed height) so a stacked button row on
+          // narrow devices grows the card instead of overflowing it.
+          minHeight: SCREEN_HEIGHT * 0.28,
           backgroundColor: '#222D52',
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 8 },
@@ -457,43 +496,77 @@ function NowEditorialFallback({ cityName, liveTime, t, isError = false, onRetry,
           </Text>
         </View>
 
-        {/* Content */}
-        <View className="absolute bottom-0 left-0 right-0 p-7">
+        {/* Content. Switched from absolute-positioned to flow layout so the
+            card grows when the button row wraps, instead of buttons being
+            clipped by an absolute container of fixed height. */}
+        <View style={[contentPadding, { paddingTop: 60, flex: 1, justifyContent: 'flex-end' }]}>
           <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
             <View style={{ width: 20, height: 1, backgroundColor: '#D2B68A', marginRight: 4 }} />
-            <Text className="text-primary text-[9px] uppercase tracking-widest font-bold">
+            <Text className="text-primary text-[9px] uppercase tracking-widest font-bold" numberOfLines={1}>
               {t.now.editorialEyebrow ?? `${t.discover.goldenbookRecommendation.toUpperCase()}`}
             </Text>
           </View>
 
           <Text
             className="text-white text-xl leading-snug mb-4"
-            style={{ fontFamily: 'PlayfairDisplay_400Regular_Italic', maxWidth: Math.max(240, SCREEN_WIDTH * 0.72) }}
-            numberOfLines={2}
+            style={{ fontFamily: 'PlayfairDisplay_400Regular_Italic' }}
+            // 3 lines is enough for the longest copy ("Liga-te à internet
+            // para receber uma recomendação em tempo real.") at 375px
+            // without truncation, and still tight enough to avoid pushing
+            // the buttons off-screen on a 4.7" device.
+            numberOfLines={3}
           >
             {headline}
           </Text>
 
-          <View className="flex-row" style={{ gap: 10 }}>
+          {/* Button row. flexWrap so the secondary button drops to a new
+              row instead of overflowing on narrow devices; rowGap matches
+              the inline gap so wrapped layout still looks intentional.
+              flexShrink:1 + minWidth:0 lets each button compress its text
+              without pushing past the card edge. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, rowGap: 10 }}>
             <TouchableOpacity
               onPress={onConcierge}
               activeOpacity={0.85}
-              className="bg-primary rounded-lg px-5 py-3 items-center justify-center"
+              className="bg-primary rounded-lg items-center justify-center"
+              style={{
+                paddingHorizontal: isNarrow ? 16 : 20,
+                paddingVertical: 12,
+                flexShrink: 1,
+                minWidth: 0,
+              }}
             >
-              <Text className="text-navy text-[10px] uppercase tracking-widest font-bold">
+              <Text
+                className="text-navy text-[10px] uppercase tracking-widest font-bold"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {(t.now as any).openConcierge}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={onRetry}
-              activeOpacity={0.7}
-              className="rounded-lg px-4 py-3 items-center justify-center"
-              style={{ borderWidth: 1, borderColor: 'rgba(210,182,138,0.3)' }}
-            >
-              <Text className="text-primary text-[10px] uppercase tracking-widest font-medium">
-                {t.common.retry}
-              </Text>
-            </TouchableOpacity>
+            {showRetry && (
+              <TouchableOpacity
+                onPress={onRetry}
+                activeOpacity={0.7}
+                className="rounded-lg items-center justify-center"
+                style={{
+                  paddingHorizontal: isNarrow ? 14 : 16,
+                  paddingVertical: 12,
+                  borderWidth: 1,
+                  borderColor: 'rgba(210,182,138,0.3)',
+                  flexShrink: 1,
+                  minWidth: 0,
+                }}
+              >
+                <Text
+                  className="text-primary text-[10px] uppercase tracking-widest font-medium"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {t.common.retry}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </TouchableOpacity>

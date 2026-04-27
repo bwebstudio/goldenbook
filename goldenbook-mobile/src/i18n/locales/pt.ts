@@ -151,6 +151,7 @@ export const pt: Translations = {
     supportingNight: 'Aberto agora · Para a noite que se aproxima',
     seeAnother: 'Ver outra opção',
     errorLoading: 'Não conseguimos carregar uma recomendação neste momento.',
+    offlineMessage: 'Liga-te à internet para receber uma recomendação em tempo real.',
     lookingForMore: 'Procuras algo diferente?',
     openConcierge: 'Perguntar ao Concierge',
     exploreNow: 'EXPLORAR AGORA',

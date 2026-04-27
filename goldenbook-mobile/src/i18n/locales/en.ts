@@ -149,6 +149,7 @@ export const en = {
     supportingNight: 'Open now · For the night ahead',
     seeAnother: 'See another option',
     errorLoading: "We couldn't load a recommendation right now.",
+    offlineMessage: 'Connect to the internet to get a real-time recommendation.',
     lookingForMore: 'Looking for something else?',
     openConcierge: 'Ask the Concierge',
     exploreNow: 'EXPLORE NOW',
