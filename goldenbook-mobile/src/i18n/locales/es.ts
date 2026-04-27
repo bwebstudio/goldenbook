@@ -16,6 +16,13 @@ export const es: Translations = {
     error: 'Error',
   },
 
+  offline: {
+    banner: 'Modo sin conexión',
+    showingCached: 'Mostrando contenido guardado',
+    lastUpdated: 'Última actualización',
+    cantLoadOffline: 'Estás sin conexión y aún no tenemos una copia guardada.',
+  },
+
   profile: {
     title: 'Cuenta',
     myAccount: 'Mi Cuenta',
@@ -108,6 +115,7 @@ export const es: Translations = {
 
   discover: {
     couldNotLoad: 'No se pudo cargar tu feed.',
+    sessionExpired: 'Tu sesión ha caducado. Inicia sesión de nuevo.',
     whatShouldIExperience: 'Qué debería hacer ahora',
     hiddenSpotsNearYou: 'Lugares Ocultos Cerca de Ti',
     goldenPicks: 'Golden Picks',

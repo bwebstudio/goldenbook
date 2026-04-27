@@ -12,5 +12,6 @@ export function useRouteDetail(slug: string) {
     queryFn: () => routesApi.getRoute(slug, locale),
     staleTime: 1000 * 60 * 15,
     enabled: !!slug,
+    meta: { cacheable: true },
   });
 }

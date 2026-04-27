@@ -1,7 +1,7 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
-import { getAuthToken } from '@/auth/tokenStorage';
+import { getAuthToken, getSessionDiagnostics } from '@/auth/tokenStorage';
 
 // NOTE: Do NOT statically import `@/store/authStore` or `expo-router` here.
 // `authStore` imports `@/api/endpoints` which imports this file, which would
@@ -10,8 +10,8 @@ import { getAuthToken } from '@/auth/tokenStorage';
 // `useAuthStore` binding undefined at the time the 401 interceptor first
 // fires, throwing inside an async response handler and crashing the app
 // immediately after the splash. Both modules are now resolved lazily inside
-// the 401 callback below, which runs long after every module has finished
-// evaluating.
+// the response handler below, which runs long after every module has
+// finished evaluating.
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
   ? 'http://localhost:3001/api/v1'
@@ -22,8 +22,6 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
 // the process lifetime; a new ID is generated on cold boot.
 export const SESSION_ID = `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-// Device + app-version metadata for analytics enrichment. These headers travel
-// on every request; the backend only reads them from the analytics pipeline.
 const DEVICE_TYPE: 'ios' | 'android' | 'web' =
   Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 const APP_VERSION: string = Constants.expoConfig?.version ?? '0.0.0';
@@ -35,6 +33,10 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Request flag we set on a config object after one refresh-and-retry attempt
+// so a second 401 propagates instead of looping forever.
+type RetriableConfig = InternalAxiosRequestConfig & { _gbRetried?: boolean };
 
 apiClient.interceptors.request.use(async (config) => {
   const token = await getAuthToken();
@@ -48,9 +50,6 @@ apiClient.interceptors.request.use(async (config) => {
   // Auto-inject the user's current locale as a query param on GET requests
   // that don't already specify one. Eliminates the silent `locale='en'`
   // default that was masking the wrong-language bug.
-  //
-  // Reads the store lazily so we don't introduce a circular import
-  // (settingsStore → persist middleware → secure store reads).
   try {
     if ((config.method ?? 'get').toLowerCase() === 'get') {
       const params = (config.params = config.params ?? {});
@@ -70,58 +69,127 @@ apiClient.interceptors.request.use(async (config) => {
   return config;
 });
 
-// ─── Global 401 handler ───────────────────────────────────────────────────
-// When the API rejects a request with 401, the user's session has expired
-// or been revoked. We sign out locally (clears the persisted token + auth
-// store) and redirect them to /auth so they can sign back in. The flag
-// prevents a burst of in-flight 401s from triggering multiple redirects.
+// ─── Refresh-and-retry on 401 ─────────────────────────────────────────────
+//
+// When the API rejects a request with 401 the user's access_token is either
+// expired or revoked. We used to immediately sign the user out, which is
+// what produced the field bug where users saw "Could not load your feed"
+// after returning to the app: their access_token had expired but their
+// refresh_token was still valid, so the right move is to refresh and retry.
+//
+// Strategy:
+//   1. First 401 → flag the request, call supabase.auth.refreshSession().
+//      If refresh succeeds, replay the original request with the new token.
+//   2. If the refresh fails (refresh_token revoked / network error after
+//      token expiry / etc) OR the replay hits another 401 → sign out, route
+//      to /auth, and surface the 401 to the caller so React Query renders
+//      the "session expired" branch instead of pretending the request
+//      succeeded.
+//
+// The `inFlightRefresh` promise dedupes concurrent refresh attempts when a
+// burst of requests all 401 at the same time.
 
-let isHandling401 = false;
+let inFlightRefresh: Promise<boolean> | null = null;
+let isHandlingForcedSignOut = false;
+
+async function refreshSessionOnce(): Promise<boolean> {
+  if (inFlightRefresh) return inFlightRefresh;
+  inFlightRefresh = (async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { supabase } = require('@/auth/supabaseClient') as typeof import('@/auth/supabaseClient');
+      const { data, error } = await supabase.auth.refreshSession();
+      if (__DEV__) {
+        console.log('[apiClient] refreshSession', {
+          ok: !error && !!data.session,
+          err: error?.message,
+        });
+      }
+      return !error && !!data.session;
+    } catch (err) {
+      if (__DEV__) console.warn('[apiClient] refreshSession threw:', err);
+      return false;
+    } finally {
+      // Allow another refresh on the next 401 burst.
+      setTimeout(() => { inFlightRefresh = null; }, 0);
+    }
+  })();
+  return inFlightRefresh;
+}
+
+async function forceSignOutAndRoute() {
+  if (isHandlingForcedSignOut) return;
+  isHandlingForcedSignOut = true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { useAuthStore } = require('@/store/authStore') as typeof import('@/store/authStore');
+    const hasSession = !!useAuthStore.getState().session;
+    if (hasSession) {
+      try {
+        await useAuthStore.getState().signOut();
+      } catch {
+        // best-effort
+      }
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { router } = require('expo-router') as typeof import('expo-router');
+        router.replace('/auth' as any);
+      } catch {
+        // Router may not be ready during early bootstrap; the navigation
+        // guard will route correctly via the auth state change.
+      }
+    }
+  } catch (handlerError) {
+    if (__DEV__) console.warn('[apiClient] forceSignOut handler failed:', handlerError);
+  } finally {
+    setTimeout(() => { isHandlingForcedSignOut = false; }, 1000);
+  }
+}
 
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    // The entire handler is wrapped in a try/catch so a thrown error inside
-    // the interceptor itself can never escape as an unhandled async rejection
-    // and crash the app at startup.
+  (response) => {
+    if (__DEV__ && response.config.url) {
+      // eslint-disable-next-line no-console
+      console.log('[apiClient]', response.status, response.config.url);
+    }
+    return response;
+  },
+  async (error: AxiosError) => {
     try {
-      if (error?.response?.status === 401 && !isHandling401) {
-        // Lazy require — see the file-top NOTE about the circular dep.
-        // By the time any HTTP request returns, both modules are fully
-        // initialised, so this is always safe.
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { useAuthStore } = require('@/store/authStore') as typeof import('@/store/authStore');
+      const status = error?.response?.status;
+      const config = error.config as RetriableConfig | undefined;
 
-        // Only act if there is actually a session to clear — avoids
-        // bouncing the user away from a public screen on a stray 401.
-        const hasSession = !!useAuthStore.getState().session;
-        if (hasSession) {
-          isHandling401 = true;
-          try {
-            await useAuthStore.getState().signOut();
-          } catch {
-            // signOut is best-effort — local cleanup runs even if Supabase fails
+      if (__DEV__) {
+        const diag = await getSessionDiagnostics();
+        // eslint-disable-next-line no-console
+        console.warn('[apiClient]', status ?? 'NETWORK', config?.url, {
+          retried: !!config?._gbRetried,
+          ...diag,
+        });
+      }
+
+      if ((status === 401 || status === 403) && config && !config._gbRetried) {
+        config._gbRetried = true;
+
+        const refreshed = await refreshSessionOnce();
+        if (refreshed) {
+          // Re-read the (now refreshed) token and retry the original request
+          // exactly once. The request interceptor would attach it
+          // automatically on the replay, but we set it here too so the new
+          // header is unambiguously the post-refresh token.
+          const newToken = await getAuthToken();
+          if (newToken) {
+            config.headers = config.headers ?? {};
+            (config.headers as any).Authorization = `Bearer ${newToken}`;
           }
-          try {
-            // Lazy require so we don't pull expo-router into the module
-            // graph at load time. Router may also not be ready during early
-            // bootstrap — the navigation guard in _layout.tsx will recover
-            // via the auth state change.
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const { router } = require('expo-router') as typeof import('expo-router');
-            router.replace('/auth' as any);
-          } catch {
-            // Router may not be ready during early bootstrap; the auth state
-            // change will route us correctly via the navigation guard.
-          }
-          // Reset the flag on the next tick so subsequent sessions can also
-          // be handled if the user signs in again later in the same app run.
-          setTimeout(() => { isHandling401 = false; }, 1000);
+          return apiClient.request(config);
         }
+
+        // Refresh failed → session is genuinely gone. Sign out + route.
+        await forceSignOutAndRoute();
       }
     } catch (handlerError) {
-      // Defensive — never let the 401 handler itself throw.
-      if (__DEV__) console.warn('[apiClient] 401 handler failed:', handlerError);
+      if (__DEV__) console.warn('[apiClient] response handler failed:', handlerError);
     }
     return Promise.reject(error);
   }

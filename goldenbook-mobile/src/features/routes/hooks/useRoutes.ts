@@ -13,5 +13,6 @@ export function useRoutes() {
     queryKey: ROUTES_QUERY_KEY(city, locale),
     queryFn: () => routesApi.getRoutes(city, locale),
     staleTime: 1000 * 60 * 10,
+    meta: { cacheable: true },
   });
 }

@@ -12,5 +12,8 @@ export function usePlaceDetail(slug: string) {
     queryFn: () => placeDetailApi.getPlace(slug, locale),
     staleTime: 1000 * 60 * 15,
     enabled: !!slug,
+    // Place detail pages have to work fully offline once the user has
+    // visited them — that's the core "premium guide" promise.
+    meta: { cacheable: true },
   });
 }

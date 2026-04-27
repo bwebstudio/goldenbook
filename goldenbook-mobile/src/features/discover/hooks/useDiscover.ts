@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useAppStore } from '@/store/appStore';
+import { useAuthStore } from '@/store/authStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { discoverApi } from '../api';
@@ -17,6 +18,14 @@ export function useDiscover() {
   const explorationStyle = useOnboardingStore((s) => s.explorationStyle);
   const locale           = useSettingsStore((s) => s.locale);
 
+  // Auth hydration gate. The query MUST NOT fire before Supabase has had a
+  // chance to restore the persisted session — otherwise a cold start races
+  // the session restoration and the request goes out unauthenticated, the
+  // backend replies 401, and the screen renders the false "Could not load
+  // your feed" error even though the user is logged in.
+  const isAuthHydrated = useAuthStore((s) => s.isHydrated);
+  const hasSession     = useAuthStore((s) => !!s.session);
+
   // Use a string key for interests so the query identity is stable across
   // re-renders (Zustand can produce a new array reference even when the
   // contents are unchanged, which used to cause unwanted refetches).
@@ -31,10 +40,14 @@ export function useDiscover() {
         explorationStyle ?? undefined,
         locale,
       ),
+    enabled: isAuthHydrated && hasSession,
     staleTime: 1000 * 60 * 10, // 10 min — editorial content doesn't change fast
     // Keep showing the previous feed while the new locale/city refetches.
     // Without this, changing the language wiped the screen and dropped the
     // user on a full-screen spinner — which felt like the feed had frozen.
     placeholderData: keepPreviousData,
+    // Persist to AsyncStorage so the feed renders instantly on cold start
+    // (and works offline for previously visited city/locale combinations).
+    meta: { cacheable: true },
   });
 }

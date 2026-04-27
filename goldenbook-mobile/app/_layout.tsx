@@ -1,12 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { queryClient } from '@/lib/queryClient';
+import { persistOptions } from '@/lib/persister';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useNetworkInit, useNetworkStore } from '@/store/networkStore';
+import { useMutationQueueStore } from '@/store/mutationQueueStore';
+import { useReplayPendingSaves } from '@/features/saved/hooks/useReplayPendingSaves';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { useTranslation } from '@/i18n';
 import { useSessionLifecycle } from '@/analytics/useSessionLifecycle';
 import { useContentVersionSync } from '@/api/useContentVersion';
@@ -82,7 +87,7 @@ class AppErrorBoundary extends React.Component<
 
 function useNavigationGuard(ready: boolean) {
   const session                       = useAuthStore((s) => s.session);
-  const authLoading                   = useAuthStore((s) => s.isLoading);
+  const authHydrated                  = useAuthStore((s) => s.isHydrated);
   const isHydrated                    = useAppStore((s) => s.isHydrated);
   const hasExplicitlySelectedLocality = useAppStore((s) => s.hasExplicitlySelectedLocality);
   const onboardingCompleted           = useOnboardingStore((s) => s.completed);
@@ -94,7 +99,7 @@ function useNavigationGuard(ready: boolean) {
   const lastRedirect = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!ready || authLoading || !isHydrated || !onboardingHydrated) return;
+    if (!ready || !authHydrated || !isHydrated || !onboardingHydrated) return;
 
     const seg0         = segments[0] as string;
     const inAuth       = seg0 === 'auth';
@@ -121,7 +126,7 @@ function useNavigationGuard(ready: boolean) {
   }, [
     ready,
     session,
-    authLoading,
+    authHydrated,
     isHydrated,
     hasExplicitlySelectedLocality,
     onboardingCompleted,
@@ -135,7 +140,7 @@ function useNavigationGuard(ready: boolean) {
 
 export default function RootLayout() {
   const initialize          = useAuthStore((s) => s.initialize);
-  const authLoading         = useAuthStore((s) => s.isLoading);
+  const authHydrated        = useAuthStore((s) => s.isHydrated);
   const isHydrated          = useAppStore((s) => s.isHydrated);
   const onboardingHydrated  = useOnboardingStore((s) => s.isHydrated);
   const settingsHydrated    = useSettingsStore((s) => s.isHydrated);
@@ -186,13 +191,17 @@ export default function RootLayout() {
   // GoldenAtlasSplash calls this when its exit-fade finishes (~4.3s).
   const handleAnimationDone = useCallback(() => setAnimationDone(true), []);
 
-  // Promote to splashComplete only when the animation is done AND both stores
-  // have settled. In practice auth + hydration finish well before 4.3s.
+  // Promote to splashComplete only when the animation is done AND every
+  // store has settled. We gate on `authHydrated` (true after the first
+  // onAuthStateChange event resolves) instead of `!isLoading`, because
+  // `isLoading` flipped to false on every transient `getSession()` error
+  // even when Supabase had not yet broadcast the recovered session — which
+  // let the discover screen mount and 401 against an unauth'd request.
   useEffect(() => {
-    if (animationDone && !authLoading && isHydrated && onboardingHydrated && settingsHydrated) {
+    if (animationDone && authHydrated && isHydrated && onboardingHydrated && settingsHydrated) {
       setSplashComplete(true);
     }
-  }, [animationDone, authLoading, isHydrated, onboardingHydrated, settingsHydrated]);
+  }, [animationDone, authHydrated, isHydrated, onboardingHydrated, settingsHydrated]);
 
   // Activate the navigation guard once the Stack is mounted.
   useNavigationGuard(splashComplete);
@@ -212,39 +221,68 @@ export default function RootLayout() {
   // ── Main app — navigation guard handles all routing from here ─────────────
   return (
     <AppErrorBoundary>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <AppShell />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
     </AppErrorBoundary>
   );
 }
 
 // AppShell must be a child of QueryClientProvider so useContentVersionSync can
 // call useQueryClient. It also owns the session lifecycle — mount once per app
-// process, emit session_start/ping/end, and invalidate editorial caches on
-// foreground when the dashboard has bumped content_version.
+// process, emit session_start/ping/end, invalidate editorial caches on
+// foreground when the dashboard has bumped content_version, and run the
+// offline mutation queue flush whenever connectivity returns.
 function AppShell() {
   useSessionLifecycle();
   useContentVersionSync();
+  useNetworkInit();
+  useOfflineQueueFlush();
+  // Replay pending offline save/unsave ops onto the ['saved', locale]
+  // cache. Pure local cache write — never fires a network request, never
+  // touches the queue. Closes the force-quit-within-200ms gap left by the
+  // React Query persister's write throttle.
+  useReplayPendingSaves();
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="auth" />
-      <Stack.Screen
-        name="select-destination"
-        options={{
-          animation: 'slide_from_bottom',
-          gestureEnabled: false,
-        }}
-      />
-      <Stack.Screen
-        name="onboarding"
-        options={{
-          animation: 'slide_from_bottom',
-          gestureEnabled: false,
-        }}
-      />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="auth" />
+        <Stack.Screen
+          name="select-destination"
+          options={{
+            animation: 'slide_from_bottom',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="onboarding"
+          options={{
+            animation: 'slide_from_bottom',
+            gestureEnabled: false,
+          }}
+        />
+      </Stack>
+      <OfflineBanner />
+    </View>
   );
+}
+
+// Drains the offline mutation queue whenever connectivity flips back on.
+// Mounted once at AppShell so we have a single source of "online edge"
+// detection — individual screens that enqueue ops do not call flush().
+function useOfflineQueueFlush() {
+  const isOnline    = useNetworkStore((s) => s.isOnline);
+  const isHydrated  = useMutationQueueStore((s) => s.isHydrated);
+  const flush       = useMutationQueueStore((s) => s.flush);
+
+  useEffect(() => {
+    // Both gates: (a) we've read the persisted queue from disk, and (b)
+    // NetInfo currently reports online. The second is checked again inside
+    // flush() so a flicker between mount and the effect running won't burn
+    // the queue against an offline socket.
+    if (!isHydrated || !isOnline) return;
+    void flush();
+  }, [isOnline, isHydrated, flush]);
 }

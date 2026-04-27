@@ -14,6 +14,13 @@ export const en = {
     error: 'Error',
   },
 
+  offline: {
+    banner: 'Offline mode',
+    showingCached: 'Showing saved content',
+    lastUpdated: 'Last updated',
+    cantLoadOffline: 'You\'re offline and we don\'t have a saved copy of this yet.',
+  },
+
   profile: {
     title: 'Account',
     myAccount: 'My Account',
@@ -106,6 +113,7 @@ export const en = {
 
   discover: {
     couldNotLoad: 'Could not load your feed.',
+    sessionExpired: 'Your session has expired. Please sign in again.',
     whatShouldIExperience: 'What should I experience now',
     hiddenSpotsNearYou: 'Hidden Spots Near You',
     goldenPicks: 'Golden Picks',

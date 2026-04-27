@@ -3,6 +3,7 @@ import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useDiscover } from '@/features/discover/hooks/useDiscover';
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore';
 import {
   DiscoverHeader,
   DiscoverSearchBar,
@@ -19,12 +20,18 @@ import { useTranslation } from '@/i18n';
 
 export default function DiscoverScreen() {
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useDiscover();
+  const { data, isError, isFetching, error, refetch } = useDiscover();
+  const isOffline = useNetworkStore(selectIsOffline);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslation();
 
-  if (isLoading) {
+  // Spinner whenever we have no data and no terminal error to show. Covers:
+  //   • the initial fetch (`isLoading`)
+  //   • the gated state, where the query is `pending` because auth has not
+  //     hydrated yet (previously this fell through to `isError || !data`
+  //     and rendered the false "Could not load your feed" error).
+  if (!data && !isError) {
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center">
         <ActivityIndicator size="large" color="#D2B68A" />
@@ -32,15 +39,31 @@ export default function DiscoverScreen() {
     );
   }
 
-  if (isError || !data) {
+  // Hard error path. Only reached when there is *no* persisted data
+  // available — with React Query persistence + `placeholderData:
+  // keepPreviousData`, a network blip on a previously visited city/locale
+  // keeps rendering content instead of falling here.
+  //
+  // Three sub-cases for the message:
+  //   • offline + no cache  → "you're offline and we don't have a saved
+  //     copy yet" (see offline.cantLoadOffline)
+  //   • online + 401/403    → "session expired"
+  //   • online + other      → generic "couldn't load"
+  if (isError && !data) {
+    const status = (error as any)?.response?.status;
+    const isAuthError = status === 401 || status === 403;
+    const message = isOffline
+      ? t.offline.cantLoadOffline
+      : isAuthError
+      ? t.discover.sessionExpired
+      : t.discover.couldNotLoad;
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
-        <Text className="text-navy/40 text-center text-sm mb-5">
-          {t.discover.couldNotLoad}
-        </Text>
+        <Text className="text-navy/40 text-center text-sm mb-5">{message}</Text>
         <TouchableOpacity
           onPress={() => refetch()}
           activeOpacity={0.85}
+          disabled={isFetching}
           className="bg-primary rounded-lg px-6 py-3"
         >
           <Text className="text-navy text-xs uppercase tracking-widest font-bold">
@@ -50,6 +73,9 @@ export default function DiscoverScreen() {
       </SafeAreaView>
     );
   }
+
+  // Type narrowing — `data` is guaranteed defined here.
+  if (!data) return null;
 
   return (
     <SafeAreaView className="flex-1 bg-ivory" edges={['top']}>

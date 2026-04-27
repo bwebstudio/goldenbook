@@ -15,5 +15,6 @@ export function useCategory(slug: string) {
     queryFn: () => categoriesApi.getCategory(slug, city, locale),
     enabled: !!slug && !!city,
     staleTime: 1000 * 60 * 10,
+    meta: { cacheable: true },
   });
 }

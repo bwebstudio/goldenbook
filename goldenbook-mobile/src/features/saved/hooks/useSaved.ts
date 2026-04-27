@@ -14,5 +14,10 @@ export function useSaved() {
     queryFn: () => savedApi.getSaved(locale),
     enabled: !!session,
     staleTime: 1000 * 60 * 5,
+    // Saved list MUST be cacheable so the user can browse their favorites
+    // offline. Optimistic updates from useSavePlace / useSaveRoute write
+    // here; the offline mutation queue then syncs the server when we're
+    // back online.
+    meta: { cacheable: true },
   });
 }
