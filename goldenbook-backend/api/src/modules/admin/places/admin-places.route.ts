@@ -7,7 +7,7 @@
 // the dashboard does not yet have an admin auth pipeline. Before opening this
 // API to the internet, add a preHandler that verifies admin_users membership.
 
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyBaseLogger } from 'fastify'
 import { z } from 'zod'
 import { db } from '../../../db/postgres'
 import { ValidationError } from '../../../shared/errors/AppError'
@@ -26,14 +26,47 @@ import {
 
 const idParamsSchema = z.object({ id: z.string().uuid('Place id must be a valid UUID') })
 
+// Map a thrown Google Places error (from generate-place.ts) to a 502 response
+// the dashboard can surface to the editor. Logs the full message + body for Railway.
+function replyGooglePlacesError(reply: FastifyReply, log: FastifyBaseLogger, err: unknown, op: string) {
+  const message = err instanceof Error ? err.message : String(err)
+  log.error({ err, op }, `google_places_failed: ${message}`)
+
+  if (message.startsWith('GOOGLE_PLACES_NOT_CONFIGURED')) {
+    return reply.status(502).send({
+      error: 'GOOGLE_PLACES_NOT_CONFIGURED',
+      message: 'Backend Google Places API key is missing. Set GOOGLE_MAPS_API_KEY on the API service.',
+    })
+  }
+  // GOOGLE_PLACES_HTTP_<status>: <op> <body>
+  const m = /^GOOGLE_PLACES_HTTP_(\d+):/.exec(message)
+  const status = m ? Number(m[1]) : null
+  const lower = message.toLowerCase()
+
+  let code = 'GOOGLE_PLACES_FAILED'
+  if (status === 403 && lower.includes('referer')) code = 'GOOGLE_PLACES_KEY_REFERER_RESTRICTED'
+  else if (status === 403 && lower.includes('not been used') ) code = 'GOOGLE_PLACES_API_NOT_ENABLED'
+  else if (status === 403 && lower.includes('billing')) code = 'GOOGLE_PLACES_BILLING_REQUIRED'
+  else if (status === 403) code = 'GOOGLE_PLACES_PERMISSION_DENIED'
+  else if (status === 401) code = 'GOOGLE_PLACES_KEY_INVALID'
+  else if (status === 429) code = 'GOOGLE_PLACES_QUOTA_EXCEEDED'
+  else if (status === 400) code = 'GOOGLE_PLACES_BAD_REQUEST'
+
+  return reply.status(502).send({ error: code, message })
+}
+
 export async function adminPlacesRoutes(app: FastifyInstance) {
 
   // ── GET /admin/places/search-google ─────────────────────────────────────────
   // Google Places autocomplete for the "new place" flow
   app.get('/admin/places/search-google', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { q } = z.object({ q: z.string().min(2) }).parse(request.query)
-    const results = await searchGooglePlaces(q)
-    return reply.send({ results })
+    try {
+      const results = await searchGooglePlaces(q)
+      return reply.send({ results })
+    } catch (err) {
+      return replyGooglePlacesError(reply, request.log, err, 'searchGooglePlaces')
+    }
   })
 
   // ── POST /admin/places/preview-from-google ───────────────────────────────────
@@ -57,6 +90,9 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
           existingSlug,
         })
       }
+      if (msg.startsWith('GOOGLE_PLACES_')) {
+        return replyGooglePlacesError(reply, request.log, err, 'previewPlaceFromGoogle')
+      }
       throw err
     }
   })
@@ -73,6 +109,9 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     if (photoNames.length === 0) return reply.send({ ingested: 0, failed: 0 })
 
     const result = await ingestGooglePhotos(id, photoNames)
+    if (result.ingested === 0 && result.failed > 0) {
+      request.log.error({ placeId: id, failed: result.failed }, 'ingestGooglePhotos: all photos failed — check Railway stderr for [google places] entries')
+    }
     return reply.send(result)
   })
 

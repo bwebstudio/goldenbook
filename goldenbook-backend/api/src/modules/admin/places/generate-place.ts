@@ -42,20 +42,22 @@ interface GooglePlaceDetail {
   photos?: Array<{ name: string; widthPx: number; heightPx: number; authorAttributions?: Array<{ displayName: string; uri: string }> }>
 }
 
-async function fetchGooglePlaceDetails(placeId: string): Promise<GooglePlaceDetail | null> {
-  const url = `https://places.googleapis.com/v1/places/${placeId}`
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': DETAIL_FIELDS,
-      },
-    })
-    if (!res.ok) return null
-    return await res.json() as GooglePlaceDetail
-  } catch {
-    return null
+async function fetchGooglePlaceDetails(placeId: string): Promise<GooglePlaceDetail> {
+  if (!GOOGLE_API_KEY) {
+    throw new Error('GOOGLE_PLACES_NOT_CONFIGURED: GOOGLE_MAPS_API_KEY (or GOOGLE_PLACES_API_KEY) is not set on the backend environment.')
   }
+  const url = `https://places.googleapis.com/v1/places/${placeId}`
+  const res = await fetch(url, {
+    headers: {
+      'X-Goog-Api-Key': GOOGLE_API_KEY,
+      'X-Goog-FieldMask': DETAIL_FIELDS,
+    },
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`GOOGLE_PLACES_HTTP_${res.status}: places:get ${body.slice(0, 400)}`)
+  }
+  return await res.json() as GooglePlaceDetail
 }
 
 // ─── Google Places Autocomplete ───────────────────────────────────────────
@@ -69,34 +71,34 @@ interface AutocompleteResult {
 }
 
 export async function searchGooglePlaces(query: string): Promise<AutocompleteResult[]> {
-  if (!GOOGLE_API_KEY) return []
-  const url = 'https://places.googleapis.com/v1/places:searchText'
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location',
-      },
-      body: JSON.stringify({
-        textQuery: query,
-        languageCode: 'pt',
-        maxResultCount: 8,
-      }),
-    })
-    if (!res.ok) return []
-    const data = await res.json() as { places?: Array<{ id: string; displayName?: { text: string }; formattedAddress?: string; location?: { latitude: number; longitude: number } }> }
-    return (data.places ?? []).map(p => ({
-      placeId: p.id,
-      name: p.displayName?.text ?? '',
-      address: p.formattedAddress ?? '',
-      lat: p.location?.latitude,
-      lng: p.location?.longitude,
-    }))
-  } catch {
-    return []
+  if (!GOOGLE_API_KEY) {
+    throw new Error('GOOGLE_PLACES_NOT_CONFIGURED: GOOGLE_MAPS_API_KEY (or GOOGLE_PLACES_API_KEY) is not set on the backend environment.')
   }
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': GOOGLE_API_KEY,
+      'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location',
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      languageCode: 'pt',
+      maxResultCount: 8,
+    }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`GOOGLE_PLACES_HTTP_${res.status}: places:searchText ${body.slice(0, 400)}`)
+  }
+  const data = await res.json() as { places?: Array<{ id: string; displayName?: { text: string }; formattedAddress?: string; location?: { latitude: number; longitude: number } }> }
+  return (data.places ?? []).map(p => ({
+    placeId: p.id,
+    name: p.displayName?.text ?? '',
+    address: p.formattedAddress ?? '',
+    lat: p.location?.latitude,
+    lng: p.location?.longitude,
+  }))
 }
 
 // ─── Auto-detect city by coordinates ──────────────────────────────────────
@@ -574,11 +576,8 @@ export interface PlacePreview {
 }
 
 export async function previewPlaceFromGoogle(googlePlaceId: string): Promise<PlacePreview> {
-  if (!GOOGLE_API_KEY) throw new Error('GOOGLE_MAPS_API_KEY not configured')
-
-  // 1. Fetch Google Place details
+  // 1. Fetch Google Place details (throws GOOGLE_PLACES_* on failure)
   const google = await fetchGooglePlaceDetails(googlePlaceId)
-  if (!google) throw new Error('Could not fetch place details from Google')
 
   const name = google.displayName?.text ?? 'Unnamed Place'
   const types = google.types ?? []
@@ -660,14 +659,23 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 const IMAGE_BUCKET = 'place-images'
 
 async function downloadGooglePhoto(photoName: string): Promise<{ data: ArrayBuffer; mimeType: string } | null> {
+  if (!GOOGLE_API_KEY) {
+    console.error('[google places] downloadGooglePhoto skipped: GOOGLE_MAPS_API_KEY not set')
+    return null
+  }
   const url = buildGooglePhotoUrl(photoName, 1200)
   try {
     const res = await fetch(url, { redirect: 'follow' })
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error(`[google places] photo media HTTP ${res.status}: ${body.slice(0, 300)}`)
+      return null
+    }
     const contentType = res.headers.get('content-type') ?? 'image/jpeg'
     const data = await res.arrayBuffer()
     return { data, mimeType: contentType.split(';')[0] }
-  } catch {
+  } catch (err) {
+    console.error('[google places] photo media network error:', err instanceof Error ? err.message : err)
     return null
   }
 }
