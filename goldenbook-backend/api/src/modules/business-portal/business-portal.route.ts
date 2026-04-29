@@ -140,7 +140,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       FROM places p
       LEFT JOIN place_translations pt      ON pt.place_id = p.id AND pt.locale = $2
       LEFT JOIN place_translations pt_lang ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
-      LEFT JOIN place_translations pt_fb   ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+      LEFT JOIN place_translations pt_fb   ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
       WHERE p.id = $1
     `, [client.placeId, locale])
 
@@ -209,7 +209,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
         COALESCE(pt.full_description, pt_fb.full_description, p.full_description) AS full_description
       FROM places p
       LEFT JOIN place_translations pt    ON pt.place_id = p.id AND pt.locale = 'pt'
-      LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+      LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
       WHERE p.id = $1
     `, [client.placeId])
     const current = currentRows[0]

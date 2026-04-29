@@ -32,7 +32,7 @@ export async function getCityHeader(
     LEFT JOIN destination_translations dt_lang
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN destination_translations dt_fb
-           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     LEFT JOIN countries co ON co.id = d.country_id
     LEFT JOIN media_assets ma ON ma.id = d.hero_image_asset_id
     WHERE d.slug = $1
@@ -107,7 +107,7 @@ export async function getEditorialHero(
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -202,7 +202,7 @@ async function getCollectionPlaces(
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -250,7 +250,7 @@ async function getPlacesFallback(
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -299,7 +299,7 @@ async function getVisibilityPlaces(
       JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
       LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $2
       LEFT JOIN place_translations pt_lang ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
-      LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+      LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
       LEFT JOIN LATERAL (
         SELECT ma.bucket, ma.path FROM place_images pi JOIN media_assets ma ON ma.id = pi.asset_id
         WHERE pi.place_id = p.id AND pi.image_role IN ('hero','cover')
@@ -387,7 +387,7 @@ export async function getNewPlaces(
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -436,7 +436,7 @@ export async function getDiscoverCategories(
     LEFT JOIN category_translations ct_lang
            ON ct_lang.category_id = c.id AND ct_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN category_translations ct_fb
-           ON ct_fb.category_id = c.id AND ct_fb.locale = 'en'
+           ON ct_fb.category_id = c.id AND ct_fb.locale = 'pt'
     WHERE c.is_active = true
     ORDER BY c.sort_order ASC, c.id ASC
     `,
@@ -481,7 +481,7 @@ export async function getNowCandidates(
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi

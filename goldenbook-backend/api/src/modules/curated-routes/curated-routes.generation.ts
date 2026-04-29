@@ -133,11 +133,13 @@ async function queryCandidates(
       p.latitude::float AS latitude, p.longitude::float AS longitude,
       p.google_rating::float AS google_rating,
       p.short_description,
-      pt_en.goldenbook_note,
+      pt_canonical.goldenbook_note,
       p.context_tags_auto
     FROM places p
     JOIN destinations d ON d.id = p.destination_id AND d.slug = $1
-    LEFT JOIN place_translations pt_en ON pt_en.place_id = p.id AND pt_en.locale = 'en'
+    -- Read editorial fields from the canonical PT row. Was 'en' before the
+    -- canonical-locale switch — see modules/admin/places/translation-policy.ts.
+    LEFT JOIN place_translations pt_canonical ON pt_canonical.place_id = p.id AND pt_canonical.locale = 'pt'
     WHERE p.status = 'published'
       AND p.is_active = true
       AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
@@ -189,9 +191,11 @@ async function selectPlaces(
         SELECT p.id, p.slug, p.name, p.place_type,
           p.latitude::float AS latitude, p.longitude::float AS longitude,
           p.google_rating::float AS google_rating, p.short_description,
-          pt_en.goldenbook_note, p.context_tags_auto
+          pt_canonical.goldenbook_note, p.context_tags_auto
         FROM places p
-        LEFT JOIN place_translations pt_en ON pt_en.place_id = p.id AND pt_en.locale = 'en'
+        -- Read editorial fields from the canonical PT row. Was 'en' before the
+    -- canonical-locale switch — see modules/admin/places/translation-policy.ts.
+    LEFT JOIN place_translations pt_canonical ON pt_canonical.place_id = p.id AND pt_canonical.locale = 'pt'
         WHERE p.id = $1 LIMIT 1
       `, [seedPlaceId])
       if (rows.length === 0) return null

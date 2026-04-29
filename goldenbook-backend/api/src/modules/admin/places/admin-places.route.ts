@@ -136,30 +136,29 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
 
   // ── PUT /admin/places/:id ───────────────────────────────────────────────────
   //
-  // Two payload shapes are accepted:
+  // The canonical save path. Body uses the flat `updatePlaceSchema` shape;
+  // editorial fields are written into the **Portuguese** row and EN/ES are
+  // auto-translated from PT (override-protected). See
+  // `translation-policy.ts` and `admin-places.query.ts:updatePlace`.
   //
-  //  1) Unified (preferred): `{ canonical?: {...}, translations?: { en, es, pt } }`
-  //     Writes canonical + all supplied locales in a single transaction.
-  //     Each locale is first-class — DeepL is NOT invoked from this path.
-  //
-  //  2) Legacy flat shape: any of the fields from `updatePlaceSchema`.
-  //     Preserved so dashboards that haven't migrated to the three-tab editor
-  //     keep working. This path still calls DeepL to refresh PT/ES from EN
-  //     (deprecated — the unified path replaces it).
+  // The legacy "unified" payload (`{ canonical, translations: { en, es, pt }}`)
+  // used to be accepted here too; it has been moved to a dedicated endpoint
+  // (`PUT /admin/places/:id/translations/bulk` below) so a stray
+  // `translations` key on a regular save can never silently route the
+  // request through the EN-permissive code path.
   app.put('/admin/places/:id', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = idParamsSchema.parse(request.params)
     const body = (request.body ?? {}) as Record<string, unknown>
 
-    const looksUnified = 'canonical' in body || 'translations' in body
-    if (looksUnified) {
-      const parsed = updatePlaceUnifiedSchema.safeParse(body)
-      if (!parsed.success) {
-        const first = parsed.error.errors[0]
-        throw new ValidationError(`${first.path.join('.')}: ${first.message}`)
-      }
-      const updatedBy = request.user?.sub ?? null
-      const result = await updatePlaceUnified(id, parsed.data, updatedBy)
-      return reply.send(result)
+    // Defensive: refuse the legacy unified shape on this endpoint with a
+    // clear redirect message rather than silently failing schema validation
+    // on the keys we don't accept. Dashboards on old code will see a 400
+    // explaining where to send the request.
+    if ('canonical' in body || 'translations' in body) {
+      throw new ValidationError(
+        '`canonical` / `translations` payloads are not accepted on PUT /admin/places/:id. ' +
+        'Use PUT /admin/places/:id/translations/bulk for explicit per-locale writes.',
+      )
     }
 
     const parsed = updatePlaceSchema.safeParse(body)
@@ -170,6 +169,30 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
 
     const place = await updatePlace(id, parsed.data)
     return reply.send(place)
+  })
+
+  // ── PUT /admin/places/:id/translations/bulk ─────────────────────────────────
+  //
+  // Explicit per-locale write surface. Each (place_id, locale) row is
+  // first-class and editable; the caller decides which locales to touch
+  // and may set `is_override: true` to lock a row against future
+  // auto-regeneration. DeepL is NEVER invoked from this path — that's the
+  // job of POST /admin/places/:id/translations/regenerate.
+  //
+  // This endpoint exists for callers that genuinely need to write EN or
+  // ES content directly (e.g. bulk imports, future translation-management
+  // tools). It is NOT the path the dashboard place editor uses — the
+  // editor goes through PUT /admin/places/:id which is PT-canonical.
+  app.put('/admin/places/:id/translations/bulk', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { id } = idParamsSchema.parse(request.params)
+    const parsed = updatePlaceUnifiedSchema.safeParse(request.body ?? {})
+    if (!parsed.success) {
+      const first = parsed.error.errors[0]
+      throw new ValidationError(`${first.path.join('.')}: ${first.message}`)
+    }
+    const updatedBy = request.user?.sub ?? null
+    const result = await updatePlaceUnified(id, parsed.data, updatedBy)
+    return reply.send(result)
   })
 
   // ── GET /admin/places/:id/translations/editor ─────────────────────────────
@@ -368,9 +391,14 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     return reply.send(result)
   })
 
-  // ── PUT EN translation manually (sets override) ─────────────────────────
-  app.put('/admin/places/:id/translations/en', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
-    const { id } = idParamsSchema.parse(request.params)
+  // ── PUT translation manually for a target locale (sets override) ────────
+  // Supports 'en' and 'es' — Portuguese is the canonical source and is edited
+  // through the main place form, not here.
+  app.put('/admin/places/:id/translations/:locale', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { id, locale } = z.object({
+      id: z.string().uuid('Place id must be a valid UUID'),
+      locale: z.enum(['en', 'es']),
+    }).parse(request.params)
     const body = z.object({
       name: z.string().optional(),
       shortDescription: z.string().nullable().optional(),
@@ -396,60 +424,156 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     sets.push('updated_at = now()')
 
     params.push(id)
-    await db.query(`UPDATE place_translations SET ${sets.join(', ')} WHERE place_id = $${i} AND locale = 'en'`, params)
-    return reply.send({ updated: true })
+    params.push(locale)
+    await db.query(
+      `UPDATE place_translations SET ${sets.join(', ')} WHERE place_id = $${i} AND locale = $${i + 1}`,
+      params,
+    )
+    return reply.send({ updated: true, locale })
   })
 
-  // ── POST regenerate PT/ES translations from EN via DeepL ────────────────
+  // ── POST regenerate auto-translations via DeepL ─────────────────────────
+  //
+  // Body (all optional):
+  //   - source:    'pt' | 'en' | 'es'   default 'pt'
+  //   - text:      { name, shortDescription, fullDescription, goldenbookNote, insiderTip }
+  //                If provided, used as the source content (lets the dashboard
+  //                regenerate from in-form values without saving first).
+  //                Otherwise the source row is read from `place_translations`.
+  //   - targets:   ('en' | 'es' | 'pt')[]   defaults to the two locales other
+  //                than the source.
+  //   - persist:   boolean   default true. When false, returns the DeepL output
+  //                without writing — used for in-form previews.
+  //
+  // PT is the editorial source-of-truth. The endpoint NEVER overwrites a row
+  // whose `translation_override = true` unless `targets` explicitly includes it.
   app.post('/admin/places/:id/translations/regenerate', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = idParamsSchema.parse(request.params)
 
-    // EN is the source of truth for auto-generated locales.
-    const { rows } = await db.query<{
+    const localeEnum = z.enum(['en', 'es', 'pt'])
+    const body = z.object({
+      source: localeEnum.default('pt'),
+      text: z.object({
+        name: z.string().optional(),
+        shortDescription: z.string().nullable().optional(),
+        fullDescription: z.string().nullable().optional(),
+        goldenbookNote: z.string().nullable().optional(),
+        insiderTip: z.string().nullable().optional(),
+      }).optional(),
+      targets: z.array(localeEnum).optional(),
+      persist: z.boolean().default(true),
+    }).parse(request.body ?? {})
+
+    // Resolve source content — inline text wins, otherwise read DB.
+    let sourceFields: {
       name: string; short_description: string | null; full_description: string | null
       goldenbook_note: string | null; insider_tip: string | null
-    }>('SELECT name, short_description, full_description, goldenbook_note, insider_tip FROM place_translations WHERE place_id = $1 AND locale = \'en\' LIMIT 1', [id])
+    } | null = null
 
-    if (!rows[0]) {
-      return reply.status(400).send({ error: 'NO_EN_TRANSLATION', message: 'No English translation found for this place.' })
+    if (body.text) {
+      sourceFields = {
+        name: body.text.name ?? '',
+        short_description: body.text.shortDescription ?? null,
+        full_description: body.text.fullDescription ?? null,
+        goldenbook_note: body.text.goldenbookNote ?? null,
+        insider_tip: body.text.insiderTip ?? null,
+      }
+    } else {
+      const { rows } = await db.query<{
+        name: string; short_description: string | null; full_description: string | null
+        goldenbook_note: string | null; insider_tip: string | null
+      }>(
+        'SELECT name, short_description, full_description, goldenbook_note, insider_tip FROM place_translations WHERE place_id = $1 AND locale = $2 LIMIT 1',
+        [id, body.source],
+      )
+      if (!rows[0]) {
+        return reply.status(400).send({
+          error: 'NO_SOURCE_TRANSLATION',
+          message: `No ${body.source.toUpperCase()} translation found for this place.`,
+        })
+      }
+      sourceFields = rows[0]
     }
 
-    const en = rows[0]
+    const requestedTargets = (body.targets && body.targets.length > 0
+      ? body.targets
+      : (['en', 'es', 'pt'] as const).filter((l) => l !== body.source)
+    ) as ReadonlyArray<'en' | 'es' | 'pt'>
+
+    // Manual overrides (translation_override = true) MUST be preserved —
+    // an editor explicitly curated those rows. Read the override flags for
+    // the requested targets up-front so the regenerate loop below can skip
+    // them with a single round-trip instead of one query per target.
+    const overrideRows = await db.query<{ locale: string; translation_override: boolean }>(
+      `SELECT locale, COALESCE(translation_override, false) AS translation_override
+       FROM place_translations
+       WHERE place_id = $1 AND locale = ANY($2::text[])`,
+      [id, [...requestedTargets]],
+    )
+    const overrides: Partial<Record<'en' | 'es' | 'pt', boolean>> = {}
+    for (const row of overrideRows.rows) {
+      overrides[row.locale as 'en' | 'es' | 'pt'] = row.translation_override
+    }
+
+    const { resolveRegenerateTargets } = await import('./translation-policy')
+    const { toRegenerate: targets, skippedOverridden } = resolveRegenerateTargets({
+      source: body.source,
+      targets: requestedTargets,
+      overrides,
+    })
+
     const { translatePlaceFields } = await import('../../../lib/translation/deepl')
-    const targetLocales = ['pt', 'es'] as const
     const succeeded: string[] = []
     const failed: string[] = []
+    const results: Record<string, unknown> = {}
 
-    for (const targetLocale of targetLocales) {
+    for (const targetLocale of targets) {
       try {
         const translated = await translatePlaceFields(
           {
-            name: en.name,
-            short_description: en.short_description,
-            full_description: en.full_description,
-            goldenbook_note: en.goldenbook_note,
-            insider_tip: en.insider_tip,
+            name: sourceFields.name,
+            short_description: sourceFields.short_description,
+            full_description: sourceFields.full_description,
+            goldenbook_note: sourceFields.goldenbook_note,
+            insider_tip: sourceFields.insider_tip,
           },
           targetLocale,
-          'en',
+          body.source,
         )
 
-        await db.query(`
-          INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, false)
-          ON CONFLICT (place_id, locale) DO UPDATE SET
-            name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-            goldenbook_note = EXCLUDED.goldenbook_note, insider_tip = EXCLUDED.insider_tip,
-            translation_override = false, updated_at = now()
-        `, [
-          id,
-          targetLocale,
-          translated.name,
-          translated.short_description,
-          translated.full_description,
-          translated.goldenbook_note,
-          translated.insider_tip,
-        ])
+        results[targetLocale] = {
+          name: translated.name,
+          shortDescription: translated.short_description,
+          fullDescription: translated.full_description,
+          goldenbookNote: translated.goldenbook_note,
+          insiderTip: translated.insider_tip,
+        }
+
+        if (body.persist) {
+          // Belt-and-suspenders: even though `resolveRegenerateTargets`
+          // already filtered out overridden locales, the WHERE clause here
+          // ensures a concurrent override write between policy check and
+          // INSERT can't be silently clobbered. If the row exists with
+          // override=true the conflict's UPDATE is a no-op.
+          await db.query(`
+            INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override, translated_from)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
+            ON CONFLICT (place_id, locale) DO UPDATE SET
+              name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
+              goldenbook_note = EXCLUDED.goldenbook_note, insider_tip = EXCLUDED.insider_tip,
+              translated_from = EXCLUDED.translated_from, updated_at = now()
+            WHERE COALESCE(place_translations.translation_override, false) = false
+          `, [
+            id,
+            targetLocale,
+            translated.name,
+            translated.short_description,
+            translated.full_description,
+            translated.goldenbook_note,
+            translated.insider_tip,
+            body.source,
+          ])
+        }
         succeeded.push(targetLocale)
       } catch (err) {
         app.log.error({ placeId: id, locale: targetLocale, error: err instanceof Error ? err.message : err }, 'regenerate_translation_failed')
@@ -457,7 +581,18 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       }
     }
 
-    return reply.send({ regenerated: succeeded.length > 0, succeeded, failed })
+    return reply.send({
+      regenerated: succeeded.length > 0,
+      source: body.source,
+      succeeded,
+      failed,
+      // Overridden locales are reported separately so the dashboard can
+      // explain why a requested target was left untouched ("EN was kept
+      // because it has a manual override").
+      skippedOverridden,
+      persisted: body.persist,
+      results,
+    })
   })
 
   // ── POST bulk regenerate translations for all places missing PT/ES ─────

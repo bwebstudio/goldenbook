@@ -19,6 +19,17 @@ export const en = {
     showingCached: 'Showing saved content',
     lastUpdated: 'Last updated',
     cantLoadOffline: 'You\'re offline and we don\'t have a saved copy of this yet.',
+    // Inline pill shown above lists/details that are being served from
+    // the on-device cache while the device is offline.
+    savedResultsHint: 'Offline — showing saved results',
+    // Empty-state title when the user opens a feature that strictly
+    // requires the network (e.g. live concierge / NOW with no cache).
+    offlineEmptyTitle: 'You\'re offline',
+    liveNeedsInternet: 'Live recommendations need an internet connection. Reconnect to continue.',
+    placesNeedInternet: 'Open this category once with an internet connection and we\'ll keep a copy on your device for next time.',
+    routesNeedInternet: 'Open Routes once online and we\'ll save them for offline reading.',
+    placeNeedsInternet: 'Open this place once online and you\'ll be able to revisit it offline.',
+    routeDetailNeedsInternet: 'Open this route once online and you\'ll be able to revisit it offline.',
   },
 
   profile: {
@@ -150,6 +161,10 @@ export const en = {
     seeAnother: 'See another option',
     errorLoading: "We couldn't load a recommendation right now.",
     offlineMessage: 'Connect to the internet to get a real-time recommendation.',
+    // Pill shown over the NOW card when we rendered the section from disk
+    // because the device is offline. The recommendation itself is from a
+    // previous fresh fetch, not the current moment.
+    lastSavedHint: 'Showing your last saved recommendation',
     lookingForMore: 'Looking for something else?',
     openConcierge: 'Ask the Concierge',
     exploreNow: 'EXPLORE NOW',
@@ -171,6 +186,15 @@ export const en = {
     requestAccess: 'Request Access',
     errorBootstrap: 'Unable to reach your Personal Guide right now. Please try again.',
     errorRecommendation: 'Couldn\'t find the right places this time. Try a different interest.',
+    // Premium offline empty state — shown when the user opens Concierge
+    // offline and there is no cached session to rehydrate.
+    offlineEmptyTitle: 'Your concierge is offline',
+    offlineEmptyBody: 'Live recommendations are tailored on the fly. Reconnect to start a new conversation.',
+    // Inline pill shown above the chat when we hydrated from cache because
+    // the device is offline. New intent taps still require connectivity.
+    offlineLastSaved: 'Showing your last saved recommendations',
+    // Toast / inline copy when the user taps an intent pill while offline.
+    offlineNeedsInternet: 'Reconnect to ask the Concierge for new recommendations.',
   },
 
   routes: {

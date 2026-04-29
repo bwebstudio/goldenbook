@@ -192,6 +192,37 @@ export default function ConciergeScreen() {
     )
   }
 
+  // ── Offline + no cached session → premium offline empty state ───────────────
+  // The Concierge is the one feature that explicitly does NOT pretend to work
+  // offline. Live recommendations are tailored on the fly per request, so a
+  // saved transcript is meaningless without a way to ask follow-up questions.
+  // We surface that as a deliberate state with its own copy, not as a failure.
+  if (state.offlineWithoutCache) {
+    return (
+      <Animated.View
+        style={[
+          styles.flex,
+          {
+            opacity: entryOpacity,
+            transform: [{ translateY: entryTranslateY }],
+          },
+        ]}
+      >
+        <SafeAreaView style={styles.errorScreen} edges={['top', 'bottom']}>
+          <View style={styles.errorBody}>
+            <Text style={styles.errorMark}>✦</Text>
+            <Text style={styles.errorTitle}>
+              {(t.concierge as any).offlineEmptyTitle ?? t.offline.offlineEmptyTitle}
+            </Text>
+            <Text style={styles.errorSub}>
+              {(t.concierge as any).offlineEmptyBody ?? t.offline.liveNeedsInternet}
+            </Text>
+          </View>
+        </SafeAreaView>
+      </Animated.View>
+    )
+  }
+
   // ── Bootstrap error ────────────────────────────────────────────────────────
   if (state.error && state.messages.length === 0) {
     return (
@@ -259,12 +290,37 @@ export default function ConciergeScreen() {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            {/* Per-screen cue when this Concierge session was rehydrated
+                from the on-device cache because the device is offline.
+                Tapping intent pills will fail until reconnected — the
+                handleIntentTap path surfaces a separate inline error. */}
+            {state.fromCache && (
+              <View style={styles.cachedHint}>
+                <View style={styles.cachedHintDot} />
+                <Text style={styles.cachedHintText}>
+                  {(t.concierge as any).offlineLastSaved ?? t.offline.savedResultsHint}
+                </Text>
+              </View>
+            )}
+
             {state.messages.map((msg) => (
               <MessageBlock
                 key={msg.id}
                 message={msg}
               />
             ))}
+
+            {/* Inline copy when an intent tap was rejected because we're
+                offline. We use a dedicated payload ('offline') from the
+                hook to tell apart genuine backend failures from "you can't
+                ask new questions while offline". */}
+            {state.error === 'offline' && (
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyText}>
+                  {(t.concierge as any).offlineNeedsInternet ?? t.offline.liveNeedsInternet}
+                </Text>
+              </View>
+            )}
 
             {/* Thinking indicator while waiting for recommendations */}
             {state.loadingRecommendation && (
@@ -529,4 +585,33 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   bottomSafe: { backgroundColor: IVORY },
+
+  // Pill rendered above the chat when the session was hydrated from the
+  // on-device cache because the device is offline. Visual language matches
+  // the global OfflineBanner (gold dot, navy on ivory) so the user reads
+  // both as parts of the same offline cue.
+  cachedHint: {
+    marginHorizontal: 24,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(34,45,82,0.06)',
+    borderRadius: 999,
+    alignSelf: 'flex-start',
+  },
+  cachedHintDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: GOLD,
+  },
+  cachedHintText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 11,
+    color: 'rgba(34,45,82,0.7)',
+    letterSpacing: 0.3,
+  },
 })

@@ -59,7 +59,7 @@ async function getWebGoldenPicks(
     LEFT JOIN place_translations pt
            ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -82,7 +82,7 @@ async function getWebGoldenPicks(
       LEFT JOIN category_translations ct
              ON ct.category_id = c.id AND ct.locale = $2
       LEFT JOIN category_translations ct_fb
-             ON ct_fb.category_id = c.id AND ct_fb.locale = 'en'
+             ON ct_fb.category_id = c.id AND ct_fb.locale = 'pt'
       WHERE  pc2.place_id = p.id
       ORDER  BY c.sort_order ASC
       LIMIT  1
@@ -116,7 +116,7 @@ async function getWebGoldenPicks(
     LEFT JOIN place_translations pt
            ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -139,7 +139,7 @@ async function getWebGoldenPicks(
       LEFT JOIN category_translations ct
              ON ct.category_id = c.id AND ct.locale = $2
       LEFT JOIN category_translations ct_fb
-             ON ct_fb.category_id = c.id AND ct_fb.locale = 'en'
+             ON ct_fb.category_id = c.id AND ct_fb.locale = 'pt'
       WHERE  pc2.place_id = p.id
       ORDER  BY c.sort_order ASC
       LIMIT  1
@@ -200,7 +200,7 @@ async function getWebNowCandidates(
     LEFT JOIN place_translations pt
            ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path, ma.width AS img_width, ma.height AS img_height
       FROM   place_images pi
@@ -224,7 +224,7 @@ async function getWebNowCandidates(
       LEFT JOIN category_translations ct
              ON ct.category_id = c2.id AND ct.locale = $2
       LEFT JOIN category_translations ct_fb
-             ON ct_fb.category_id = c2.id AND ct_fb.locale = 'en'
+             ON ct_fb.category_id = c2.id AND ct_fb.locale = 'pt'
       WHERE  pc2.place_id = p.id
       ORDER  BY c2.sort_order ASC
       LIMIT  1
@@ -347,7 +347,7 @@ async function getWebNowCuratedSlots(
     LEFT JOIN place_translations pt
            ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path, ma.width AS img_width, ma.height AS img_height
       FROM   place_images pi
@@ -371,7 +371,7 @@ async function getWebNowCuratedSlots(
       LEFT JOIN category_translations ct
              ON ct.category_id = c2.id AND ct.locale = $2
       LEFT JOIN category_translations ct_fb
-             ON ct_fb.category_id = c2.id AND ct_fb.locale = 'en'
+             ON ct_fb.category_id = c2.id AND ct_fb.locale = 'pt'
       WHERE  pc2.place_id = p.id
       ORDER  BY c2.sort_order ASC
       LIMIT  1
@@ -564,7 +564,7 @@ async function getGoldenRoutesWithCity(
     LEFT JOIN route_translations rt
            ON rt.route_id = r.id AND rt.locale = $2
     LEFT JOIN route_translations rt_fb
-           ON rt_fb.route_id = r.id AND rt_fb.locale = 'en'
+           ON rt_fb.route_id = r.id AND rt_fb.locale = 'pt'
     LEFT JOIN media_assets ma ON ma.id = r.cover_asset_id
     LEFT JOIN route_places rp ON rp.route_id = r.id
     WHERE r.status = 'published'

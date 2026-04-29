@@ -55,6 +55,11 @@ export interface AdminPlacePayload {
   bookingNotes?:         string;
   reservationRelevant?:  boolean;
   reservationSource?:    ReservationSource;
+  // Locale of the editorial fields above. PT is canonical going forward —
+  // the manual dashboard form omits this (defaults to 'pt'). The Google
+  // import flow passes 'en' so the API translates the imported English text
+  // into Portuguese before persisting the canonical row.
+  sourceLocale?:         "pt" | "en";
 }
 
 // Response from POST /api/v1/admin/places and PUT /api/v1/admin/places/:id.

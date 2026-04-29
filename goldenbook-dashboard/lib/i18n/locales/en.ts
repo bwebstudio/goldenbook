@@ -569,6 +569,46 @@ const en = {
     regenerate: "Regenerate translation",
     regenerating: "Regenerating...",
     regenerated: "Translation regenerated.",
+    // ── Main editorial section header (Portuguese, canonical) ──
+    mainContentTitle: "Main editorial (Portuguese)",
+    mainContentDesc: "Portuguese is the canonical source. English and Spanish are translated automatically from these fields and can be overridden manually below.",
+    // ── Translation editor (EN + ES) ──
+    translationsTitle: "Translations",
+    translationsDesc: "Portuguese is the editorial source. English and Spanish are generated automatically and can be overridden manually.",
+    translationLanguageEn: "English translation",
+    translationLanguageEs: "Spanish translation",
+    translationLanguagePt: "Portuguese",
+    statusAuto: "Auto-translated",
+    statusManual: "Manual override",
+    sourceLabel: "Source",
+    sourceUnknown: "Not set",
+    fromSource: "from {{source}}",
+    regenerateFromPt: "Regenerate from Portuguese",
+    // Bulk regenerate button — copy reflects the dirty-state behavior:
+    // disabled when PT source matches the on-disk snapshot, enabled the
+    // moment the editor edits any of the PT source fields.
+    regenerateAll: "Regenerate translations from Portuguese",
+    regenerateAllDisabled: "No Portuguese changes to translate",
+    regenerateAllPending: "Portuguese content changed — regenerate translations",
+    regenerateNote: "Uses your current Portuguese form values, including unsaved changes. Manual EN/ES overrides are kept untouched.",
+    regenerateNeedsPt: "Add a Portuguese name first to enable regeneration.",
+    regenerateSkippedOverridden: "Skipped: {{locales}} (manual override).",
+    // Reported when DeepL (or the database upsert downstream of it)
+    // threw for one or more requested targets. The editor should retry
+    // — the canonical PT row is already saved, so re-running the
+    // regenerate button is safe and idempotent.
+    regenerateFailedLocales: "Failed: {{locales}}. The translation service may be temporarily unavailable — try again in a moment.",
+    saveTranslation: "Save translation",
+    translationSaved: "Translation saved.",
+    translationSaveFailed: "Could not save translation.",
+    regenerateFailed: "Could not regenerate translation.",
+    regenerateAllSucceeded: "English and Spanish translations regenerated from Portuguese.",
+    regeneratePartial: "{{ok}} regenerated, {{fail}} failed.",
+    fieldName: "Name",
+    // ── Toast / sticky bar states ──
+    allChangesSaved: "All changes saved.",
+    successToast: "Changes saved successfully.",
+    dismiss: "Dismiss",
   },
 
   // ─── Employee Portal — Users Management ───────────────────────────────────
@@ -795,13 +835,13 @@ const en = {
     featuresTitle: "What they're doing",
     searchTitle: "What they're searching for",
     // Headline KPIs — replaced DAU / WAU / MAU / Sessions per user
-    activeToday:    "Active users today",
-    activeTodayHint:"People who opened the app today",
-    active7d:       "Active users (last 7 days)",
-    active7dHint:   "People who opened the app at least once this week",
-    active30d:      "Active users (last 30 days)",
-    active30dHint:  "People who opened the app at least once this month",
-    visitsPerUser:  "Visits per user",
+    activeToday:    "People who opened the app today",
+    activeTodayHint:"Includes people already signed in who returned to the app",
+    active7d:       "People who opened the app this week",
+    active7dHint:   "Different people in the last 7 days",
+    active30d:      "People who opened the app this month",
+    active30dHint:  "Different people in the last 30 days",
+    visitsPerUser:  "Visits per person",
     visitsPerUserHint: "Average number of times each person opens the app",
     // Session duration — replaced P50 / P75 / P95
     avgTime:            "Average time in the app",

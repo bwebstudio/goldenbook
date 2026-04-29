@@ -96,7 +96,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   const t = useTranslation()
   const locale = useSettingsStore((s) => s.locale)
   const citySlug = useAppStore((s) => s.selectedCity)
-  const { data, loading, refreshing, error, refresh, reload } = useNowRecommendation()
+  const { data, loading, refreshing, error, fromCache, refresh, reload } = useNowRecommendation()
   const setNowContext = useNowContextStore((s) => s.set)
   const isOffline = useNetworkStore(selectIsOffline)
   const destinationTimeZone = getTimeZoneForCity(data?.place?.city || cityName)
@@ -355,24 +355,63 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
         </View>
       </TouchableOpacity>
 
+      {/* Tell the user this card is the saved copy when we rendered it
+          while offline. We don't show this when online + fromCache (e.g.
+          a transient network blip) because the global OfflineBanner is the
+          only signal that should imply "saved copy" to the user. */}
+      {fromCache && isOffline && (
+        <View
+          style={{
+            marginHorizontal: 24,
+            marginTop: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+        >
+          <View
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: 2.5,
+              backgroundColor: '#D2B68A',
+            }}
+          />
+          <Text
+            style={{
+              fontFamily: 'Inter_500Medium',
+              fontSize: 10.5,
+              color: 'rgba(34,45,82,0.55)',
+              letterSpacing: 0.4,
+            }}
+          >
+            {(t.now as any).lastSavedHint ?? t.offline.savedResultsHint}
+          </Text>
+        </View>
+      )}
+
       {/* ── Actions below the card ────────────────────────────────────────── */}
       <View className="mx-6 mt-3 mb-1" style={{ gap: 6 }}>
 
-        {/* See another option */}
-        <TouchableOpacity
-          onPress={refresh}
-          disabled={refreshing}
-          activeOpacity={0.7}
-          className="flex-row items-center justify-center py-2"
-        >
-          {refreshing ? (
-            <ActivityIndicator size="small" color="#D2B68A" />
-          ) : (
-            <Text className="text-primary text-[11px] tracking-wide font-semibold">
-              {(t.now as any).seeAnother}
-            </Text>
-          )}
-        </TouchableOpacity>
+        {/* See another option — hidden offline because the request would
+            just hang on the axios timeout. */}
+        {!isOffline && (
+          <TouchableOpacity
+            onPress={refresh}
+            disabled={refreshing}
+            activeOpacity={0.7}
+            className="flex-row items-center justify-center py-2"
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color="#D2B68A" />
+            ) : (
+              <Text className="text-primary text-[11px] tracking-wide font-semibold">
+                {(t.now as any).seeAnother}
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
 
         {/* Looking for something else? → Concierge */}
         <TouchableOpacity

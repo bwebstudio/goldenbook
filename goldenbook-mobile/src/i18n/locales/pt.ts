@@ -21,6 +21,13 @@ export const pt: Translations = {
     showingCached: 'A mostrar conteúdo guardado',
     lastUpdated: 'Última atualização',
     cantLoadOffline: 'Estás offline e ainda não temos uma cópia guardada.',
+    savedResultsHint: 'Offline — a mostrar resultados guardados',
+    offlineEmptyTitle: 'Estás offline',
+    liveNeedsInternet: 'As recomendações em tempo real precisam de ligação à internet. Volta a ligar-te para continuar.',
+    placesNeedInternet: 'Abre esta categoria uma vez com ligação e guardamos uma cópia no teu dispositivo para a próxima.',
+    routesNeedInternet: 'Abre as Rotas uma vez com ligação e ficam guardadas para leitura offline.',
+    placeNeedsInternet: 'Abre este lugar uma vez com ligação e poderás revê-lo offline.',
+    routeDetailNeedsInternet: 'Abre esta rota uma vez com ligação e poderás revê-la offline.',
   },
 
   profile: {
@@ -152,6 +159,7 @@ export const pt: Translations = {
     seeAnother: 'Ver outra opção',
     errorLoading: 'Não conseguimos carregar uma recomendação neste momento.',
     offlineMessage: 'Liga-te à internet para receber uma recomendação em tempo real.',
+    lastSavedHint: 'A mostrar a tua última recomendação guardada',
     lookingForMore: 'Procuras algo diferente?',
     openConcierge: 'Perguntar ao Concierge',
     exploreNow: 'EXPLORAR AGORA',
@@ -173,6 +181,10 @@ export const pt: Translations = {
     requestAccess: 'Solicitar Acesso',
     errorBootstrap: 'Não conseguimos chegar ao teu Guia Pessoal agora. Tenta novamente.',
     errorRecommendation: 'Não encontrámos os lugares certos desta vez. Tenta outro interesse.',
+    offlineEmptyTitle: 'O teu concierge está offline',
+    offlineEmptyBody: 'As recomendações ao vivo são preparadas no momento. Volta a ligar-te para iniciar uma nova conversa.',
+    offlineLastSaved: 'A mostrar as tuas últimas recomendações guardadas',
+    offlineNeedsInternet: 'Volta a ligar-te para pedires novas recomendações ao Concierge.',
   },
 
   routes: {

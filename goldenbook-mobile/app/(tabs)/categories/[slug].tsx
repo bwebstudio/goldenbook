@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCategory } from '@/features/categories/hooks/useCategory';
 import { useTranslation } from '@/i18n';
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore';
+import { CachedDataHint } from '@/components/CachedDataHint';
 import {
   CategoryHeader,
   CategoryIntro,
@@ -18,6 +20,7 @@ export default function CategoryScreen() {
   const router = useRouter();
   const t = useTranslation();
   const { data, isLoading, isError, refetch } = useCategory(slug ?? '');
+  const isOffline = useNetworkStore(selectIsOffline);
 
   if (isLoading) {
     return (
@@ -30,21 +33,32 @@ export default function CategoryScreen() {
   }
 
   if (isError || !data) {
+    // Three-way split for the message:
+    //   • offline + no cache → "open this category once online and we'll
+    //     keep a copy" — the user is in a known state, not a broken one.
+    //   • online + error    → generic "couldn't load this category".
+    //   • offline + cache   → never reached: persisted data short-circuits
+    //     this branch and we render with a CachedDataHint instead.
+    const message = isOffline ? t.offline.placesNeedInternet : t.category.couldNotLoad;
     return (
       <SafeAreaView className="flex-1 bg-ivory">
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-navy/40 text-center text-sm leading-relaxed mb-5">
-            {t.category.couldNotLoad}
+            {message}
           </Text>
-          <TouchableOpacity
-            onPress={() => refetch()}
-            activeOpacity={0.85}
-            className="bg-primary rounded-lg px-6 py-3 mb-3"
-          >
-            <Text className="text-navy text-xs uppercase tracking-widest font-bold">
-              {t.common.retry}
-            </Text>
-          </TouchableOpacity>
+          {/* Retry only makes sense when something other than connectivity
+              broke. Offline taps would just re-fail. */}
+          {!isOffline && (
+            <TouchableOpacity
+              onPress={() => refetch()}
+              activeOpacity={0.85}
+              className="bg-primary rounded-lg px-6 py-3 mb-3"
+            >
+              <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+                {t.common.retry}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
             <Text className="text-navy/30 text-xs tracking-wide">{t.common.goBack}</Text>
           </TouchableOpacity>
@@ -71,6 +85,12 @@ export default function CategoryScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 24 }}
       >
+        {/* Per-screen cue when the data on screen came from disk while the
+            device is offline. The global OfflineBanner already announces
+            connectivity state at the app level — this hint tells the user
+            *this list specifically* is the saved copy. */}
+        <CachedDataHint cached={isOffline && !!data} />
+
         {/* Intro */}
         <CategoryIntro
           name={data.name}

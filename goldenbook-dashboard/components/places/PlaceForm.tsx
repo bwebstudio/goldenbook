@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { UIPlaceDetail } from "@/types/ui/place";
 import {
@@ -113,6 +113,27 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saveStatus,        setSaveStatus]       = useState<"idle" | "saving" | "success">("idle");
+  const [showToast,         setShowToast]        = useState(false);
+
+  // Read on every regenerate so PlaceTranslations sees unsaved PT edits.
+  const formRef = useRef(form);
+  useEffect(() => { formRef.current = form; }, [form]);
+  const getPtSource = useCallback(() => ({
+    name:             formRef.current.name,
+    shortDescription: formRef.current.shortDescription,
+    fullDescription:  formRef.current.fullDescription,
+    goldenbookNote:   formRef.current.goldenbookNote,
+    insiderTip:       formRef.current.insiderTip,
+  }), []);
+
+  // Auto-dismiss the success toast a few seconds after a successful save so
+  // it doesn't stay forever, but keep the inline "all saved" status in the
+  // sticky bar (which only goes away when the user edits again).
+  useEffect(() => {
+    if (!showToast) return;
+    const t = setTimeout(() => setShowToast(false), 4000);
+    return () => clearTimeout(t);
+  }, [showToast]);
 
   // ── Unsaved changes guard ──────────────────────────────────────────────────
 
@@ -127,9 +148,16 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
 
   // ── Field helpers ──────────────────────────────────────────────────────────
 
+  function markDirty() {
+    setIsDirty(true);
+    // Once the user edits again, drop the "saved" state so the sticky bar
+    // returns to "unsaved changes" and the Save button re-enables.
+    if (saveStatus === "success") setSaveStatus("idle");
+  }
+
   function setField<K extends keyof PlaceFormValues>(key: K, value: PlaceFormValues[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
-    setIsDirty(true);
+    markDirty();
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
@@ -139,7 +167,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       name,
       slug: isEditing ? prev.slug : toSlug(name),
     }));
-    setIsDirty(true);
+    markDirty();
     if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
     if (errors.slug) setErrors((prev) => ({ ...prev, slug: undefined }));
   }
@@ -148,13 +176,18 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
   // belongs to the old category and would be rejected by the backend.
   function handleCategoryChange(slug: string) {
     setForm((prev) => ({ ...prev, categorySlug: slug, subcategorySlug: "" }));
-    setIsDirty(true);
+    markDirty();
     if (errors.categorySlug) setErrors((prev) => ({ ...prev, categorySlug: undefined }));
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────
 
   async function handleSave() {
+    // Guard against double submission while a save is in flight, and skip
+    // when there's nothing to save in edit mode.
+    if (saveStatus === "saving") return;
+    if (isEditing && !isDirty) return;
+
     // 1. Validate
     const validationErrors = validatePlaceForm(form, isEditing);
     setErrors(validationErrors);
@@ -209,6 +242,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
         await updatePlace(place.id, fullPayload);
         setIsDirty(false);
         setSaveStatus("success");
+        setShowToast(true);
         router.refresh();
       } else {
         const result = await createPlace({ ...payload, slug: form.slug });
@@ -291,17 +325,17 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           </div>
         )}
 
-        {/* ── Save success ── */}
-        {saveStatus === "success" && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4">
-            <p className="text-sm text-green-800 font-semibold">{pf.changesSaved}</p>
-          </div>
-        )}
+        {/* Save success surfaces in a fixed toast (see end of component) so
+            it stays visible regardless of scroll position. */}
 
-        {/* ── A. Basic Information ── */}
+        {/* ── A. Basic Information ──
+            Section header now states explicitly that the editorial fields
+            below are the canonical Portuguese source. EN + ES live in the
+            Translations section further down and are auto-translated from
+            here unless the editor sets a manual override. */}
         <FormSection
-          title={pf.basicInfo}
-          description={pf.basicInfoDesc}
+          title={(pf as { mainContentTitle?: string }).mainContentTitle ?? pf.basicInfo}
+          description={(pf as { mainContentDesc?: string }).mainContentDesc ?? pf.basicInfoDesc}
         >
           <InputField
             id="name"
@@ -366,13 +400,26 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           />
         </FormSection>
 
-        {/* ── B2. English Translations ── */}
+        {/* ── B2. Translations (English + Spanish) ── */}
         {isEditing && place && (
           <FormSection
-            title={pf.enTranslation}
-            description={pf.autoTranslated}
+            title={pf.translationsTitle}
+            description={pf.translationsDesc}
           >
-            <PlaceTranslations placeId={place.id} />
+            <PlaceTranslations
+              placeId={place.id}
+              getPtSource={getPtSource}
+              // Reactive PT source — drives the dirty-state regenerate
+              // button. When any of these five fields differ from the
+              // last-synced snapshot, the button enables.
+              ptSource={{
+                name: form.name,
+                shortDescription: form.shortDescription,
+                fullDescription: form.fullDescription,
+                goldenbookNote: form.goldenbookNote,
+                insiderTip: form.insiderTip,
+              }}
+            />
           </FormSection>
         )}
 
@@ -561,7 +608,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
               placeId={place.id}
               placeType={form.placeType}
               value={nowForm}
-              onChange={(next) => { setNowForm(next); setIsDirty(true); }}
+              onChange={(next) => { setNowForm(next); markDirty(); }}
               classificationAuto={place.classificationAuto}
               contextWindowsAuto={place.contextWindowsAuto}
               contextTagsAuto={place.contextTagsAuto}
@@ -602,13 +649,21 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
 
       {/* ── Sticky footer ── */}
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-border px-10 py-5 flex items-center gap-4 justify-between z-10">
-        <p className="text-sm text-muted">
+        <p className={`text-sm ${
+          saveStatus === "success" && !isDirty
+            ? "text-green-700 font-semibold"
+            : isDirty
+              ? "text-amber-700 font-semibold"
+              : "text-muted"
+        }`}>
           {saveStatus === "saving"
             ? pf.saving
             : isDirty
               ? pf.unsavedChanges
               : isEditing
-                ? pf.noUnsavedChanges
+                ? saveStatus === "success"
+                  ? pf.allChangesSaved
+                  : pf.noUnsavedChanges
                 : pf.fillAndSave}
         </p>
         <div className="flex items-center gap-3">
@@ -622,7 +677,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           <button
             type="button"
             onClick={handleSave}
-            disabled={saveStatus === "saving"}
+            disabled={saveStatus === "saving" || (isEditing && !isDirty)}
             className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {saveStatus === "saving" ? (
@@ -638,6 +693,35 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           </button>
         </div>
       </div>
+
+      {/* ── Save success toast ────────────────────────────────────────────
+          Pinned to the bottom-right of the viewport so it's always visible,
+          including when the editor saves while scrolled near the bottom. */}
+      {showToast && (
+        <div
+          className="fixed bottom-24 right-6 z-30 max-w-sm rounded-xl border border-green-200 bg-green-50 shadow-lg px-4 py-3 flex items-start gap-3"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="mt-0.5 text-green-600" aria-hidden>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+          <p className="text-sm font-semibold text-green-800 flex-1">{pf.successToast}</p>
+          <button
+            type="button"
+            onClick={() => setShowToast(false)}
+            className="shrink-0 text-green-700/70 hover:text-green-900 transition-colors"
+            aria-label={pf.dismiss}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* ── Confirm: leave without saving ── */}
       <ConfirmDialog

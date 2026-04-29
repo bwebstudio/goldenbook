@@ -84,12 +84,31 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       // a user whose JWT wasn't attached to the event if we can resolve their
       // identity from the linked user_sessions row. COUNT(DISTINCT ...) drops
       // NULLs naturally, so genuinely anonymous traffic is still excluded.
+      //
+      // dau_today uses today's calendar date (server timezone) so the headline
+      // matches the rightmost bar of the daily chart. Previously the value
+      // used a rolling 24h window, which drifted from the chart whenever the
+      // dashboard was opened mid-day.
+      //
+      // The COUNT branch also unions the user_sessions row directly (not just
+      // through analytics_events) so a user whose only "activity" today was
+      // a foreground session_start upsert (no event row yet) still counts —
+      // the mobile client now emits app_session_start on warm resume, but
+      // this UNION keeps the query resilient if event ingestion is briefly
+      // dropped (rate-limited / network blip).
       db.query<{ dau_today: string; wau: string; mau: string; sessions_per_user: string | null }>(`
         SELECT
-          (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
-             FROM analytics_events ae
-             LEFT JOIN user_sessions s ON s.session_id = ae.session_id
-            WHERE ae.created_at >= now() - interval '1 day')::text AS dau_today,
+          (SELECT COUNT(DISTINCT user_id) FROM (
+             SELECT COALESCE(ae.user_id, s.user_id) AS user_id
+               FROM analytics_events ae
+               LEFT JOIN user_sessions s ON s.session_id = ae.session_id
+              WHERE ae.created_at::date = current_date
+             UNION
+             SELECT user_id
+               FROM user_sessions
+              WHERE user_id IS NOT NULL
+                AND (last_seen_at::date = current_date OR started_at::date = current_date)
+           ) u WHERE user_id IS NOT NULL)::text AS dau_today,
           (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
              FROM analytics_events ae
              LEFT JOIN user_sessions s ON s.session_id = ae.session_id

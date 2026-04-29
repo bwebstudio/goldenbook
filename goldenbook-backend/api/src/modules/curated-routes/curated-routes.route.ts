@@ -20,7 +20,7 @@ export async function curatedRoutesRoutes(app: FastifyInstance) {
   app.get('/curated-routes', async (request, reply) => {
     const schema = z.object({
       city:   z.string().min(1),
-      locale: z.string().min(2).max(5).default('en'),
+      locale: z.string().min(2).max(5).default('pt'),
     })
     const { city, locale } = schema.parse(request.query)
 
@@ -32,7 +32,7 @@ export async function curatedRoutesRoutes(app: FastifyInstance) {
   app.get('/curated-routes/:id', async (request, reply) => {
     const paramsSchema = z.object({ id: z.string().uuid() })
     const querySchema = z.object({
-      locale: z.string().min(2).max(5).default('en'),
+      locale: z.string().min(2).max(5).default('pt'),
     })
 
     const { id } = paramsSchema.parse(request.params)
@@ -119,11 +119,11 @@ export async function adminCuratedRoutesRoutes(app: FastifyInstance) {
 
   // GET /admin/curated-routes/:id?locale=pt — single route detail for editing.
   // Locale drives the translation fallback chain (requested → raw columns).
-  // Valid values: any 2–5 char locale code; defaults to 'en' for back-compat.
+  // Valid values: any 2–5 char locale code; defaults to 'pt' (canonical).
   app.get('/admin/curated-routes/:id', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
     const { locale } = z.object({
-      locale: z.string().min(2).max(5).default('en'),
+      locale: z.string().min(2).max(5).default('pt'),
     }).parse(request.query)
     const route = await getCuratedRouteById(id, locale)
     if (!route) return reply.status(404).send({ error: 'Route not found' })

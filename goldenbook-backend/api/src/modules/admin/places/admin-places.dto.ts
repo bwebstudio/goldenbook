@@ -51,6 +51,13 @@ export const createPlaceSchema = z.object({
   fullDescription:  z.string().optional(),
   goldenbookNote:   z.string().optional(),
   insiderTip:       z.string().optional(),
+  // Locale of the editorial fields above. PT is canonical going forward —
+  // the manual dashboard form always submits PT. Google / external imports
+  // submit 'en' and the backend translates EN → PT before persisting the
+  // canonical row. ES is always auto-translated from PT after.
+  // Optional + defaulted at the call-site so existing callers (seed
+  // scripts, etc.) keep compiling without a forced .sourceLocale.
+  sourceLocale:     z.enum(['pt', 'en']).optional(),
   citySlug:         z.string().min(1, 'City is required'),
   citySlugs:        z.array(z.string().min(1)).optional(),
   addressLine:      z.string().optional(),

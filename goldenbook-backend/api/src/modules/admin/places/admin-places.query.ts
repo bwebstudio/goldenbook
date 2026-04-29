@@ -3,6 +3,11 @@ import { AppError, NotFoundError, ValidationError } from '../../../shared/errors
 import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from './admin-places.dto'
 import { translatePlaceFields, type PlaceTranslationFields } from '../../../lib/translation/deepl'
 import { autoClassifyPlace } from './auto-classify'
+import {
+  AUTO_TARGET_LOCALES,
+  CANONICAL_LOCALE,
+  resolveCanonicalPortuguese,
+} from './translation-policy'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -43,24 +48,53 @@ function nullify(v: string | undefined): string | null {
 
 type TranslationLocale = 'en' | 'pt' | 'es'
 
+async function isLocaleOverridden(
+  client: { query: typeof db.query },
+  placeId: string,
+  locale: TranslationLocale,
+): Promise<boolean> {
+  const { rows } = await client.query<{ translation_override: boolean | null }>(
+    `SELECT COALESCE(translation_override, false) AS translation_override
+       FROM place_translations
+      WHERE place_id = $1 AND locale = $2 LIMIT 1`,
+    [placeId, locale],
+  )
+  return Boolean(rows[0]?.translation_override)
+}
+
 async function upsertPlaceTranslation(
   client: { query: typeof db.query },
   placeId: string,
   locale: TranslationLocale,
   fields: PlaceTranslationFields,
+  options: { translatedFrom?: TranslationLocale | null } = {},
 ): Promise<void> {
+  // Never overwrite a locale that the editor explicitly curated by hand.
+  // The new dashboard translations editor sets translation_override=true on
+  // EN/ES manual saves; this guard keeps those values stable when an editor
+  // later saves canonical fields through the legacy place form.
+  if (await isLocaleOverridden(client, placeId, locale)) return
+
+  // `translated_from` is set on auto-translation paths so the dashboard can
+  // tell the user "EN was translated from PT". The canonical PT row stores
+  // its own locale (or null) — it isn't a translation of anything.
+  const translatedFrom = options.translatedFrom ?? null
+
   await client.query(
     `
     INSERT INTO place_translations (
-      place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip,
+      translation_override, translated_from
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
     ON CONFLICT (place_id, locale) DO UPDATE SET
       name = EXCLUDED.name,
       short_description = EXCLUDED.short_description,
       full_description = EXCLUDED.full_description,
       goldenbook_note = EXCLUDED.goldenbook_note,
       insider_tip = EXCLUDED.insider_tip,
+      translated_from = EXCLUDED.translated_from,
       updated_at = now()
+    WHERE COALESCE(place_translations.translation_override, false) = false
     `,
     [
       placeId,
@@ -70,20 +104,36 @@ async function upsertPlaceTranslation(
       fields.full_description,
       fields.goldenbook_note,
       fields.insider_tip,
+      translatedFrom,
     ],
   )
 }
 
-async function upsertAutoTranslationsFromEnglish(
+/**
+ * Auto-translate the canonical Portuguese fields into EN and ES and write
+ * those rows. PT is the editorial source-of-truth (see translation-policy.ts).
+ * Targets default to ['en', 'es']; per-locale override-protection is enforced
+ * by `upsertPlaceTranslation`.
+ *
+ * Per-locale failures are logged and swallowed so a flaky DeepL call for one
+ * target never blocks the other.
+ */
+async function upsertAutoTranslationsFromPortuguese(
   client: { query: typeof db.query },
   placeId: string,
-  englishFields: PlaceTranslationFields,
+  portugueseFields: PlaceTranslationFields,
+  targets: ReadonlyArray<Exclude<TranslationLocale, 'pt'>> = AUTO_TARGET_LOCALES,
 ): Promise<void> {
-  const targets: TranslationLocale[] = ['pt', 'es']
   for (const targetLocale of targets) {
+    if (await isLocaleOverridden(client, placeId, targetLocale)) {
+      // Editor curated this locale by hand — leave it alone.
+      continue
+    }
     try {
-      const translated = await translatePlaceFields(englishFields, targetLocale, 'en')
-      await upsertPlaceTranslation(client, placeId, targetLocale, translated)
+      const translated = await translatePlaceFields(portugueseFields, targetLocale, CANONICAL_LOCALE)
+      await upsertPlaceTranslation(client, placeId, targetLocale, translated, {
+        translatedFrom: CANONICAL_LOCALE,
+      })
     } catch (err) {
       // Per-locale failure must not block remaining locales
       console.error(`[translation] DeepL failed for ${targetLocale} on place ${placeId}:`, err)
@@ -220,7 +270,11 @@ export async function createPlace(
     )
     const place = placed[0]
 
-    const englishFields: PlaceTranslationFields = {
+    // Editorial fields as submitted by the caller. The dashboard form
+    // submits Portuguese (canonical). The Google import flow passes
+    // `sourceLocale: 'en'` because Google Places returns English content
+    // — the API translates it into PT before persisting the canonical row.
+    const submittedFields: PlaceTranslationFields = {
       name: input.name,
       short_description: nullify(input.shortDescription),
       full_description: nullify(input.fullDescription),
@@ -228,10 +282,27 @@ export async function createPlace(
       insider_tip: nullify(input.insiderTip),
     }
 
-    // Translate first (PT, ES), then save EN last — ensures EN row always has correct English
-    // even if DeepL or upsert has edge-case bugs that could corrupt it
-    await upsertAutoTranslationsFromEnglish(client, place.id, englishFields)
-    await upsertPlaceTranslation(client, place.id, 'en', englishFields)
+    const ptCanonical = await resolveCanonicalPortuguese(
+      input.sourceLocale ?? 'pt',
+      submittedFields,
+      async (fields, sourceLocale) => translatePlaceFields(fields, 'pt', sourceLocale),
+    )
+
+    // 1. Persist the canonical Portuguese row first. Everything else
+    //    (auto EN/ES, dashboard reads with locale=pt) depends on it.
+    await upsertPlaceTranslation(client, place.id, 'pt', ptCanonical)
+
+    // 2. Auto-translate PT → EN and PT → ES. If the import was already in
+    //    English we keep that pristine source instead of re-translating
+    //    PT→EN — round-tripping degrades the copy with no benefit.
+    if (input.sourceLocale === 'en') {
+      await upsertPlaceTranslation(client, place.id, 'en', submittedFields, {
+        translatedFrom: 'en',
+      })
+      await upsertAutoTranslationsFromPortuguese(client, place.id, ptCanonical, ['es'])
+    } else {
+      await upsertAutoTranslationsFromPortuguese(client, place.id, ptCanonical)
+    }
 
     // Insert primary category
     await client.query(
@@ -422,26 +493,31 @@ export async function updatePlace(
       input.insiderTip       !== undefined
 
     if (hasTranslationUpdate) {
-      // EN is the base source-of-truth for auto-translations.
-      const { rows: currentEn } = await client.query<{
+      // Portuguese is the canonical editorial source. The dashboard place
+      // form always submits PT — these fields are merged on top of the
+      // existing PT row (so unspecified fields stay as they were) and EN/ES
+      // are auto-translated from the resulting PT canonical state.
+      // Manual EN/ES overrides are preserved by `upsertPlaceTranslation`'s
+      // override guard.
+      const { rows: currentPt } = await client.query<{
         name: string | null; short_description: string | null; full_description: string | null
         goldenbook_note: string | null; insider_tip: string | null
       }>(
         `SELECT name, short_description, full_description, goldenbook_note, insider_tip
-         FROM place_translations WHERE place_id = $1 AND locale = 'en' LIMIT 1`,
+         FROM place_translations WHERE place_id = $1 AND locale = 'pt' LIMIT 1`,
         [placeId],
       )
-      const enPrev = currentEn[0] ?? {}
-      const englishFields: PlaceTranslationFields = {
-        name: input.name ?? enPrev.name ?? existing.name,
-        short_description: input.shortDescription !== undefined ? nullify(input.shortDescription) : (enPrev.short_description ?? null),
-        full_description: input.fullDescription !== undefined ? nullify(input.fullDescription) : (enPrev.full_description ?? null),
-        goldenbook_note: input.goldenbookNote !== undefined ? nullify(input.goldenbookNote) : (enPrev.goldenbook_note ?? null),
-        insider_tip: input.insiderTip !== undefined ? nullify(input.insiderTip) : (enPrev.insider_tip ?? null),
+      const ptPrev = currentPt[0] ?? {}
+      const portugueseFields: PlaceTranslationFields = {
+        name: input.name ?? ptPrev.name ?? existing.name,
+        short_description: input.shortDescription !== undefined ? nullify(input.shortDescription) : (ptPrev.short_description ?? null),
+        full_description: input.fullDescription !== undefined ? nullify(input.fullDescription) : (ptPrev.full_description ?? null),
+        goldenbook_note: input.goldenbookNote !== undefined ? nullify(input.goldenbookNote) : (ptPrev.goldenbook_note ?? null),
+        insider_tip: input.insiderTip !== undefined ? nullify(input.insiderTip) : (ptPrev.insider_tip ?? null),
       }
 
-      await upsertPlaceTranslation(client, placeId, 'en', englishFields)
-      await upsertAutoTranslationsFromEnglish(client, placeId, englishFields)
+      await upsertPlaceTranslation(client, placeId, 'pt', portugueseFields)
+      await upsertAutoTranslationsFromPortuguese(client, placeId, portugueseFields)
     }
 
     // Replace primary category if categorySlug is being changed

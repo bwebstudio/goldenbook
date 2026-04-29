@@ -3,10 +3,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoutes } from '@/features/routes/hooks/useRoutes';
 import { RouteCard } from '@/features/routes/components';
 import { useTranslation } from '@/i18n';
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore';
+import { CachedDataHint } from '@/components/CachedDataHint';
 
 export default function RoutesScreen() {
   const { data, isLoading, isError, refetch } = useRoutes();
   const t = useTranslation();
+  const isOffline = useNetworkStore(selectIsOffline);
 
   // Featured = first item with featured flag, fallback to first item
   const featuredRoute = data?.items.find((r) => r.featured) ?? data?.items[0];
@@ -34,6 +37,11 @@ export default function RoutesScreen() {
         {/* Divider */}
         <View className="h-px bg-navy/5 mx-6 mb-6" />
 
+        {/* Per-screen cue when the routes list came from disk while
+            offline. The global OfflineBanner sits on top of the app — this
+            tells the user the rail below is the saved copy. */}
+        <CachedDataHint cached={isOffline && !!data} />
+
         {/* Loading */}
         {isLoading && (
           <View className="items-center justify-center py-20">
@@ -41,19 +49,29 @@ export default function RoutesScreen() {
           </View>
         )}
 
-        {/* Error */}
-        {isError && (
+        {/* Error
+            Three-way split for the message:
+              • offline + no cache → "open Routes once online and we'll
+                save them" — known state, no retry surface.
+              • online + error    → generic "couldn't load routes".
+              • offline + cache   → never reached: persisted data short-
+                circuits the error path. */}
+        {isError && !data && (
           <View className="items-center justify-center py-20 px-8">
-            <Text className="text-navy/40 text-center text-sm mb-5">{t.routes.couldNotLoad}</Text>
-            <TouchableOpacity
-              onPress={() => refetch()}
-              activeOpacity={0.85}
-              className="bg-primary rounded-lg px-6 py-3"
-            >
-              <Text className="text-navy text-xs uppercase tracking-widest font-bold">
-                {t.common.retry}
-              </Text>
-            </TouchableOpacity>
+            <Text className="text-navy/40 text-center text-sm mb-5">
+              {isOffline ? t.offline.routesNeedInternet : t.routes.couldNotLoad}
+            </Text>
+            {!isOffline && (
+              <TouchableOpacity
+                onPress={() => refetch()}
+                activeOpacity={0.85}
+                className="bg-primary rounded-lg px-6 py-3"
+              >
+                <Text className="text-navy text-xs uppercase tracking-widest font-bold">
+                  {t.common.retry}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 

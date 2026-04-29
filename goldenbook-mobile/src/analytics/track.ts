@@ -51,10 +51,29 @@ export function track(event: AnalyticsEventName, props: TrackProps = {}): void {
     ...(props.metadata ? { metadata: props.metadata } : {}),
   };
 
+  // Dev-mode visibility: each accepted event prints once so engineers can
+  // verify the pipeline without standing up a debug endpoint. Stripped from
+  // production builds by Metro / Hermes dead-code elimination.
+  if (__DEV__) {
+    // eslint-disable-next-line no-console
+    console.debug('[analytics]', event, { sessionId: SESSION_ID, ...payload });
+  }
+
   apiClient
     .post('/analytics/events', payload)
-    .catch(() => {
-      // Analytics is never allowed to surface an error in the UI.
+    .then(() => {
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.debug('[analytics:ok]', event);
+      }
+    })
+    .catch((err) => {
+      // Analytics is never allowed to surface an error in the UI. Surface to
+      // the dev console so flaky ingestion is visible during development.
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.warn('[analytics:err]', event, err?.message ?? err);
+      }
     });
 }
 

@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.bwebstudio.goldenbook",
-      "buildNumber": "72",
+      "buildNumber": "73",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations.",
         "ITSAppUsesNonExemptEncryption": false

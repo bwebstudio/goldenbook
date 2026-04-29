@@ -113,6 +113,10 @@ export default function PlaceGenerator() {
         placeType: preview.placeType,
         categorySlug: preview.categorySlug,
         subcategorySlug: preview.subcategorySlug,
+        // Google Places returns English text. The backend translates
+        // EN → PT before persisting the canonical row, so the editor
+        // sees Portuguese as the main editorial content immediately.
+        sourceLocale: "en",
         shortDescription: preview.shortDescription,
         fullDescription: preview.fullDescription,
         goldenbookNote: preview.goldenbookNote,

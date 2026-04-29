@@ -91,7 +91,7 @@ setInterval(() => {
 
 const bootstrapQuerySchema = z.object({
   city:      z.string().min(1).optional(),
-  locale:    z.string().min(2).max(5).default('en'),
+  locale:    z.string().min(2).max(5).default('pt'),
   // Onboarding personalization — optional
   interests: z.string().optional(), // comma-separated interest IDs
   style:     z.string().optional(), // single exploration style ID
@@ -102,7 +102,7 @@ const recommendBodySchema = z.object({
   intent:    z.string().min(1).optional(),
   query:     z.string().max(200).optional(),
   limit:     z.coerce.number().int().min(1).max(10).default(3),
-  locale:    z.string().min(2).max(5).default('en'),
+  locale:    z.string().min(2).max(5).default('pt'),
   // Onboarding personalization — optional
   interests: z.array(z.string()).optional(),
   style:     z.string().optional(),

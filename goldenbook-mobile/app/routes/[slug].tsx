@@ -3,6 +3,8 @@ import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from '@/i18n';
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore';
+import { CachedDataHint } from '@/components/CachedDataHint';
 import { useRouteDetail } from '@/features/routes/hooks/useRouteDetail';
 import { useSaveRoute } from '@/features/saved/hooks/useSaveRoute';
 import { RouteHero, RoutePlacesTimeline } from '@/features/routes/components';
@@ -12,6 +14,7 @@ export default function RouteDetailScreen() {
   const router = useRouter();
   const t = useTranslation();
   const { data, isLoading, isError } = useRouteDetail(slug ?? '');
+  const isOffline = useNetworkStore(selectIsOffline);
   const { isSaved, toggle: toggleSave, isPending } = useSaveRoute(data?.id ?? '', {
     snapshot: data
       ? {
@@ -36,10 +39,11 @@ export default function RouteDetailScreen() {
   }
 
   if (isError || !data) {
+    const message = isOffline ? t.offline.routeDetailNeedsInternet : t.route.couldNotLoad;
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
         <Text className="text-navy/40 text-center text-sm">
-          Could not load this route.{'\n'}Check your connection and try again.
+          {message}
         </Text>
       </SafeAreaView>
     );
@@ -51,6 +55,8 @@ export default function RouteDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
+        <CachedDataHint cached={isOffline && !!data} />
+
         {/* 1. Hero: image + title + summary + meta */}
         <RouteHero
           heroImage={data.heroImage}

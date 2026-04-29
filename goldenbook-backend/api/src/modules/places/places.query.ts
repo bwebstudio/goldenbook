@@ -113,15 +113,18 @@ LEFT JOIN destination_translations dt
 LEFT JOIN destination_translations dt_lang
        ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
 LEFT JOIN destination_translations dt_fb
-       ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+       ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
 LEFT JOIN place_translations pt
        ON pt.place_id = p.id AND pt.locale = $2
 LEFT JOIN place_translations pt_lang
        ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
 LEFT JOIN place_translations pt_fb
-       ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+       ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
 -- pt_orig = 4th fallback tier: the row matching the place's original_locale.
--- Only populated when neither the requested locale nor English has content.
+-- Only populated when neither the requested locale nor canonical Portuguese
+-- has content. PT (locale='pt') is the editorial source-of-truth — see
+-- modules/admin/places/translation-policy.ts for the canonical-locale
+-- contract.
 LEFT JOIN place_translations pt_orig
        ON pt_orig.place_id = p.id AND pt_orig.locale = p.original_locale
 LEFT JOIN LATERAL (
@@ -215,7 +218,7 @@ export async function getPlaceCategories(placeId: string, locale: string): Promi
     LEFT JOIN category_translations ct_lang
            ON ct_lang.category_id = c.id AND ct_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN category_translations ct_fb
-           ON ct_fb.category_id = c.id AND ct_fb.locale = 'en'
+           ON ct_fb.category_id = c.id AND ct_fb.locale = 'pt'
     WHERE pc.place_id = $1
 
     UNION ALL
@@ -232,7 +235,7 @@ export async function getPlaceCategories(placeId: string, locale: string): Promi
     LEFT JOIN subcategory_translations st_lang
            ON st_lang.subcategory_id = s.id AND st_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN subcategory_translations st_fb
-           ON st_fb.subcategory_id = s.id AND st_fb.locale = 'en'
+           ON st_fb.subcategory_id = s.id AND st_fb.locale = 'pt'
     WHERE pc.place_id = $1
       AND pc.subcategory_id IS NOT NULL
     `,
@@ -319,13 +322,13 @@ export async function getOtherLocations(
     LEFT JOIN destination_translations dt_lang
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($3, '-', 1) AND $3 LIKE '%-%'
     LEFT JOIN destination_translations dt_fb
-           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     LEFT JOIN place_translations pt
            ON pt.place_id = p.id AND pt.locale = $3
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($3, '-', 1) AND $3 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -390,7 +393,7 @@ export async function getNearbyGems(
       LEFT JOIN place_translations pt_lang
              ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($4, '-', 1) AND $4 LIKE '%-%'
       LEFT JOIN place_translations pt_fb
-             ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+             ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
       LEFT JOIN LATERAL (
         SELECT ma.bucket, ma.path
         FROM   place_images pi

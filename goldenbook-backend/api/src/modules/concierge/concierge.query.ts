@@ -19,7 +19,7 @@ export async function getConciergeCity(
     LEFT JOIN destination_translations dt_lang
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN destination_translations dt_fb
-           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     WHERE d.slug = lower($1)
       AND d.is_active = true
     LIMIT 1
@@ -43,7 +43,7 @@ export async function getDefaultConciergeCity(
     LEFT JOIN destination_translations dt_lang
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($1, '-', 1) AND $1 LIKE '%-%'
     LEFT JOIN destination_translations dt_fb
-           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     WHERE d.destination_type = 'city'
       AND d.is_active = true
     ORDER BY d.featured DESC, d.sort_order ASC
@@ -193,13 +193,13 @@ export async function getConciergeRecommendations(
     LEFT JOIN destination_translations dt_lang
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN destination_translations dt_fb
-           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+           ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     LEFT JOIN place_translations pt
            ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
     LEFT JOIN place_translations pt_fb
-           ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+           ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM   place_images pi
@@ -335,11 +335,11 @@ export async function getFallbackPlaces(
     LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_lang
            ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
-    LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+    LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN destination_translations dt ON dt.destination_id = d.id AND dt.locale = $2
     LEFT JOIN destination_translations dt_lang
            ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($2, '-', 1) AND $2 LIKE '%-%'
-    LEFT JOIN destination_translations dt_fb ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+    LEFT JOIN destination_translations dt_fb ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM place_images pi JOIN media_assets ma ON ma.id = pi.asset_id
@@ -434,9 +434,9 @@ export async function getPlacesByIds(
     FROM places p
     JOIN destinations d ON d.id = p.destination_id
     LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $1
-    LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+    LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
     LEFT JOIN destination_translations dt ON dt.destination_id = d.id AND dt.locale = $1
-    LEFT JOIN destination_translations dt_fb ON dt_fb.destination_id = d.id AND dt_fb.locale = 'en'
+    LEFT JOIN destination_translations dt_fb ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
     LEFT JOIN LATERAL (
       SELECT ma.bucket, ma.path
       FROM place_images pi JOIN media_assets ma ON ma.id = pi.asset_id

@@ -8,8 +8,13 @@
 //   • POST /analytics/sessions/end when the app goes to background or the
 //     component unmounts. The server also force-closes stale sessions after
 //     30 min via a cron, so a force-quit never leaves an open row.
-//   • Emit app_session_start / app_session_end events so feature analytics
-//     can cross-reference sessions and behaviour.
+//   • Emit app_session_start / app_session_end events on cold start AND on
+//     warm-resume foreground transitions, so that "active users today"
+//     correctly counts users who already had the app installed and just
+//     foreground it (without going through the auth screen). Re-fires of
+//     app_session_start within FOREGROUND_DEDUPE_MS are dropped so iOS
+//     active/inactive churn (control center, biometric prompt, etc.) doesn't
+//     bloat the events table.
 
 import { useEffect, useRef } from 'react';
 import { AppState, Platform, type AppStateStatus } from 'react-native';
@@ -20,6 +25,10 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { sessionStart, sessionPing, sessionEnd, track } from './track';
 
 const PING_MS = 60_000;
+// Drop duplicate foreground emits within this window. iOS in particular flips
+// active → inactive → active when the system shows a sheet (Face ID, control
+// center, share sheet); we treat those as the same "open" for analytics.
+const FOREGROUND_DEDUPE_MS = 30_000;
 
 function deviceType(): 'ios' | 'android' | 'web' {
   if (Platform.OS === 'ios') return 'ios';
@@ -38,6 +47,7 @@ function appVersion(): string | undefined {
 export function useSessionLifecycle(): void {
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const started   = useRef(false);
+  const lastForegroundAt = useRef(0);
 
   const locale = useSettingsStore((s) => s.locale);
   const city   = useAppStore((s) => s.selectedCity);
@@ -50,8 +60,16 @@ export function useSessionLifecycle(): void {
       deviceType: deviceType(),
     };
 
+    function emitForegroundOpen(reason: 'cold_start' | 'foreground' | 'context_change') {
+      // Coalesce bursts so the iOS active/inactive churn doesn't double-count.
+      const now = Date.now();
+      if (now - lastForegroundAt.current < FOREGROUND_DEDUPE_MS) return;
+      lastForegroundAt.current = now;
+      track('app_session_start', { metadata: { ...ctx, reason } });
+    }
+
     sessionStart(ctx);
-    track('app_session_start', { metadata: ctx });
+    emitForegroundOpen(started.current ? 'context_change' : 'cold_start');
     started.current = true;
 
     pingTimer.current = setInterval(sessionPing, PING_MS);
@@ -61,6 +79,10 @@ export function useSessionLifecycle(): void {
         // Refresh context on foreground in case the user switched language or
         // city while backgrounded. Cheap — the server upserts idempotently.
         sessionStart({ locale, city, appVersion: appVersion(), deviceType: deviceType() });
+        // Emit an analytics event on every foreground so warm-resume opens
+        // also count toward "Active users today". Dedupe inside the helper
+        // protects against rapid active/inactive churn.
+        emitForegroundOpen('foreground');
         if (!pingTimer.current) pingTimer.current = setInterval(sessionPing, PING_MS);
       } else {
         if (pingTimer.current) {

@@ -15,7 +15,11 @@ import { getManualBookingCandidate } from '../booking-candidates/candidates.quer
 import { normalizeLocale } from '../../shared/i18n/locale'
 
 const paramsSchema = z.object({ slug: z.string().min(1) })
-const querySchema  = z.object({ locale: z.string().min(2).max(5).default('en') })
+// PT is the canonical editorial locale (see modules/admin/places/translation-policy.ts).
+// When a caller hits this endpoint without a locale param (typically: SEO
+// crawlers, prerender hits, server-to-server lookups), we serve PT — the
+// row that is guaranteed to exist and to be fresh.
+const querySchema  = z.object({ locale: z.string().min(2).max(5).default('pt') })
 
 export async function placesRoutes(app: FastifyInstance) {
   app.get('/places/:slug', async (request, reply) => {

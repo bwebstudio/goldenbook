@@ -128,12 +128,19 @@ const STOPS_FROM = `
          ON pt.place_id = p.id AND pt.locale = $LOCALE$
   LEFT JOIN place_translations pt_lang
          ON pt_lang.place_id = p.id AND pt_lang.locale = split_part($LOCALE$, '-', 1) AND $LOCALE$ LIKE '%-%'
+  -- Canonical PT row is the editorial source-of-truth (see
+  -- modules/admin/places/translation-policy.ts). It is also the canonical
+  -- fallback when the requested locale + language family return nothing.
+  -- pt_es / pt_fb are kept as soft-fallback tiers so a place that happens
+  -- to be missing both PT and the requested locale still surfaces some
+  -- editorial copy instead of dropping to the bare places.name column.
+  -- They are NOT used as canonical reads.
   LEFT JOIN place_translations pt_primary
          ON pt_primary.place_id = p.id AND pt_primary.locale = 'pt'
   LEFT JOIN place_translations pt_es
          ON pt_es.place_id = p.id AND pt_es.locale = 'es'
   LEFT JOIN place_translations pt_fb
-         ON pt_fb.place_id = p.id AND pt_fb.locale = 'en'
+         ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
   LEFT JOIN LATERAL (
     SELECT ma.bucket, ma.path
     FROM   place_images pi

@@ -21,6 +21,13 @@ export const es: Translations = {
     showingCached: 'Mostrando contenido guardado',
     lastUpdated: 'Última actualización',
     cantLoadOffline: 'Estás sin conexión y aún no tenemos una copia guardada.',
+    savedResultsHint: 'Sin conexión — mostrando resultados guardados',
+    offlineEmptyTitle: 'Estás sin conexión',
+    liveNeedsInternet: 'Las recomendaciones en tiempo real necesitan conexión a internet. Vuelve a conectarte para continuar.',
+    placesNeedInternet: 'Abre esta categoría una vez con conexión y guardaremos una copia en tu dispositivo para la próxima.',
+    routesNeedInternet: 'Abre las Rutas una vez con conexión y las guardaremos para leerlas sin internet.',
+    placeNeedsInternet: 'Abre este lugar una vez con conexión y podrás volver a verlo sin internet.',
+    routeDetailNeedsInternet: 'Abre esta ruta una vez con conexión y podrás volver a verla sin internet.',
   },
 
   profile: {
@@ -152,6 +159,7 @@ export const es: Translations = {
     seeAnother: 'Ver otra opción',
     errorLoading: 'No pudimos cargar una recomendación ahora mismo.',
     offlineMessage: 'Conéctate a internet para recibir una recomendación en tiempo real.',
+    lastSavedHint: 'Mostrando tu última recomendación guardada',
     lookingForMore: '¿Buscas algo distinto?',
     openConcierge: 'Preguntar al Concierge',
     exploreNow: 'EXPLORAR AHORA',
@@ -173,6 +181,10 @@ export const es: Translations = {
     requestAccess: 'Solicitar Acceso',
     errorBootstrap: 'No pudimos llegar a tu Guía Personal ahora. Inténtalo de nuevo.',
     errorRecommendation: 'No encontramos los lugares adecuados esta vez. Prueba otro interés.',
+    offlineEmptyTitle: 'Tu concierge está sin conexión',
+    offlineEmptyBody: 'Las recomendaciones en vivo se preparan al momento. Vuelve a conectarte para iniciar una nueva conversación.',
+    offlineLastSaved: 'Mostrando tus últimas recomendaciones guardadas',
+    offlineNeedsInternet: 'Vuelve a conectarte para pedirle nuevas recomendaciones al Concierge.',
   },
 
   routes: {

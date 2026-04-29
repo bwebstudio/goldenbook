@@ -16,6 +16,7 @@ import {
 } from '@/features/discover/components';
 import { LocalitySwitcher } from '@/components/locality/LocalitySwitcher';
 import { GoldenMenu } from '@/components/GoldenMenu';
+import { CachedDataHint } from '@/components/CachedDataHint';
 import { useTranslation } from '@/i18n';
 
 export default function DiscoverScreen() {
@@ -98,6 +99,13 @@ export default function DiscoverScreen() {
 
             {/* 2. Search */}
             <DiscoverSearchBar placeholder={data.search.placeholder} />
+
+            {/* Per-screen cue when the feed below was served from disk
+                because the device is offline. The global OfflineBanner
+                still announces the connectivity state at the top of the
+                app — this hint tells the user *this feed specifically* is
+                the saved copy, not a live response. */}
+            <CachedDataHint cached={isOffline && !!data} />
 
             {/* 3. NOW — contextual recommendation (monetizable) */}
             <View>

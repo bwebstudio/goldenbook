@@ -12,7 +12,8 @@
  *   3. The family mapping is fixed:
  *        pt-*  → 'pt'
  *        es-*  → 'es'
- *        else  → 'en'
+ *        en-*  → 'en'
+ *        else  → 'pt'   (canonical fallback — see backend translation policy)
  *
  * Uses the same SecureStore + Zustand persist pattern as appStore and
  * onboardingStore so it integrates naturally with the existing hydration flow.
@@ -29,13 +30,20 @@ export type Locale = 'en' | 'pt' | 'es';
 /**
  * Normalize any BCP-47-ish string to one of our 3 supported locales.
  * Exported so the i18n layer can share the same resolution rules.
+ *
+ * Default for unknown / missing input is 'pt' — the canonical editorial
+ * locale (see goldenbook-backend translation policy). English-, Spanish-,
+ * and Portuguese-speaking devices still get their own locale; only truly
+ * unsupported tags (e.g. 'fr', 'de') fall back to PT, and only on the very
+ * first launch before persistence rehydrates.
  */
 export function normalizeLocale(value: string | undefined | null): Locale {
-  if (!value) return 'en';
+  if (!value) return 'pt';
   const family = value.trim().toLowerCase().replace('_', '-').split('-')[0];
   if (family === 'pt') return 'pt';
   if (family === 'es') return 'es';
-  return 'en';
+  if (family === 'en') return 'en';
+  return 'pt';
 }
 
 // ─── SecureStore adapter (mirrors appStore / onboardingStore pattern) ─────────
@@ -65,7 +73,10 @@ const secureStorage = {
 // ─── State shape ──────────────────────────────────────────────────────────────
 
 interface SettingsState {
-  /** Active locale. Defaults to 'en' until device detection runs. */
+  /** Active locale. Defaults to 'pt' until device detection runs — that's
+   *  the canonical row on the backend, so a request that races device
+   *  detection still hits a fresh, complete row instead of a derived EN
+   *  translation. */
   locale: Locale;
 
   /**
@@ -100,7 +111,7 @@ interface SettingsState {
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set, get) => ({
-      locale: 'en',
+      locale: 'pt',
       localeIsExplicit: false,
       isHydrated: false,
 

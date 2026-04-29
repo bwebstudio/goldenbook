@@ -3,6 +3,8 @@ import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '@/i18n';
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore';
+import { CachedDataHint } from '@/components/CachedDataHint';
 import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
 import { sharePlace } from '@/features/place-detail/share';
@@ -24,6 +26,7 @@ export default function PlaceDetailScreen() {
   const router = useRouter();
   const t = useTranslation();
   const { data, isLoading, isError, refetch, isFetching } = usePlaceDetail(slug ?? '');
+  const isOffline = useNetworkStore(selectIsOffline);
   const { isSaved, toggle: toggleSave, isPending: isSaving } = useSavePlace(data?.id ?? '', {
     snapshot: data
       ? {
@@ -67,10 +70,14 @@ export default function PlaceDetailScreen() {
       if (router.canGoBack()) router.back();
       else router.replace('/(tabs)' as any);
     };
+    // Offline + no cached copy → friendlier "open this once online and
+    // we'll save it" copy. The user has nothing to retry until they're
+    // back online, so we hide the retry button in that branch.
+    const message = isOffline ? t.offline.placeNeedsInternet : t.place.couldNotLoad;
     return (
       <SafeAreaView className="flex-1 bg-ivory items-center justify-center px-8">
         <Text className="text-navy/40 text-center text-sm mb-6">
-          {t.place.couldNotLoad}
+          {message}
         </Text>
         <View className="flex-row gap-3">
           <TouchableOpacity
@@ -84,18 +91,20 @@ export default function PlaceDetailScreen() {
               {t.common.goBack}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => { void refetch(); }}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            disabled={isFetching}
-            className="items-center justify-center rounded-full bg-navy px-6"
-            style={{ height: 44, minWidth: 120, opacity: isFetching ? 0.6 : 1 }}
-          >
-            <Text className="text-ivory text-xs font-bold uppercase tracking-widest">
-              {t.common.retry}
-            </Text>
-          </TouchableOpacity>
+          {!isOffline && (
+            <TouchableOpacity
+              onPress={() => { void refetch(); }}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              disabled={isFetching}
+              className="items-center justify-center rounded-full bg-navy px-6"
+              style={{ height: 44, minWidth: 120, opacity: isFetching ? 0.6 : 1 }}
+            >
+              <Text className="text-ivory text-xs font-bold uppercase tracking-widest">
+                {t.common.retry}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -107,6 +116,8 @@ export default function PlaceDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
+        <CachedDataHint cached={isOffline && !!data} />
+
         {/* 1. Hero image with name, city, rating overlay */}
         <PlaceHero
           heroImage={data.heroImage}

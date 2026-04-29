@@ -13,6 +13,14 @@ import {
   searchGooglePlaces,
   ingestGooglePhotos,
 } from '../modules/admin/places/generate-place'
+import { assertLegacyEnAllowed } from './_guards/legacy-en-guard'
+
+// This script writes a fallback short_description into the
+// `place_translations.locale = 'en'` row when Google search yields nothing.
+// Portuguese is now the canonical editorial locale; the EN-fallback write
+// would leave a place without a PT row at all. Refuse to run unless
+// `--allow-legacy-en` is passed so the operator confirms intent.
+assertLegacyEnAllowed('enrich-new-places')
 
 const DRY_RUN = process.argv.includes('--dry-run')
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY ?? process.env.GOOGLE_PLACES_API_KEY ?? ''

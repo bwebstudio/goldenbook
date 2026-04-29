@@ -21,6 +21,15 @@
 //   npx tsx api/src/scripts/generate-editorial-notes.ts --force   # regenerate ALL, even existing
 
 import { db } from '../db/postgres'
+import { assertLegacyEnAllowed } from './_guards/legacy-en-guard'
+
+// This script generates goldenbook_note + insider_tip directly into the
+// `place_translations.locale = 'en'` row. Portuguese is now the canonical
+// editorial locale (see modules/admin/places/translation-policy.ts) so
+// rerunning this without porting it to PT-first would silently bring back
+// the old EN-canonical pattern. Refuse to run unless `--allow-legacy-en`
+// is passed.
+assertLegacyEnAllowed('generate-editorial-notes')
 
 const args = process.argv.slice(2)
 const DRY_RUN = args.includes('--dry-run')

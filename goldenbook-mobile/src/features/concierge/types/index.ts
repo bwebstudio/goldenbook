@@ -67,4 +67,15 @@ export interface ConciergeState {
   loadingRecommendation: boolean
   inputValue: string
   error: string | null
+  /**
+   * True when `bootstrapData` and `messages` were rehydrated from the
+   * AsyncStorage cache because the device was offline (or the bootstrap
+   * call failed and a previous successful response was on disk). Drives
+   * the inline "showing your last saved recommendations" pill on the
+   * Concierge screen so the user knows the state isn't live.
+   */
+  fromCache: boolean
+  /** True iff we know we're offline AND have no cache to fall back on.
+   *  The screen renders the premium offline empty state in this case. */
+  offlineWithoutCache: boolean
 }

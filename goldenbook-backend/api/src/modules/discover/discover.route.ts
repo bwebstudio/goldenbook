@@ -25,7 +25,8 @@ import { normalizeLocale } from '../../shared/i18n/locale'
 
 const querySchema = z.object({
   city:      z.string().min(1),
-  locale:    z.string().min(2).max(5).default('en'),
+  // PT canonical default — see modules/admin/places/translation-policy.ts.
+  locale:    z.string().min(2).max(5).default('pt'),
   interests: z.string().optional(),
   style:     z.string().optional(),
 })

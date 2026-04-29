@@ -3,6 +3,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCategory } from '@/features/categories/hooks/useCategory';
+import { useTranslation } from '@/i18n';
+import { useNetworkStore, selectIsOffline } from '@/store/networkStore';
+import { CachedDataHint } from '@/components/CachedDataHint';
 import {
   CategoryHeader,
   CategoryIntro,
@@ -15,7 +18,9 @@ import {
 export default function CategoryScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
+  const t = useTranslation();
   const { data, isLoading, isError } = useCategory(slug ?? '');
+  const isOffline = useNetworkStore(selectIsOffline);
 
   if (isLoading) {
     return (
@@ -28,11 +33,12 @@ export default function CategoryScreen() {
   }
 
   if (isError || !data) {
+    const message = isOffline ? t.offline.placesNeedInternet : t.category.couldNotLoad;
     return (
       <SafeAreaView className="flex-1 bg-ivory">
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-navy/40 text-center text-sm leading-relaxed">
-            Could not load this category.{'\n'}Check your connection and try again.
+            {message}
           </Text>
         </View>
       </SafeAreaView>
@@ -57,6 +63,8 @@ export default function CategoryScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
+        <CachedDataHint cached={isOffline && !!data} />
+
         {/* Intro */}
         <CategoryIntro
           name={data.name}
