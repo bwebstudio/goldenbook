@@ -35,7 +35,7 @@
         "backgroundColor": "#161E38"
       },
       "package": "com.bwebstudio.goldenbook",
-      "versionCode": 76,
+      "versionCode": 77,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
@@ -78,7 +78,8 @@
           }
         }
       ],
-      "./plugins/withAndroid16KBPages.js"
+      "./plugins/withAndroid16KBPages.js",
+      "./plugins/withPlayServicesVersion.js"
     ],
     "scheme": "goldenbook",
     "experiments": {
