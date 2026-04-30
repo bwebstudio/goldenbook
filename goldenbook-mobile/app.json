@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.bwebstudio.goldenbook",
-      "buildNumber": "75",
+      "buildNumber": "77",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations.",
         "ITSAppUsesNonExemptEncryption": false
@@ -35,7 +35,7 @@
         "backgroundColor": "#161E38"
       },
       "package": "com.bwebstudio.goldenbook",
-      "versionCode": 75,
+      "versionCode": 76,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
