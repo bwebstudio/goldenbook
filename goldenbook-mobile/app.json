@@ -35,7 +35,7 @@
         "backgroundColor": "#161E38"
       },
       "package": "com.bwebstudio.goldenbook",
-      "versionCode": 80,
+      "versionCode": 81,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"

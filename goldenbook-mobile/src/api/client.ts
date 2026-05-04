@@ -162,7 +162,13 @@ apiClient.interceptors.response.use(
       if (__DEV__) {
         const diag = await getSessionDiagnostics();
         // eslint-disable-next-line no-console
-        console.warn('[apiClient]', status ?? 'NETWORK', config?.url, {
+        console.warn('[apiClient:error]', {
+          url: config?.url,
+          method: (config?.method ?? 'get').toUpperCase(),
+          status: status ?? 'NETWORK',
+          message: error?.message,
+          code: (error as AxiosError & { code?: string })?.code,
+          data: error?.response?.data,
           retried: !!config?._gbRetried,
           ...diag,
         });
