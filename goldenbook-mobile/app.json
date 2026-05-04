@@ -35,7 +35,7 @@
         "backgroundColor": "#161E38"
       },
       "package": "com.bwebstudio.goldenbook",
-      "versionCode": 78,
+      "versionCode": 79,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
@@ -73,7 +73,7 @@
           "android": {
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "enableProguardInReleaseBuilds": true,
+            "enableProguardInReleaseBuilds": false,
             "useLegacyPackaging": false
           }
         }
