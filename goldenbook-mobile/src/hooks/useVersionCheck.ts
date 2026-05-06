@@ -115,13 +115,38 @@ function pickMessages(
   );
 }
 
-async function openStore(url: string): Promise<void> {
-  try {
-    await Linking.openURL(url);
-  } catch {
-    // Last-ditch: if the store URL fails to open we silently swallow.
-    // There's no useful UI to show — the user is already looking at a
-    // dismissed Alert.
+/**
+ * On Android we prefer the `market://` intent because Play Store handles it
+ * directly without an extra Chrome → Play hop. We fall back to the HTTPS
+ * URL when Play Store isn't installed (e.g. AOSP emulator images, devices
+ * without Google services, browsers).
+ *
+ * On iOS we keep the canonical https://apps.apple.com URL: it's a Universal
+ * Link that the App Store app intercepts on real devices. In the iOS
+ * Simulator there's no App Store at all, so the link falls through to
+ * Safari and fails — that's expected and only happens on simulator.
+ */
+function buildOpenCandidates(httpsUrl: string): string[] {
+  if (Platform.OS === 'android') {
+    const idMatch = httpsUrl.match(/[?&]id=([^&]+)/);
+    if (idMatch) {
+      return [`market://details?id=${idMatch[1]}`, httpsUrl];
+    }
+  }
+  return [httpsUrl];
+}
+
+async function openStore(httpsUrl: string): Promise<void> {
+  for (const url of buildOpenCandidates(httpsUrl)) {
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) continue;
+      await Linking.openURL(url);
+      return;
+    } catch {
+      // Try the next candidate. If all fail, silently swallow — the
+      // Alert is already dismissed and there's no useful UI to show.
+    }
   }
 }
 
