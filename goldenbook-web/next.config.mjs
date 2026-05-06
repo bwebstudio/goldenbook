@@ -31,6 +31,16 @@ const nextConfig = {
         destination: '/delete-account',
         permanent: true,
       },
+      {
+        source: '/app',
+        destination: '/es',
+        permanent: true,
+      },
+      {
+        source: '/app/:path*',
+        destination: '/es',
+        permanent: true,
+      },
     ]
   },
   images: {
