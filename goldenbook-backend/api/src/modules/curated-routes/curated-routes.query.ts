@@ -1,6 +1,66 @@
 import { db } from '../../db/postgres'
 import { translateText } from '../../lib/translation/deepl'
 
+// Editorial source-of-truth for routes (curator writes here).
+// Mirrors modules/admin/places/translation-policy.ts.
+const CANONICAL_LOCALE = 'pt'
+type Lang = 'en' | 'pt' | 'es'
+
+function toLang(locale: string): Lang {
+  const family = locale.trim().toLowerCase().replace('_', '-').split('-')[0]
+  if (family === 'pt') return 'pt'
+  if (family === 'es') return 'es'
+  return 'en'
+}
+
+/**
+ * Resolve a localized route field (title / summary) for the requested locale.
+ *
+ * The raw column on `curated_routes` is the canonical PT text — that's where
+ * the curator writes. `*_translations` is a JSONB cache of EN/ES translations.
+ *
+ * Strategy:
+ *  • If the requested locale is canonical → return the raw column.
+ *  • Else if the JSONB already has it → return that.
+ *  • Else translate raw → target via DeepL (cached at translation_cache level)
+ *    and persist into the JSONB so future reads skip the API call.
+ *  • If translation fails (DeepL down, key missing) → fall back to raw so the
+ *    user sees PT instead of an empty card. Better degraded than broken.
+ */
+async function resolveLocalizedRouteField(args: {
+  routeId: string
+  raw: string | null
+  translations: Record<string, string> | null | undefined
+  targetLang: Lang
+  column: 'title_translations' | 'summary_translations'
+}): Promise<string | null> {
+  const { routeId, raw, translations, targetLang, column } = args
+  if (!raw || !raw.trim()) return raw
+
+  if (targetLang === CANONICAL_LOCALE) return raw
+
+  const cached = translations?.[targetLang]
+  if (cached && cached.trim()) return cached
+
+  try {
+    const translated = await translateText(raw, targetLang, CANONICAL_LOCALE)
+    if (translated && translated.trim()) {
+      // Persist; non-fatal if it fails (next read will retry).
+      db.query(
+        `UPDATE curated_routes
+         SET ${column} = COALESCE(${column}, '{}'::jsonb) || $2::jsonb
+         WHERE id = $1`,
+        [routeId, JSON.stringify({ [targetLang]: translated })],
+      ).catch(() => { /* non-fatal */ })
+      return translated
+    }
+  } catch {
+    // DeepL unavailable — degrade to canonical PT instead of crashing.
+  }
+
+  return raw
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface CuratedRouteWithStops {
@@ -157,25 +217,17 @@ export async function getActiveCuratedRoutes(
   citySlug: string,
   locale: string,
 ): Promise<CuratedRouteWithStops[]> {
-  // 1. Fetch active routes for the city.
-  //    Fallback chain: requested language → Portuguese (primary market) → Spanish → raw column.
-  const lang = locale.split('-')[0]
+  const targetLang = toLang(locale)
+
+  // 1. Fetch raw + translations JSONB so we can resolve per-locale in JS.
+  //    The previous SQL COALESCE fallback walked PT before EN, so an EN user
+  //    whose `title_translations.en` was missing always got PT back.
   const { rows: routeRows } = await db.query<Record<string, unknown>>(
     `SELECT id, city_slug, route_type, template_type, sponsor_place_id,
-            COALESCE(
-              NULLIF(title_translations ->> $2, ''),
-              NULLIF(title_translations ->> 'pt', ''),
-              NULLIF(title_translations ->> 'es', ''),
-              NULLIF(title_translations ->> 'en', ''),
-              title
-            ) AS title,
-            COALESCE(
-              NULLIF(summary_translations ->> $2, ''),
-              NULLIF(summary_translations ->> 'pt', ''),
-              NULLIF(summary_translations ->> 'es', ''),
-              NULLIF(summary_translations ->> 'en', ''),
-              summary
-            ) AS summary,
+            title,
+            summary,
+            title_translations,
+            summary_translations,
             starts_at, expires_at, is_active
      FROM   curated_routes
      WHERE  city_slug = $1
@@ -184,12 +236,34 @@ export async function getActiveCuratedRoutes(
        AND  expires_at > now()
      ORDER  BY route_type = 'sponsored' DESC, created_at DESC
      LIMIT  2`,
-    [citySlug, lang],
+    [citySlug],
   )
 
   if (routeRows.length === 0) return []
 
-  // 2. Fetch stops for all routes in one query
+  // 2. Resolve title/summary per locale. Lazy-translates and persists when
+  //    a translation is missing for the requested locale. Parallel across
+  //    rows so a list of 2 routes is one DeepL roundtrip wide, not serial.
+  await Promise.all(
+    routeRows.flatMap((row) => [
+      resolveLocalizedRouteField({
+        routeId: row.id as string,
+        raw: row.title as string,
+        translations: row.title_translations as Record<string, string> | null,
+        targetLang,
+        column: 'title_translations',
+      }).then((t) => { row.title = t }),
+      resolveLocalizedRouteField({
+        routeId: row.id as string,
+        raw: row.summary as string | null,
+        translations: row.summary_translations as Record<string, string> | null,
+        targetLang,
+        column: 'summary_translations',
+      }).then((s) => { row.summary = s }),
+    ]),
+  )
+
+  // 3. Fetch stops for all routes in one query
   const routeIds = routeRows.map((r) => r.id as string)
   const stopsQuery = `
     SELECT crs.route_id, ${STOPS_SELECT.replace(/\$LOCALE\$/g, '$2')}
@@ -199,7 +273,7 @@ export async function getActiveCuratedRoutes(
 
   const { rows: stopRows } = await db.query<Record<string, unknown>>(stopsQuery, [routeIds, locale])
 
-  // 3. Group stops by route
+  // 4. Group stops by route
   const stopsByRoute = new Map<string, Array<Record<string, unknown>>>()
   for (const stop of stopRows) {
     const routeId = stop.route_id as string
@@ -218,35 +292,43 @@ export async function getCuratedRouteById(
   id: string,
   locale: string,
 ): Promise<CuratedRouteWithStops | null> {
-  // Translation keys are stored as the language code only (`'pt'`, `'es'`),
-  // matching the JSON shape produced by createCuratedRoute / seed scripts.
-  // Fallback chain: requested locale → English (raw `title` / `summary` columns).
-  // Fallback chain: requested language → Portuguese (primary market) → Spanish → raw column (typically English).
-  const lang = locale.split('-')[0]
+  const targetLang = toLang(locale)
+
+  // Fetch raw + translations JSONB. Resolution happens in JS (see
+  // resolveLocalizedRouteField) so a missing target translation is
+  // lazy-generated via DeepL instead of silently falling back to PT.
   const { rows: routeRows } = await db.query<Record<string, unknown>>(
     `SELECT id, city_slug, route_type, template_type, sponsor_place_id,
-            COALESCE(
-              NULLIF(title_translations ->> $2, ''),
-              NULLIF(title_translations ->> 'pt', ''),
-              NULLIF(title_translations ->> 'es', ''),
-              NULLIF(title_translations ->> 'en', ''),
-              title
-            ) AS title,
-            COALESCE(
-              NULLIF(summary_translations ->> $2, ''),
-              NULLIF(summary_translations ->> 'pt', ''),
-              NULLIF(summary_translations ->> 'es', ''),
-              NULLIF(summary_translations ->> 'en', ''),
-              summary
-            ) AS summary,
+            title,
+            summary,
+            title_translations,
+            summary_translations,
             starts_at, expires_at, is_active
      FROM   curated_routes
      WHERE  id = $1
      LIMIT  1`,
-    [id, lang],
+    [id],
   )
 
   if (!routeRows[0]) return null
+
+  const route = routeRows[0]
+  await Promise.all([
+    resolveLocalizedRouteField({
+      routeId: route.id as string,
+      raw: route.title as string,
+      translations: route.title_translations as Record<string, string> | null,
+      targetLang,
+      column: 'title_translations',
+    }).then((t) => { route.title = t }),
+    resolveLocalizedRouteField({
+      routeId: route.id as string,
+      raw: route.summary as string | null,
+      translations: route.summary_translations as Record<string, string> | null,
+      targetLang,
+      column: 'summary_translations',
+    }).then((s) => { route.summary = s }),
+  ])
 
   const stopsQuery = `
     SELECT ${STOPS_SELECT.replace(/\$LOCALE\$/g, '$2')}
@@ -286,15 +368,25 @@ export async function countActiveByCity(
 
 // ─── createCuratedRoute ─────────────────────────────────────────────────────
 
-/** Translate a text to PT and ES, returning { pt, es } map. Non-blocking — returns empty on failure. */
+/**
+ * Translate canonical PT text to EN + ES, returning a `{ en, es }` map.
+ * The PT canonical lives in the raw column, so we don't store a `pt` key.
+ * Non-blocking — partial failures are silently dropped, and the read path
+ * (resolveLocalizedRouteField) will lazy-translate on demand.
+ *
+ * Was previously translating from `'en'` to `'pt'`/`'es'`, which produced
+ * garbage after the canonical-locale switch (commit e7b09d4) and left
+ * `title_translations.en` empty for every new route — the bug that caused
+ * EN users to see PT route titles in the routes list.
+ */
 async function translateToLocales(text: string | null): Promise<Record<string, string>> {
-  if (!text) return {}
+  if (!text || !text.trim()) return {}
   const result: Record<string, string> = {}
-  for (const locale of ['pt', 'es'] as const) {
+  for (const target of ['en', 'es'] as const) {
     try {
-      result[locale] = await translateText(text, locale, 'en')
+      result[target] = await translateText(text, target, CANONICAL_LOCALE)
     } catch {
-      // Non-fatal — keep English as fallback
+      // Non-fatal — read path will retry lazily.
     }
   }
   return result
@@ -466,12 +558,21 @@ export async function updateCuratedRoute(
   try {
     await client.query('BEGIN')
 
-    // Update route fields
+    // Update route fields. When title/summary changes we also reset the
+    // matching `*_translations` JSONB to '{}', so the read path's lazy
+    // translation regenerates them from the new canonical text instead of
+    // serving stale EN/ES translations that no longer match.
     const sets: string[] = []
     const params: unknown[] = []
     let i = 1
-    if (data.title !== undefined) { sets.push(`title = $${i++}`); params.push(data.title) }
-    if (data.summary !== undefined) { sets.push(`summary = $${i++}`); params.push(data.summary) }
+    if (data.title !== undefined) {
+      sets.push(`title = $${i++}`); params.push(data.title)
+      sets.push(`title_translations = '{}'::jsonb`)
+    }
+    if (data.summary !== undefined) {
+      sets.push(`summary = $${i++}`); params.push(data.summary)
+      sets.push(`summary_translations = '{}'::jsonb`)
+    }
     if (sets.length > 0) {
       sets.push('updated_at = now()')
       params.push(id)
