@@ -39,6 +39,7 @@ import { behaviorAnalyticsRoutes } from './modules/analytics/behavior-analytics.
 import { analyticsEventsRoutes, closeStaleSessions } from './modules/analytics/events.route'
 import { adminAnalyticsV2Routes } from './modules/admin/analytics/admin-analytics-v2.route'
 import { contentVersionRoutes } from './modules/content/content-version.route'
+import { mobileVersionCheckRoutes } from './modules/mobile/version-check.route'
 import { recommendationsRoutes } from './modules/recommendations/recommendations.route'
 import { nowRoutes } from './modules/now/now.route'
 import { notificationsRoutes } from './modules/notifications/notifications.route'
@@ -104,6 +105,7 @@ export function buildApp() {
   app.register(analyticsEventsRoutes,  { prefix: env.API_PREFIX })
   app.register(adminAnalyticsV2Routes, { prefix: env.API_PREFIX })
   app.register(contentVersionRoutes,   { prefix: env.API_PREFIX })
+  app.register(mobileVersionCheckRoutes, { prefix: env.API_PREFIX })
   app.register(recommendationsRoutes,  { prefix: env.API_PREFIX })
   app.register(nowRoutes,              { prefix: env.API_PREFIX })
   app.register(notificationsRoutes,   { prefix: env.API_PREFIX })

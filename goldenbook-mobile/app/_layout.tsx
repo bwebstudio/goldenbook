@@ -15,6 +15,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { useTranslation } from '@/i18n';
 import { useSessionLifecycle } from '@/analytics/useSessionLifecycle';
 import { useContentVersionSync } from '@/api/useContentVersion';
+import { useVersionCheck } from '@/hooks/useVersionCheck';
 import * as Localization from 'expo-localization';
 import { useFonts } from 'expo-font';
 import {
@@ -238,6 +239,7 @@ function AppShell() {
   useContentVersionSync();
   useNetworkInit();
   useOfflineQueueFlush();
+  useVersionCheck();
   // Replay pending offline save/unsave ops onto the ['saved', locale]
   // cache. Pure local cache write — never fires a network request, never
   // touches the queue. Closes the force-quit-within-200ms gap left by the

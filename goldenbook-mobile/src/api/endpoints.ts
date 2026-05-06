@@ -15,6 +15,7 @@ import type {
   ConciergeBootstrapDTO,
   ConciergeRecommendResponseDTO,
 } from '@/features/concierge/types';
+import type { VersionCheckResponse } from '@/hooks/useVersionCheck';
 
 export const api = {
   health: () => apiClient.get('/health'),
@@ -159,6 +160,10 @@ export const api = {
 
   deleteAccount: () =>
     apiClient.delete('/auth/account').then((r) => r.data),
+
+  // ── Mobile version check ───────────────────────────────────────────────────
+  versionCheck: () =>
+    apiClient.get<VersionCheckResponse>('/mobile/version-check').then((r) => r.data),
 
   // ── NOW contextual recommendation ──────────────────────────────────────────
   nowRecommendation: (params: {
