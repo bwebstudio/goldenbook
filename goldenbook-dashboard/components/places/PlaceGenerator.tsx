@@ -52,10 +52,21 @@ export default function PlaceGenerator() {
       try {
         const res = await searchGooglePlaces(value);
         setResults(res);
-      } catch { setResults([]); }
+      } catch (e) {
+        console.error("[search-google] failed:", e);
+        let msg: string;
+        if (e instanceof ApiError) {
+          const code = typeof e.data?.error === "string" ? ` (${e.data.error})` : "";
+          msg = `${e.status} ${e.message}${code}`;
+        } else {
+          msg = e instanceof Error ? e.message : String(e);
+        }
+        setError(isPt ? `Erro a pesquisar: ${msg}` : `Search error: ${msg}`);
+        setResults([]);
+      }
       finally { setSearching(false); }
     }, 350);
-  }, []);
+  }, [isPt]);
 
   const handleSelect = (result: GoogleResult) => {
     setSelected(result);
