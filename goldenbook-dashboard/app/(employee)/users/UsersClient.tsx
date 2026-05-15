@@ -24,13 +24,21 @@ interface ClientPlace {
   role: string;
 }
 
+type SubscriptionStatus =
+  | "trial" | "active" | "past_due" | "cancelled" | "expired" | "lapsed";
+
 interface BusinessClientUser {
   user_id: string;
   contact_name: string | null;
   contact_email: string | null;
   is_active: boolean;
+  subscription_status: SubscriptionStatus | null;
+  trial_ends_at: string | null;
+  paid_until: string | null;
   places: ClientPlace[];
 }
+
+type SubscriptionMode = "trial" | "mark_paid" | "stripe_link";
 
 interface Props {
   userRole: string;
@@ -53,6 +61,7 @@ export default function UsersClient({ userRole }: Props) {
   const [formEmail, setFormEmail] = useState("");
   const [formName, setFormName] = useState("");
   const [formPlaceIds, setFormPlaceIds] = useState<string[]>([]);
+  const [formSubMode, setFormSubMode] = useState<SubscriptionMode>("trial");
 
   // Edit state — places
   const [editingClient, setEditingClient] = useState<BusinessClientUser | null>(null);
@@ -88,6 +97,7 @@ export default function UsersClient({ userRole }: Props) {
     setFormEmail("");
     setFormName("");
     setFormPlaceIds([]);
+    setFormSubMode("trial");
     setShowForm(null);
   };
 
@@ -108,7 +118,12 @@ export default function UsersClient({ userRole }: Props) {
     setBusy(true);
     setMessage(null);
     try {
-      await apiPost("/api/v1/admin/users/create-client", { email: formEmail, contactName: formName, placeIds: formPlaceIds });
+      await apiPost("/api/v1/admin/users/create-client", {
+        email: formEmail,
+        contactName: formName,
+        placeIds: formPlaceIds,
+        subscriptionMode: formSubMode,
+      });
       setMessage({ type: "success", text: u.userCreated });
       resetForm();
       await load();
@@ -284,6 +299,37 @@ export default function UsersClient({ userRole }: Props) {
                   selectedIds={formPlaceIds}
                   onChange={setFormPlaceIds}
                 />
+              </div>
+            )}
+            {showForm === "client" && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-muted mb-1.5">{u.subscriptionMode}</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {(["trial", "mark_paid", "stripe_link"] as const).map((mode) => (
+                    <label
+                      key={mode}
+                      className={`flex-1 cursor-pointer rounded-lg border px-3 py-2.5 transition-colors ${
+                        formSubMode === mode
+                          ? "border-gold bg-gold/5"
+                          : "border-border hover:border-gold/30"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        className="sr-only"
+                        name="subscriptionMode"
+                        checked={formSubMode === mode}
+                        onChange={() => setFormSubMode(mode)}
+                      />
+                      <p className="text-xs font-semibold text-text">
+                        {mode === "trial" ? u.modeTrial : mode === "mark_paid" ? u.modeMarkPaid : u.modeStripeLink}
+                      </p>
+                      <p className="text-[10px] text-muted mt-0.5 leading-relaxed">
+                        {mode === "trial" ? u.modeTrialDesc : mode === "mark_paid" ? u.modeMarkPaidDesc : u.modeStripeLinkDesc}
+                      </p>
+                    </label>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -470,7 +516,10 @@ export default function UsersClient({ userRole }: Props) {
               {clients.map((c) => (
                 <div key={c.user_id} className="px-4 py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-text">{c.contact_name ?? c.contact_email}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-text">{c.contact_name ?? c.contact_email}</p>
+                      <SubscriptionChip status={c.subscription_status} trialEnds={c.trial_ends_at} paidUntil={c.paid_until} labels={u} />
+                    </div>
                     <p className="text-xs text-muted">{c.contact_email}</p>
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {c.places.map((p) => (
@@ -627,5 +676,55 @@ function PlaceMultiselect({
         </>
       )}
     </div>
+  );
+}
+
+/* ── Subscription chip ── */
+
+type EmpUsersLabels = ReturnType<typeof useT>["empUsers"];
+
+function SubscriptionChip({
+  status,
+  trialEnds,
+  paidUntil,
+  labels,
+}: {
+  status: SubscriptionStatus | null;
+  trialEnds: string | null;
+  paidUntil: string | null;
+  labels: EmpUsersLabels;
+}) {
+  if (!status) return null;
+
+  const daysTo = (iso: string | null) => {
+    if (!iso) return null;
+    return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  };
+
+  let cls = "bg-gray-100 text-gray-600";
+  let text: string = status;
+  if (status === "trial") {
+    const d = daysTo(trialEnds);
+    cls = d !== null && d <= 30 ? "bg-amber-50 text-amber-700" : "bg-gold/15 text-gold-dark";
+    text = d !== null && d >= 0 ? `${labels.subStatusTrial} · ${d}d` : labels.subStatusTrial;
+  } else if (status === "active") {
+    cls = "bg-emerald-50 text-emerald-700";
+    const d = daysTo(paidUntil);
+    text = d !== null ? `${labels.subStatusActive} · ${d}d` : labels.subStatusActive;
+  } else if (status === "past_due") {
+    cls = "bg-red-50 text-red-700";
+    text = labels.subStatusPastDue;
+  } else if (status === "cancelled") {
+    cls = "bg-amber-50 text-amber-700";
+    text = labels.subStatusCancelled;
+  } else if (status === "expired" || status === "lapsed") {
+    cls = "bg-gray-100 text-gray-500";
+    text = labels.subStatusLapsed;
+  }
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${cls}`}>
+      {text}
+    </span>
   );
 }

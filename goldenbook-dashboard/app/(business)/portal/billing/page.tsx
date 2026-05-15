@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { useT } from "@/lib/i18n";
 import {
   fetchBusinessBilling,
+  fetchBusinessMe,
   type BillingPurchase,
   type BillingMembership,
+  type BusinessSubscription,
 } from "@/lib/api/business-portal";
 import { fetchBusinessPricing, createCheckoutSession, type PricingPlan } from "@/lib/api/pricing";
 
@@ -34,6 +36,7 @@ export default function PortalBilling() {
   const [purchases, setPurchases] = useState<BillingPurchase[]>([]);
   const [memberships, setMemberships] = useState<BillingMembership[]>([]);
   const [membershipPlan, setMembershipPlan] = useState<PricingPlan | null>(null);
+  const [subscription, setSubscription] = useState<BusinessSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const products = t.promote.products as Record<string, { label: string }>;
@@ -44,12 +47,14 @@ export default function PortalBilling() {
     Promise.all([
       fetchBusinessBilling().catch(() => ({ purchases: [], memberships: [] })),
       fetchBusinessPricing().catch(() => ({ plans: [] as PricingPlan[] })),
-    ]).then(([billing, pricing]) => {
+      fetchBusinessMe().catch(() => null),
+    ]).then(([billing, pricing, me]) => {
       if (cancelled) return;
       setPurchases(billing.purchases);
       setMemberships(billing.memberships);
       const mem = pricing.plans.find((p) => p.pricing_type === "membership");
       if (mem) setMembershipPlan(mem);
+      setSubscription(me?.subscription ?? null);
     }).finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
@@ -114,14 +119,46 @@ export default function PortalBilling() {
         {activeMembership ? (
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-base font-bold text-text">{t.billing.planName}</p>
-                <p className="text-[11px] text-emerald-700 mt-0.5">
-                  {t.billing.activeUntil.replace("{date}", fmtDate(activeMembership.expiresAt))}
-                </p>
+                {subscription?.foundersBonus && (
+                  <span className="inline-flex items-center rounded-full bg-gold/15 text-gold-dark px-2 py-0.5 text-[10px] font-semibold">
+                    ★ {t.subscription.foundersBonus}
+                  </span>
+                )}
               </div>
               <p className="text-xl font-bold text-text">{fmtPrice(activeMembership.pricePaid)}</p>
             </div>
+            <p className="text-[11px] text-emerald-700 mt-0.5">
+              {t.billing.activeUntil.replace("{date}", fmtDate(subscription?.paidUntil ?? activeMembership.expiresAt))}
+            </p>
+          </div>
+        ) : subscription?.status === "trial" ? (
+          <div className="bg-gold/5 border border-gold/30 rounded-lg px-4 py-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-base font-bold text-text">{t.subscription.statusTrial}</p>
+                <span className="inline-flex items-center rounded-full bg-gold/15 text-gold-dark px-2 py-0.5 text-[10px] font-semibold">
+                  {t.subscription.statusTrial}
+                </span>
+              </div>
+              {membershipPlan && (
+                <p className="text-xl font-bold text-text">{fmtPrice(membershipPlan.base_price)}<span className="text-[10px] text-muted font-normal ml-1">{t.billing.yearlySuffix}</span></p>
+              )}
+            </div>
+            <p className="text-[11px] text-muted mt-1">
+              {t.billing.trialEndsAt.replace("{date}", fmtDate(subscription.trialEndsAt))}
+            </p>
+            <p className="text-[11px] text-muted mt-0.5">{t.billing.trialNote}</p>
+            {membershipPlan && (
+              <button
+                onClick={handleMembershipCheckout}
+                disabled={checkingOut}
+                className="mt-3 px-4 py-2 rounded-lg bg-gold text-white text-xs font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {checkingOut ? t.billing.redirecting : t.subscription.subscribeCta}
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-gold/5 border border-gold/15 rounded-lg px-4 py-3.5">

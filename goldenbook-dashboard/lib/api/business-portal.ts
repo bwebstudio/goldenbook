@@ -1,4 +1,22 @@
-import { apiGet, apiPost, apiPut } from "./client";
+import { apiGet, apiPost, apiPut, apiPatch } from "./client";
+
+// ─── Subscription ───────────────────────────────────────────────────────────
+
+export type SubscriptionStatus =
+  | "trial"
+  | "active"
+  | "past_due"
+  | "cancelled"
+  | "expired"
+  | "lapsed";
+
+export interface BusinessSubscription {
+  status: SubscriptionStatus | null;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  paidUntil: string | null;
+  foundersBonus: boolean;
+}
 
 // ─── Image type ─────────────────────────────────────────────────────────────
 
@@ -43,6 +61,7 @@ export interface BusinessMeResponse {
     status: string;
   } | null;
   places: BusinessPlaceSummary[];
+  subscription: BusinessSubscription | null;
 }
 
 export interface BusinessPlaceProfile {
@@ -106,6 +125,21 @@ export interface PlacementRequestWithPlace extends PlacementRequestDTO {
 
 export async function fetchBusinessMe(): Promise<BusinessMeResponse> {
   return apiGet<BusinessMeResponse>("/api/v1/business/me");
+}
+
+// ─── Admin: subscription management ─────────────────────────────────────────
+
+export type SubscriptionAction = "start_trial" | "mark_paid" | "extend" | "lapse";
+
+export async function updateClientSubscription(
+  userId: string,
+  action: SubscriptionAction,
+  days?: number,
+): Promise<{ updated: boolean }> {
+  return apiPatch<{ updated: boolean }>(
+    `/api/v1/admin/users/client/${userId}/subscription`,
+    days !== undefined ? { action, days } : { action },
+  );
 }
 
 export interface ChangeRequestInfo {

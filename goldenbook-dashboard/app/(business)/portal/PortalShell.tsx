@@ -5,6 +5,7 @@ import { useT, useLocale, type Locale } from "@/lib/i18n";
 import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
 import PlaceSelector from "@/components/ui/PlaceSelector";
 import NotificationBell from "@/components/ui/NotificationBell";
+import SubscriptionBanner from "@/components/business/SubscriptionBanner";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
@@ -172,6 +173,9 @@ export default function PortalShell({ user, children }: { user: DashboardUser; c
 
       {/* ── Main content ── */}
       <main className="flex-1 px-5 md:px-8 lg:px-12 py-6 md:py-10 pb-24 md:pb-10 max-w-6xl mx-auto w-full">
+        <div className="mb-4">
+          <SubscriptionBanner />
+        </div>
         {children}
       </main>
 

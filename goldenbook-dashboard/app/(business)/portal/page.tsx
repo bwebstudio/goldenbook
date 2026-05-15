@@ -10,6 +10,7 @@ import {
   type BusinessMeResponse,
   type BusinessOverview,
   type BusinessAnalytics,
+  type BusinessSubscription,
 } from "@/lib/api/business-portal";
 import { fetchMyRecommendations, type Recommendation } from "@/lib/api/recommendations";
 
@@ -62,6 +63,9 @@ export default function PortalOverview() {
           </Link>
         </div>
       </div>
+
+      {/* ── 1.5 Subscription summary ── */}
+      {me?.subscription && <SubscriptionCard subscription={me.subscription} />}
 
       {/* ── 2. Performance snapshot ── */}
       <div>
@@ -248,6 +252,101 @@ export default function PortalOverview() {
 }
 
 /* ── Sub-components ── */
+
+function SubscriptionCard({ subscription }: { subscription: BusinessSubscription }) {
+  const t = useT();
+  const sb = t.subscription;
+  const status = subscription.status;
+  if (!status) return null;
+
+  const daysTo = (iso: string | null) => {
+    if (!iso) return null;
+    return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  };
+
+  // Pick the row's color, label and primary action from the lifecycle state.
+  let chipClass = "bg-emerald-100 text-emerald-700";
+  let statusLabel = sb.statusActive;
+  let detail = "";
+  let cta: { label: string; href: string } | null = { label: sb.manage, href: "/portal/billing" };
+
+  if (status === "trial") {
+    const d = daysTo(subscription.trialEndsAt);
+    chipClass = (d ?? 31) > 30 ? "bg-[#D2B68A]/20 text-[#A07845]" : "bg-amber-100 text-amber-700";
+    statusLabel = sb.statusTrial;
+    if (d !== null) {
+      detail =
+        d < 0 ? sb.detailExpired
+        : sb.detailTrial.replace("{{days}}", String(d)).replace("{{date}}", formatDate(subscription.trialEndsAt));
+    }
+    cta = { label: sb.subscribeCta, href: "/portal/billing" };
+  } else if (status === "active") {
+    const d = daysTo(subscription.paidUntil);
+    statusLabel = sb.statusActive;
+    if (d !== null) {
+      detail = sb.detailActive
+        .replace("{{days}}", String(Math.max(0, d)))
+        .replace("{{date}}", formatDate(subscription.paidUntil));
+    }
+  } else if (status === "past_due") {
+    chipClass = "bg-red-100 text-red-700";
+    statusLabel = sb.statusPastDue;
+    detail = sb.detailPastDue;
+    cta = { label: sb.updatePaymentCta, href: "/portal/billing" };
+  } else if (status === "cancelled") {
+    const d = daysTo(subscription.paidUntil);
+    if (d !== null && d > 0) {
+      chipClass = "bg-amber-100 text-amber-700";
+      statusLabel = sb.statusCancelled;
+      detail = sb.detailCancelledActive
+        .replace("{{days}}", String(d))
+        .replace("{{date}}", formatDate(subscription.paidUntil));
+      cta = { label: sb.resubscribeCta, href: "/portal/billing" };
+    } else {
+      chipClass = "bg-gray-200 text-gray-700";
+      statusLabel = sb.statusLapsed;
+      detail = sb.detailLapsed;
+      cta = { label: sb.resubscribeCta, href: "/portal/billing" };
+    }
+  } else if (status === "expired" || status === "lapsed") {
+    chipClass = "bg-gray-200 text-gray-700";
+    statusLabel = sb.statusLapsed;
+    detail = sb.detailLapsed;
+    cta = { label: sb.resubscribeCta, href: "/portal/billing" };
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-border p-4 md:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-[10px] font-bold text-muted uppercase tracking-[0.1em]">{sb.sectionTitle}</p>
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${chipClass}`}>
+            {statusLabel}
+          </span>
+          {subscription.foundersBonus && (
+            <span className="inline-flex items-center rounded-full bg-[#D2B68A]/15 text-[#A07845] px-2 py-0.5 text-[10px] font-semibold">
+              ★ {sb.foundersBonus}
+            </span>
+          )}
+        </div>
+        {detail && <p className="text-sm text-text">{detail}</p>}
+      </div>
+      {cta && (
+        <Link
+          href={cta.href}
+          className="shrink-0 px-4 py-2 rounded-lg bg-[#D2B68A] hover:bg-[#C0A37A] text-[#222D52] text-xs font-semibold transition-colors text-center"
+        >
+          {cta.label}
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString();
+}
 
 function PerfCard({ icon, value, prevValue, label, trendLabel }: { icon: React.ReactNode; value?: number; prevValue?: number; label: string; trendLabel: string }) {
   const has = value !== undefined && value > 0;
