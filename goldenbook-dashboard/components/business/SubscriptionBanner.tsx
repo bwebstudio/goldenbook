@@ -89,6 +89,8 @@ function pickBanner(sub: BusinessSubscription | null, t: ReturnType<typeof useT>
         cta: sb.renewCta,
       };
     }
+    case "pending_payment":
+      return { tone: "danger", title: sb.pendingPaymentTitle, body: sb.pendingPaymentBody, cta: sb.activateCta };
     case "past_due":
       return { tone: "danger", title: sb.pastDueTitle, body: sb.pastDueBody, cta: sb.updatePaymentCta };
     case "cancelled": {

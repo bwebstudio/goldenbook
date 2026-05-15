@@ -298,6 +298,11 @@ function SubscriptionCard({ subscription }: { subscription: BusinessSubscription
         : sb.detailGrace.replace("{{days}}", String(d)).replace("{{date}}", formatDate(subscription.retentionGraceEndsAt));
     }
     cta = { label: sb.renewCta, href: "/portal/billing" };
+  } else if (status === "pending_payment") {
+    chipClass = "bg-red-100 text-red-700";
+    statusLabel = sb.statusPending;
+    detail = sb.detailPending;
+    cta = { label: sb.activateCta, href: "/portal/billing" };
   } else if (status === "past_due") {
     chipClass = "bg-red-100 text-red-700";
     statusLabel = sb.statusPastDue;

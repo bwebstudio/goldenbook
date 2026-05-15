@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import Stripe from 'stripe'
 import { z } from 'zod'
 import { authenticateBusinessClient, getBusinessClientByUserId } from '../../shared/auth/businessAuth'
 import { authenticateDashboardUser } from '../../shared/auth/dashboardAuth'
@@ -6,6 +7,70 @@ import { authenticate } from '../../shared/auth/authPlugin'
 import { AppError } from '../../shared/errors/AppError'
 import { env } from '../../config/env'
 import { db } from '../../db/postgres'
+
+// ─── Membership Stripe checkout helper ──────────────────────────────────────
+// Builds a Stripe Checkout subscription session for the €150/yr Goldenbook GO
+// membership and returns its hosted URL. Used by admin-initiated "Stripe link"
+// flows where the client must pay before their listing goes live. The webhook
+// (handleSubscriptionUpdate / fulfillMembershipPurchase) is what actually
+// promotes the business_client to 'active' once Stripe confirms payment.
+async function createMembershipCheckoutForAdmin(args: {
+  businessClientId: string
+  placeId: string
+  userId: string
+}): Promise<string | null> {
+  if (!env.STRIPE_SECRET_KEY) return null
+
+  const { rows: planRows } = await db.query<{
+    id: string; base_price: string; currency: string
+  }>(
+    `SELECT id, base_price, currency
+       FROM pricing_plans
+      WHERE pricing_type = 'membership' AND is_active = true
+      ORDER BY created_at DESC LIMIT 1`,
+  )
+  const plan = planRows[0]
+  if (!plan) return null
+
+  const stripe = new Stripe(env.STRIPE_SECRET_KEY)
+  const basePrice = parseFloat(plan.base_price)
+  const successUrl = `${env.DASHBOARD_URL ?? 'http://localhost:3000'}/portal/checkout/success?session_id={CHECKOUT_SESSION_ID}`
+  const cancelUrl  = `${env.DASHBOARD_URL ?? 'http://localhost:3000'}/portal/checkout/cancel`
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [{
+      price_data: {
+        currency: plan.currency,
+        unit_amount: Math.round(basePrice * 100),
+        recurring: { interval: 'year' },
+        product_data: {
+          name: 'Goldenbook GO Membership',
+          description: 'Annual listing on the Goldenbook app',
+        },
+        tax_behavior: 'exclusive',
+      },
+      quantity: 1,
+    }],
+    automatic_tax: { enabled: true },
+    tax_id_collection: { enabled: true },
+    metadata: {
+      plan_id: plan.id,
+      plan_type: 'membership',
+      business_id: args.businessClientId,
+      place_id: args.placeId,
+      user_id: args.userId,
+      computed_final_price: basePrice.toFixed(2),
+    },
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    // Stripe caps subscription-mode checkout sessions at 24h.
+    expires_at: Math.floor(Date.now() / 1000) + 23 * 60 * 60,
+  })
+
+  return session.url ?? null
+}
 import {
   getRequestsByClient,
   createRequest,
@@ -1045,21 +1110,22 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       [userId],
     )
 
-    // Subscription state seeded at creation. `trial` and `stripe_link` both
-    // grant a 6-month trial window — the difference is just a flag for the
-    // operator. `mark_paid` records the offline payment with 1 year of access.
-    //
-    // lifecycle_path determines who gets the 6-month retention grace at the
-    // end of their paid period:
-    //   - mark_paid       → paid_first (eligible for grace)
-    //   - trial / stripe  → trial_first (no grace; pays or lapses)
+    // Subscription state seeded at creation — three distinct modes:
+    //   - trial:       6-month free trial. trial_first lifecycle, pays-or-lapses.
+    //   - mark_paid:   already paid offline. active immediately, 1 year. paid_first.
+    //   - stripe_link: must pay to activate. Created as 'pending_payment',
+    //                  not visible until they complete Stripe checkout. The
+    //                  webhook flips them to 'active' on payment. paid_first
+    //                  lifecycle so they get the retention grace later.
     const now = new Date()
     const trialEnd = new Date(now.getTime() + 182 * 86_400_000) // ≈ 6 months
     const paidEnd  = new Date(now.getTime() + 365 * 86_400_000)
     const subPatch =
       body.subscriptionMode === 'mark_paid'
-        ? { status: 'active', trialStartedAt: null, trialEndsAt: null, paidUntil: paidEnd,  lifecyclePath: 'paid_first'  }
-        : { status: 'trial',  trialStartedAt: now,  trialEndsAt: trialEnd, paidUntil: null, lifecyclePath: 'trial_first' }
+        ? { status: 'active',          trialStartedAt: null, trialEndsAt: null,     paidUntil: paidEnd,  lifecyclePath: 'paid_first'  }
+      : body.subscriptionMode === 'stripe_link'
+        ? { status: 'pending_payment', trialStartedAt: null, trialEndsAt: null,     paidUntil: null,     lifecyclePath: 'paid_first'  }
+        : { status: 'trial',           trialStartedAt: now,  trialEndsAt: trialEnd, paidUntil: null,     lifecyclePath: 'trial_first' }
 
     // Create business_clients + place_users for each place
     for (const pid of placeIds) {
@@ -1106,7 +1172,35 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       app.log.error({ err: err.message }, '[create-client] Invite email FAILED for %s', normalizedEmail)
     }
 
-    return reply.status(201).send({ created: true })
+    // Stripe link mode: generate a Stripe Checkout URL for the first place
+    // and email it to the client. They can pay from the email directly without
+    // logging in first. If the link expires (24h) the admin can re-send.
+    let paymentLinkSent = false
+    if (body.subscriptionMode === 'stripe_link') {
+      try {
+        const { rows: bcRow } = await db.query<{ id: string }>(
+          'SELECT id FROM business_clients WHERE user_id = $1 AND place_id = $2 LIMIT 1',
+          [userId, placeIds[0]],
+        )
+        if (bcRow[0]) {
+          const checkoutUrl = await createMembershipCheckoutForAdmin({
+            businessClientId: bcRow[0].id,
+            placeId: placeIds[0],
+            userId,
+          })
+          if (checkoutUrl) {
+            const { sendPaymentLinkEmail } = await import('../../services/email/email.service')
+            await sendPaymentLinkEmail(normalizedEmail, checkoutUrl)
+            paymentLinkSent = true
+            app.log.info('[create-client] Stripe payment link emailed to %s', normalizedEmail)
+          }
+        }
+      } catch (err: any) {
+        app.log.error({ err: err.message }, '[create-client] Payment link email FAILED for %s', normalizedEmail)
+      }
+    }
+
+    return reply.status(201).send({ created: true, paymentLinkSent })
   })
 
   // ── PUT /admin/users/:userId/places ────────────────────────────────────
@@ -1591,5 +1685,49 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     }
 
     return reply.send({ updated: true, action: body.action, days })
+  })
+
+  // ── POST /admin/users/client/:userId/send-payment-link ─────────────────
+  // Generate a fresh Stripe Checkout URL and email it. Useful when a
+  // pending_payment client lost or never received the original link, or
+  // when 24h expired. Both super_admin and editor can trigger.
+  app.post('/admin/users/client/:userId/send-payment-link', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+
+    const { rows: bcRows } = await db.query<{
+      id: string; place_id: string; contact_email: string | null
+    }>(
+      `SELECT id, place_id, contact_email
+         FROM business_clients
+        WHERE user_id = $1 AND is_active = true
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [userId],
+    )
+    const bc = bcRows[0]
+    if (!bc) throw new AppError(404, 'Business client not found', 'NOT_FOUND')
+
+    // Fall back to auth.users email if business_clients.contact_email is null.
+    let email = bc.contact_email
+    if (!email) {
+      const { rows: au } = await db.query<{ email: string | null }>(
+        'SELECT email FROM auth.users WHERE id = $1 LIMIT 1',
+        [userId],
+      ).catch(() => ({ rows: [] as { email: string | null }[] }))
+      email = au[0]?.email ?? null
+    }
+    if (!email) throw new AppError(400, 'No email on file for this client', 'NO_EMAIL')
+
+    const checkoutUrl = await createMembershipCheckoutForAdmin({
+      businessClientId: bc.id,
+      placeId: bc.place_id,
+      userId,
+    })
+    if (!checkoutUrl) throw new AppError(503, 'Stripe is not configured or no membership plan exists', 'CHECKOUT_FAILED')
+
+    const { sendPaymentLinkEmail } = await import('../../services/email/email.service')
+    await sendPaymentLinkEmail(email, checkoutUrl)
+
+    return reply.send({ sent: true, email })
   })
 }

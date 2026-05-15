@@ -14,7 +14,7 @@
 
 import { Resend } from 'resend'
 import { env } from '../../config/env'
-import { verifyEmailTemplate, inviteTemplate, resetPasswordTemplate } from './templates'
+import { verifyEmailTemplate, inviteTemplate, resetPasswordTemplate, paymentLinkTemplate } from './templates'
 
 let resendClient: Resend | null = null
 
@@ -66,4 +66,8 @@ export async function sendInviteEmail(to: string, setPasswordUrl: string): Promi
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
   await send(to, resetPasswordTemplate(resetUrl))
+}
+
+export async function sendPaymentLinkEmail(to: string, checkoutUrl: string): Promise<void> {
+  await send(to, paymentLinkTemplate(checkoutUrl))
 }

@@ -133,6 +133,30 @@ export default function PortalBilling() {
               {t.billing.activeUntil.replace("{date}", fmtDate(subscription?.paidUntil ?? activeMembership.expiresAt))}
             </p>
           </div>
+        ) : subscription?.status === "pending_payment" ? (
+          <div className="bg-red-50 border-2 border-red-300 rounded-lg px-4 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-base font-bold text-red-900">{t.subscription.pendingPaymentTitle}</p>
+                <span className="inline-flex items-center rounded-full bg-red-200 text-red-800 px-2 py-0.5 text-[10px] font-semibold">
+                  {t.subscription.statusPending}
+                </span>
+              </div>
+              {membershipPlan && (
+                <p className="text-xl font-bold text-red-900">{fmtPrice(membershipPlan.base_price)}<span className="text-[10px] text-red-700 font-normal ml-1">{t.billing.yearlySuffix}</span></p>
+              )}
+            </div>
+            <p className="text-[12px] text-red-900 mt-2 leading-relaxed">{t.billing.pendingExplain}</p>
+            {membershipPlan && (
+              <button
+                onClick={handleMembershipCheckout}
+                disabled={checkingOut}
+                className="mt-3 px-4 py-2 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {checkingOut ? t.billing.redirecting : t.subscription.activateCta}
+              </button>
+            )}
+          </div>
         ) : subscription?.status === "retention_grace" ? (
           <div className="bg-gold/8 border-2 border-gold/40 rounded-lg px-4 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

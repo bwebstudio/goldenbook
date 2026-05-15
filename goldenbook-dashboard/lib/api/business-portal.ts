@@ -9,7 +9,8 @@ export type SubscriptionStatus =
   | "cancelled"
   | "expired"
   | "lapsed"
-  | "retention_grace";
+  | "retention_grace"
+  | "pending_payment";
 
 export type LifecyclePath = "trial_first" | "paid_first";
 
@@ -145,6 +146,13 @@ export async function updateClientSubscription(
   return apiPatch<{ updated: boolean }>(
     `/api/v1/admin/users/client/${userId}/subscription`,
     days !== undefined ? { action, days } : { action },
+  );
+}
+
+export async function sendClientPaymentLink(userId: string): Promise<{ sent: boolean; email: string }> {
+  return apiPost<{ sent: boolean; email: string }>(
+    `/api/v1/admin/users/client/${userId}/send-payment-link`,
+    {},
   );
 }
 

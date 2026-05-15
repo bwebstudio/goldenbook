@@ -144,6 +144,34 @@ Goldenbook GO - goldenbook.app`
   return { subject, html, text }
 }
 
+// ─── Payment link (Stripe checkout for membership activation) ───────────────
+
+export function paymentLinkTemplate(checkoutUrl: string): { subject: string; html: string; text: string } {
+  const subject = 'Activate your Goldenbook GO listing'
+
+  const html = layout(
+    'Complete payment to publish your listing on Goldenbook.',
+    `<p style="margin:0 0 16px;font-family:Georgia,'Times New Roman',Times,serif;font-size:22px;font-weight:700;line-height:28px;color:${NAVY};">Almost there</p>
+<p style="margin:0;font-size:15px;line-height:24px;color:${BODY_TEXT};">Your Goldenbook GO account is set up. Complete payment to publish your listing in the app.</p>
+${btn('Pay now (€150/year)', checkoutUrl)}
+${rule()}
+<p style="margin:20px 0 0;font-size:12px;line-height:18px;color:${MUTED};">This payment link expires in 24 hours. You can request a new one from your dashboard at any time.</p>`
+  )
+
+  const text = `Activate your Goldenbook GO listing
+
+Your account is set up. Complete payment to publish your listing in the app.
+
+Pay now (€150/year): ${checkoutUrl}
+
+This link expires in 24 hours. You can request a new one from your dashboard.
+
+--
+Goldenbook GO - goldenbook.app`
+
+  return { subject, html, text }
+}
+
 // ─── Reset Password ─────────────────────────────────────────────────────────
 
 export function resetPasswordTemplate(resetUrl: string): { subject: string; html: string; text: string } {

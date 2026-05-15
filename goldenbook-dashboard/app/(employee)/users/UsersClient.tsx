@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useT } from "@/lib/i18n";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api/client";
 import { fetchAdminPlacesList } from "@/lib/api/places";
+import { sendClientPaymentLink } from "@/lib/api/business-portal";
 import type { AdminPlaceListItem } from "@/types/api/place";
 
 type DeleteTarget =
@@ -25,7 +26,7 @@ interface ClientPlace {
 }
 
 type SubscriptionStatus =
-  | "trial" | "active" | "past_due" | "cancelled" | "expired" | "lapsed" | "retention_grace";
+  | "trial" | "active" | "past_due" | "cancelled" | "expired" | "lapsed" | "retention_grace" | "pending_payment";
 
 interface BusinessClientUser {
   user_id: string;
@@ -202,6 +203,17 @@ export default function UsersClient({ userRole }: Props) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleSendPaymentLink = async (c: BusinessClientUser) => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await sendClientPaymentLink(c.user_id);
+      setMessage({ type: "success", text: u.paymentLinkSent });
+    } catch {
+      setMessage({ type: "error", text: u.paymentLinkError });
+    } finally { setBusy(false); }
   };
 
   const askDeleteAdmin = (a: AdminUser) => {
@@ -532,6 +544,17 @@ export default function UsersClient({ userRole }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {c.subscription_status === "pending_payment" && (
+                      <button
+                        onClick={() => handleSendPaymentLink(c)}
+                        disabled={busy}
+                        className="text-red-600 hover:text-red-700 cursor-pointer transition-colors disabled:opacity-50"
+                        title={u.sendPaymentLink}
+                        aria-label={u.sendPaymentLink}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                      </button>
+                    )}
                     {isSuperAdmin && (
                       <button
                         onClick={() => startEditInfoClient(c)}
@@ -719,6 +742,9 @@ function SubscriptionChip({
     const d = daysTo(graceEndsAt);
     cls = d !== null && d <= 30 ? "bg-red-50 text-red-700" : "bg-gold/15 text-gold-dark";
     text = d !== null && d >= 0 ? `${labels.subStatusGrace} · ${d}d` : labels.subStatusGrace;
+  } else if (status === "pending_payment") {
+    cls = "bg-red-50 text-red-700";
+    text = labels.subStatusPending;
   } else if (status === "past_due") {
     cls = "bg-red-50 text-red-700";
     text = labels.subStatusPastDue;
