@@ -457,6 +457,50 @@ export async function updateMembershipStatus(subscriptionId: string, status: str
   )
 }
 
+// ─── Business client subscription sync ───────────────────────────────────────
+// Mirrors the canonical subscription state onto business_clients so the
+// dashboard banner and the future visibility filter can read it without
+// joining memberships on every request.
+
+export async function syncBusinessClientSubscription(
+  businessClientId: string,
+  patch: { status?: string; paidUntil?: Date | null },
+): Promise<void> {
+  const fields: string[] = []
+  const values: unknown[] = [businessClientId]
+  let i = 2
+  if (patch.status !== undefined) {
+    fields.push(`subscription_status = $${i++}`)
+    values.push(patch.status)
+  }
+  if (patch.paidUntil !== undefined) {
+    fields.push(`paid_until = $${i++}`)
+    values.push(patch.paidUntil ? patch.paidUntil.toISOString() : null)
+  }
+  if (fields.length === 0) return
+  fields.push(`updated_at = now()`)
+  await db.query(
+    `UPDATE business_clients SET ${fields.join(', ')} WHERE id = $1`,
+    values,
+  )
+}
+
+export async function syncBusinessClientFromSubscription(
+  subscriptionId: string,
+  patch: { status: string; paidUntil?: Date | null },
+): Promise<void> {
+  await db.query(
+    `UPDATE business_clients bc
+        SET subscription_status = $2,
+            paid_until          = COALESCE($3, bc.paid_until),
+            updated_at          = now()
+       FROM memberships m
+      WHERE m.business_client_id = bc.id
+        AND m.stripe_subscription_id = $1`,
+    [subscriptionId, patch.status, patch.paidUntil ? patch.paidUntil.toISOString() : null],
+  )
+}
+
 // ─── Stripe customer linkage ─────────────────────────────────────────────────
 
 export async function linkStripeCustomer(businessClientId: string, stripeCustomerId: string): Promise<void> {

@@ -77,6 +77,23 @@ export async function businessPortalRoutes(app: FastifyInstance) {
 
     const place = rows[0]
 
+    // Subscription state for the active business_client. Picked from the row
+    // tied to the currently selected place so multi-place owners with mixed
+    // states (rare) see the state of the place they're looking at.
+    const { rows: subRows } = await db.query<{
+      subscription_status: string | null
+      trial_started_at: string | null
+      trial_ends_at: string | null
+      paid_until: string | null
+      founders_bonus_at: string | null
+    }>(`
+      SELECT subscription_status, trial_started_at, trial_ends_at, paid_until, founders_bonus_at
+      FROM business_clients
+      WHERE user_id = $1 AND place_id = $2
+      LIMIT 1
+    `, [request.user.sub, client.placeId])
+    const sub = subRows[0] ?? null
+
     // Fetch summary for all linked places
     const allPlaceIds = client.places.map((p) => p.placeId)
     const { rows: allPlaces } = allPlaceIds.length > 0
@@ -114,6 +131,13 @@ export async function businessPortalRoutes(app: FastifyInstance) {
         status: p.status,
         role: client.places.find((pu) => pu.placeId === p.id)?.role ?? 'owner',
       })),
+      subscription: sub ? {
+        status: sub.subscription_status,
+        trialStartedAt: sub.trial_started_at,
+        trialEndsAt: sub.trial_ends_at,
+        paidUntil: sub.paid_until,
+        foundersBonus: !!sub.founders_bonus_at,
+      } : null,
     })
   })
 
@@ -776,6 +800,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     let clientRows: {
       user_id: string; contact_name: string | null; contact_email: string | null; is_active: boolean
       place_id: string; place_name: string; place_slug: string; place_role: string
+      subscription_status: string | null; trial_ends_at: string | null; paid_until: string | null
     }[]
 
     try {
@@ -788,7 +813,10 @@ export async function businessPortalRoutes(app: FastifyInstance) {
           COALESCE(pu.place_id, bc.place_id) AS place_id,
           p.name AS place_name,
           p.slug AS place_slug,
-          COALESCE(pu.role, 'owner') AS place_role
+          COALESCE(pu.role, 'owner') AS place_role,
+          bc.subscription_status,
+          bc.trial_ends_at,
+          bc.paid_until
         FROM business_clients bc
         FULL OUTER JOIN place_users pu
           ON pu.user_id = bc.user_id AND pu.place_id = bc.place_id
@@ -801,7 +829,8 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       // place_users table may not exist yet — fall back to business_clients only
       const result = await db.query<typeof clientRows[number]>(`
         SELECT bc.user_id, bc.contact_name, bc.contact_email, bc.is_active,
-               bc.place_id, p.name AS place_name, p.slug AS place_slug, 'owner' AS place_role
+               bc.place_id, p.name AS place_name, p.slug AS place_slug, 'owner' AS place_role,
+               bc.subscription_status, bc.trial_ends_at, bc.paid_until
         FROM business_clients bc
         JOIN places p ON p.id = bc.place_id
         WHERE bc.is_active = true
@@ -813,6 +842,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     // Group by user
     const clientMap = new Map<string, {
       user_id: string; contact_name: string | null; contact_email: string | null; is_active: boolean
+      subscription_status: string | null; trial_ends_at: string | null; paid_until: string | null
       places: { id: string; name: string; slug: string; role: string }[]
     }>()
     for (const row of clientRows) {
@@ -823,12 +853,20 @@ export async function businessPortalRoutes(app: FastifyInstance) {
           contact_name: row.contact_name,
           contact_email: row.contact_email,
           is_active: row.is_active,
+          subscription_status: row.subscription_status,
+          trial_ends_at: row.trial_ends_at,
+          paid_until: row.paid_until,
           places: [],
         }
         clientMap.set(row.user_id, entry)
       }
       if (!entry.contact_name && row.contact_name) entry.contact_name = row.contact_name
       if (!entry.contact_email && row.contact_email) entry.contact_email = row.contact_email
+      // Take whichever row has the freshest subscription info — they're per-place,
+      // but in practice a user's subscription is the same across all their places.
+      if (!entry.subscription_status && row.subscription_status) entry.subscription_status = row.subscription_status
+      if (!entry.trial_ends_at && row.trial_ends_at) entry.trial_ends_at = row.trial_ends_at
+      if (!entry.paid_until && row.paid_until) entry.paid_until = row.paid_until
       // Avoid duplicate places
       if (!entry.places.some((ep) => ep.id === row.place_id)) {
         entry.places.push({ id: row.place_id, name: row.place_name, slug: row.place_slug, role: row.place_role })
@@ -880,6 +918,15 @@ export async function businessPortalRoutes(app: FastifyInstance) {
   // ── POST /admin/users/create-client ─────────────────────────────────────
   // Both super_admin and editor can create business clients.
   // Accepts placeIds (array) or placeId (single) for backward compat.
+  //
+  // `subscriptionMode` controls the initial subscription state:
+  //   - 'trial'       — 6-month free trial (default; what most clients get)
+  //   - 'mark_paid'   — already paid offline (transfer/cash), grant 1 year
+  //   - 'stripe_link' — same as trial, but flag a follow-up so the operator
+  //                     knows to send a Stripe Checkout link from the client's
+  //                     billing page. We do not generate the link here because
+  //                     the URL has to come from a flow that's already wired
+  //                     to Stripe with the pricing plan.
   app.post('/admin/users/create-client', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const body = z.object({
       email: z.string().email(),
@@ -887,6 +934,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       placeIds: z.array(z.string().uuid()).optional(),
       placeId: z.string().uuid().optional(),
       role: z.enum(['owner', 'manager']).default('owner'),
+      subscriptionMode: z.enum(['trial', 'mark_paid', 'stripe_link']).default('trial'),
     }).parse(request.body)
 
     const placeIds = body.placeIds ?? (body.placeId ? [body.placeId] : [])
@@ -932,13 +980,40 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       [userId],
     )
 
+    // Subscription state seeded at creation. `trial` and `stripe_link` both
+    // grant a 6-month trial window — the difference is just a flag for the
+    // operator. `mark_paid` records the offline payment with 1 year of access.
+    const now = new Date()
+    const trialEnd = new Date(now.getTime() + 182 * 86_400_000) // ≈ 6 months
+    const paidEnd  = new Date(now.getTime() + 365 * 86_400_000)
+    const subPatch =
+      body.subscriptionMode === 'mark_paid'
+        ? { status: 'active', trialStartedAt: null, trialEndsAt: null, paidUntil: paidEnd }
+        : { status: 'trial',  trialStartedAt: now,  trialEndsAt: trialEnd, paidUntil: null }
+
     // Create business_clients + place_users for each place
     for (const pid of placeIds) {
       await db.query(`
-        INSERT INTO business_clients (user_id, place_id, contact_name, contact_email, is_active)
-        VALUES ($1, $2, $3, $4, true)
-        ON CONFLICT (user_id, place_id) DO UPDATE SET contact_name = $3, contact_email = $4, is_active = true
-      `, [userId, pid, body.contactName, normalizedEmail])
+        INSERT INTO business_clients (
+          user_id, place_id, contact_name, contact_email, is_active,
+          subscription_status, trial_started_at, trial_ends_at, paid_until
+        )
+        VALUES ($1, $2, $3, $4, true, $5, $6, $7, $8)
+        ON CONFLICT (user_id, place_id) DO UPDATE SET
+          contact_name        = $3,
+          contact_email       = $4,
+          is_active           = true,
+          subscription_status = COALESCE(business_clients.subscription_status, EXCLUDED.subscription_status),
+          trial_started_at    = COALESCE(business_clients.trial_started_at,    EXCLUDED.trial_started_at),
+          trial_ends_at       = COALESCE(business_clients.trial_ends_at,       EXCLUDED.trial_ends_at),
+          paid_until          = COALESCE(business_clients.paid_until,          EXCLUDED.paid_until)
+      `, [
+        userId, pid, body.contactName, normalizedEmail,
+        subPatch.status,
+        subPatch.trialStartedAt ? subPatch.trialStartedAt.toISOString() : null,
+        subPatch.trialEndsAt    ? subPatch.trialEndsAt.toISOString()    : null,
+        subPatch.paidUntil      ? subPatch.paidUntil.toISOString()      : null,
+      ])
 
       await db.query(`
         INSERT INTO place_users (place_id, user_id, role)
@@ -1347,5 +1422,84 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       if (err instanceof AppError) throw err
       throw new AppError(500, 'Could not delete user', 'DELETION_FAILED')
     }
+  })
+
+  // ── PATCH /admin/users/client/:userId/subscription ─────────────────────
+  // Lets a super_admin manually adjust a client's subscription. Used to
+  // mark offline payments, extend a trial, or force-lapse a client.
+  // Actions:
+  //   - start_trial:  status='trial', new 6-month window from now
+  //   - mark_paid:    status='active', paid_until = now + N days (default 365)
+  //   - extend:       add N days to whichever date is currently in force
+  //                   (paid_until if active, trial_ends_at if trial)
+  //   - lapse:        status='lapsed', clear both dates
+  app.patch('/admin/users/client/:userId/subscription', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    if (request.adminUser?.dashboardRole !== 'super_admin') {
+      throw new AppError(403, 'Only super admins can change subscription state', 'FORBIDDEN')
+    }
+
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const body = z.object({
+      action: z.enum(['start_trial', 'mark_paid', 'extend', 'lapse']),
+      days: z.number().int().min(1).max(3650).optional(),
+    }).parse(request.body)
+
+    const days = body.days ?? (body.action === 'mark_paid' ? 365 : 180)
+    const now = new Date()
+    const future = new Date(now.getTime() + days * 86_400_000)
+
+    switch (body.action) {
+      case 'start_trial':
+        await db.query(
+          `UPDATE business_clients
+              SET subscription_status = 'trial',
+                  trial_started_at    = $2,
+                  trial_ends_at       = $3,
+                  paid_until          = NULL,
+                  updated_at          = now()
+            WHERE user_id = $1`,
+          [userId, now.toISOString(), future.toISOString()],
+        )
+        break
+      case 'mark_paid':
+        await db.query(
+          `UPDATE business_clients
+              SET subscription_status = 'active',
+                  paid_until          = $2,
+                  updated_at          = now()
+            WHERE user_id = $1`,
+          [userId, future.toISOString()],
+        )
+        break
+      case 'extend':
+        // Bump whichever date currently caps their access. Coalesce so trial
+        // users get +N days on trial_ends_at, paid users on paid_until.
+        await db.query(
+          `UPDATE business_clients
+              SET trial_ends_at = CASE WHEN subscription_status = 'trial'
+                                       THEN COALESCE(trial_ends_at, now()) + ($2 || ' days')::interval
+                                       ELSE trial_ends_at END,
+                  paid_until    = CASE WHEN subscription_status IN ('active','past_due','cancelled')
+                                       THEN COALESCE(paid_until, now()) + ($2 || ' days')::interval
+                                       ELSE paid_until END,
+                  updated_at    = now()
+            WHERE user_id = $1`,
+          [userId, days],
+        )
+        break
+      case 'lapse':
+        await db.query(
+          `UPDATE business_clients
+              SET subscription_status = 'lapsed',
+                  trial_ends_at       = NULL,
+                  paid_until          = NULL,
+                  updated_at          = now()
+            WHERE user_id = $1`,
+          [userId],
+        )
+        break
+    }
+
+    return reply.send({ updated: true, action: body.action, days })
   })
 }

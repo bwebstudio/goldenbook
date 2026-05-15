@@ -13,6 +13,8 @@ import {
   updateMembershipStatus,
   linkStripeCustomer,
   refundPurchase,
+  syncBusinessClientSubscription,
+  syncBusinessClientFromSubscription,
 } from './fulfillment.query'
 import { queuePendingRefund, markRefundResolved } from './pending-refunds'
 
@@ -346,6 +348,15 @@ async function fulfillMembershipPurchase(
     expiresAt,
   })
 
+  // Promote the business_client out of trial (or back from lapsed) so the
+  // dashboard banner immediately reflects the new state.
+  await syncBusinessClientSubscription(businessId, {
+    status: 'active',
+    paidUntil: expiresAt,
+  }).catch((err) => {
+    app.log.error(err, `[stripe-webhook] Could not sync business_client subscription for ${businessId}`)
+  })
+
   app.log.info(`[stripe-webhook] Activated membership ${membershipId} for business ${businessId}`)
 }
 
@@ -390,17 +401,22 @@ async function handleSubscriptionUpdate(
 ) {
   app.log.info(`[stripe-webhook] subscription update — id=${subscription.id} status=${subscription.status}`)
 
+  const periodEnd = extractCurrentPeriodEnd(subscription)
+
   switch (subscription.status) {
     case 'active':
     case 'trialing':
       await updateMembershipStatus(subscription.id, 'active')
+      await syncBusinessClientFromSubscription(subscription.id, { status: 'active', paidUntil: periodEnd })
       break
     case 'past_due':
       await updateMembershipStatus(subscription.id, 'past_due')
+      await syncBusinessClientFromSubscription(subscription.id, { status: 'past_due' })
       break
     case 'canceled':
     case 'unpaid':
       await cancelMembershipBySubscription(subscription.id)
+      await syncBusinessClientFromSubscription(subscription.id, { status: 'cancelled' })
       break
   }
 }
@@ -411,6 +427,15 @@ async function handleSubscriptionDeleted(
 ) {
   app.log.info(`[stripe-webhook] subscription deleted — id=${subscription.id}`)
   await cancelMembershipBySubscription(subscription.id)
+  await syncBusinessClientFromSubscription(subscription.id, { status: 'cancelled' })
+}
+
+function extractCurrentPeriodEnd(subscription: Stripe.Subscription): Date | null {
+  const raw = (subscription as unknown as Record<string, unknown>).current_period_end
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return new Date(raw * 1000)
+  }
+  return null
 }
 
 function extractSubscriptionId(invoice: Stripe.Invoice): string | null {
@@ -436,6 +461,7 @@ async function handleInvoicePaid(
        WHERE stripe_subscription_id = $1 AND status IN ('active', 'past_due')`,
       [subId, newExpiry.toISOString()],
     ).catch(() => {})
+    await syncBusinessClientFromSubscription(subId, { status: 'active', paidUntil: newExpiry }).catch(() => {})
   }
 }
 
@@ -447,5 +473,6 @@ async function handleInvoicePaymentFailed(
   app.log.warn(`[stripe-webhook] invoice.payment_failed — id=${invoice.id} sub=${subId}`)
   if (subId) {
     await updateMembershipStatus(subId, 'past_due').catch(() => {})
+    await syncBusinessClientFromSubscription(subId, { status: 'past_due' }).catch(() => {})
   }
 }
