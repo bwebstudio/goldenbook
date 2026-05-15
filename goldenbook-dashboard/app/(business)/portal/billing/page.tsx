@@ -133,6 +133,33 @@ export default function PortalBilling() {
               {t.billing.activeUntil.replace("{date}", fmtDate(subscription?.paidUntil ?? activeMembership.expiresAt))}
             </p>
           </div>
+        ) : subscription?.status === "retention_grace" ? (
+          <div className="bg-gold/8 border-2 border-gold/40 rounded-lg px-4 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-base font-bold text-text">{t.subscription.statusGrace}</p>
+                <span className="inline-flex items-center rounded-full bg-gold/20 text-gold-dark px-2 py-0.5 text-[10px] font-semibold">
+                  ★ {t.subscription.graceBadge}
+                </span>
+              </div>
+              {membershipPlan && (
+                <p className="text-xl font-bold text-text">{fmtPrice(membershipPlan.base_price)}<span className="text-[10px] text-muted font-normal ml-1">{t.billing.yearlySuffix}</span></p>
+              )}
+            </div>
+            <p className="text-[12px] text-text mt-2 leading-relaxed">{t.billing.graceExplain}</p>
+            <p className="text-[11px] text-muted mt-1.5">
+              {t.billing.graceEndsAt.replace("{date}", fmtDate(subscription.retentionGraceEndsAt))}
+            </p>
+            {membershipPlan && (
+              <button
+                onClick={handleMembershipCheckout}
+                disabled={checkingOut}
+                className="mt-3 px-4 py-2 rounded-lg bg-gold text-white text-xs font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {checkingOut ? t.billing.redirecting : t.subscription.renewCta}
+              </button>
+            )}
+          </div>
         ) : subscription?.status === "trial" ? (
           <div className="bg-gold/5 border border-gold/30 rounded-lg px-4 py-3.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

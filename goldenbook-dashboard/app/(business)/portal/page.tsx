@@ -288,6 +288,16 @@ function SubscriptionCard({ subscription }: { subscription: BusinessSubscription
         .replace("{{days}}", String(Math.max(0, d)))
         .replace("{{date}}", formatDate(subscription.paidUntil));
     }
+  } else if (status === "retention_grace") {
+    const d = daysTo(subscription.retentionGraceEndsAt);
+    chipClass = (d ?? 31) > 30 ? "bg-[#D2B68A]/20 text-[#A07845]" : "bg-red-100 text-red-700";
+    statusLabel = sb.statusGrace;
+    if (d !== null) {
+      detail = d < 0
+        ? sb.detailGraceExpired
+        : sb.detailGrace.replace("{{days}}", String(d)).replace("{{date}}", formatDate(subscription.retentionGraceEndsAt));
+    }
+    cta = { label: sb.renewCta, href: "/portal/billing" };
   } else if (status === "past_due") {
     chipClass = "bg-red-100 text-red-700";
     statusLabel = sb.statusPastDue;

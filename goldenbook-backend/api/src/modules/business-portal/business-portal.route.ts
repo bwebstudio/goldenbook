@@ -77,6 +77,54 @@ export async function businessPortalRoutes(app: FastifyInstance) {
 
     const place = rows[0]
 
+    // Lazy-transition expired subscription states for this client/place row
+    // before reading it. Cheap (one UPDATE) and ensures the dashboard always
+    // sees the right state without depending on a cron job to have run.
+    //
+    // Transitions covered:
+    //   - trial            past trial_ends_at        → lapsed
+    //   - active, paid_first, !grace_used            → retention_grace (+ 6mo)
+    //   - active (any other) past paid_until         → lapsed
+    //   - retention_grace  past retention_grace_ends → lapsed
+    await db.query(`
+      UPDATE business_clients
+         SET subscription_status = CASE
+               WHEN subscription_status = 'trial'
+                    AND trial_ends_at IS NOT NULL AND trial_ends_at < now()
+                 THEN 'lapsed'
+               WHEN subscription_status = 'active'
+                    AND paid_until IS NOT NULL AND paid_until < now()
+                    AND lifecycle_path = 'paid_first'
+                    AND retention_grace_used = false
+                 THEN 'retention_grace'
+               WHEN subscription_status = 'active'
+                    AND paid_until IS NOT NULL AND paid_until < now()
+                 THEN 'lapsed'
+               WHEN subscription_status = 'retention_grace'
+                    AND retention_grace_ends_at IS NOT NULL AND retention_grace_ends_at < now()
+                 THEN 'lapsed'
+               ELSE subscription_status
+             END,
+             retention_grace_ends_at = CASE
+               WHEN subscription_status = 'active'
+                    AND paid_until IS NOT NULL AND paid_until < now()
+                    AND lifecycle_path = 'paid_first'
+                    AND retention_grace_used = false
+                 THEN paid_until + interval '6 months'
+               ELSE retention_grace_ends_at
+             END,
+             retention_grace_used = CASE
+               WHEN subscription_status = 'active'
+                    AND paid_until IS NOT NULL AND paid_until < now()
+                    AND lifecycle_path = 'paid_first'
+                    AND retention_grace_used = false
+                 THEN true
+               ELSE retention_grace_used
+             END,
+             updated_at = now()
+       WHERE user_id = $1 AND place_id = $2
+    `, [request.user.sub, client.placeId])
+
     // Subscription state for the active business_client. Picked from the row
     // tied to the currently selected place so multi-place owners with mixed
     // states (rare) see the state of the place they're looking at.
@@ -86,8 +134,13 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       trial_ends_at: string | null
       paid_until: string | null
       founders_bonus_at: string | null
+      lifecycle_path: string | null
+      retention_grace_ends_at: string | null
+      retention_grace_used: boolean
     }>(`
-      SELECT subscription_status, trial_started_at, trial_ends_at, paid_until, founders_bonus_at
+      SELECT subscription_status, trial_started_at, trial_ends_at, paid_until,
+             founders_bonus_at, lifecycle_path,
+             retention_grace_ends_at, retention_grace_used
       FROM business_clients
       WHERE user_id = $1 AND place_id = $2
       LIMIT 1
@@ -137,6 +190,9 @@ export async function businessPortalRoutes(app: FastifyInstance) {
         trialEndsAt: sub.trial_ends_at,
         paidUntil: sub.paid_until,
         foundersBonus: !!sub.founders_bonus_at,
+        lifecyclePath: sub.lifecycle_path,
+        retentionGraceEndsAt: sub.retention_grace_ends_at,
+        retentionGraceUsed: sub.retention_grace_used,
       } : null,
     })
   })
@@ -801,6 +857,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       user_id: string; contact_name: string | null; contact_email: string | null; is_active: boolean
       place_id: string; place_name: string; place_slug: string; place_role: string
       subscription_status: string | null; trial_ends_at: string | null; paid_until: string | null
+      lifecycle_path: string | null; retention_grace_ends_at: string | null
     }[]
 
     try {
@@ -816,7 +873,9 @@ export async function businessPortalRoutes(app: FastifyInstance) {
           COALESCE(pu.role, 'owner') AS place_role,
           bc.subscription_status,
           bc.trial_ends_at,
-          bc.paid_until
+          bc.paid_until,
+          bc.lifecycle_path,
+          bc.retention_grace_ends_at
         FROM business_clients bc
         FULL OUTER JOIN place_users pu
           ON pu.user_id = bc.user_id AND pu.place_id = bc.place_id
@@ -830,7 +889,8 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       const result = await db.query<typeof clientRows[number]>(`
         SELECT bc.user_id, bc.contact_name, bc.contact_email, bc.is_active,
                bc.place_id, p.name AS place_name, p.slug AS place_slug, 'owner' AS place_role,
-               bc.subscription_status, bc.trial_ends_at, bc.paid_until
+               bc.subscription_status, bc.trial_ends_at, bc.paid_until,
+               bc.lifecycle_path, bc.retention_grace_ends_at
         FROM business_clients bc
         JOIN places p ON p.id = bc.place_id
         WHERE bc.is_active = true
@@ -843,6 +903,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     const clientMap = new Map<string, {
       user_id: string; contact_name: string | null; contact_email: string | null; is_active: boolean
       subscription_status: string | null; trial_ends_at: string | null; paid_until: string | null
+      lifecycle_path: string | null; retention_grace_ends_at: string | null
       places: { id: string; name: string; slug: string; role: string }[]
     }>()
     for (const row of clientRows) {
@@ -856,6 +917,8 @@ export async function businessPortalRoutes(app: FastifyInstance) {
           subscription_status: row.subscription_status,
           trial_ends_at: row.trial_ends_at,
           paid_until: row.paid_until,
+          lifecycle_path: row.lifecycle_path,
+          retention_grace_ends_at: row.retention_grace_ends_at,
           places: [],
         }
         clientMap.set(row.user_id, entry)
@@ -867,6 +930,8 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       if (!entry.subscription_status && row.subscription_status) entry.subscription_status = row.subscription_status
       if (!entry.trial_ends_at && row.trial_ends_at) entry.trial_ends_at = row.trial_ends_at
       if (!entry.paid_until && row.paid_until) entry.paid_until = row.paid_until
+      if (!entry.lifecycle_path && row.lifecycle_path) entry.lifecycle_path = row.lifecycle_path
+      if (!entry.retention_grace_ends_at && row.retention_grace_ends_at) entry.retention_grace_ends_at = row.retention_grace_ends_at
       // Avoid duplicate places
       if (!entry.places.some((ep) => ep.id === row.place_id)) {
         entry.places.push({ id: row.place_id, name: row.place_name, slug: row.place_slug, role: row.place_role })
@@ -983,22 +1048,27 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     // Subscription state seeded at creation. `trial` and `stripe_link` both
     // grant a 6-month trial window — the difference is just a flag for the
     // operator. `mark_paid` records the offline payment with 1 year of access.
+    //
+    // lifecycle_path determines who gets the 6-month retention grace at the
+    // end of their paid period:
+    //   - mark_paid       → paid_first (eligible for grace)
+    //   - trial / stripe  → trial_first (no grace; pays or lapses)
     const now = new Date()
     const trialEnd = new Date(now.getTime() + 182 * 86_400_000) // ≈ 6 months
     const paidEnd  = new Date(now.getTime() + 365 * 86_400_000)
     const subPatch =
       body.subscriptionMode === 'mark_paid'
-        ? { status: 'active', trialStartedAt: null, trialEndsAt: null, paidUntil: paidEnd }
-        : { status: 'trial',  trialStartedAt: now,  trialEndsAt: trialEnd, paidUntil: null }
+        ? { status: 'active', trialStartedAt: null, trialEndsAt: null, paidUntil: paidEnd,  lifecyclePath: 'paid_first'  }
+        : { status: 'trial',  trialStartedAt: now,  trialEndsAt: trialEnd, paidUntil: null, lifecyclePath: 'trial_first' }
 
     // Create business_clients + place_users for each place
     for (const pid of placeIds) {
       await db.query(`
         INSERT INTO business_clients (
           user_id, place_id, contact_name, contact_email, is_active,
-          subscription_status, trial_started_at, trial_ends_at, paid_until
+          subscription_status, trial_started_at, trial_ends_at, paid_until, lifecycle_path
         )
-        VALUES ($1, $2, $3, $4, true, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, true, $5, $6, $7, $8, $9)
         ON CONFLICT (user_id, place_id) DO UPDATE SET
           contact_name        = $3,
           contact_email       = $4,
@@ -1006,13 +1076,15 @@ export async function businessPortalRoutes(app: FastifyInstance) {
           subscription_status = COALESCE(business_clients.subscription_status, EXCLUDED.subscription_status),
           trial_started_at    = COALESCE(business_clients.trial_started_at,    EXCLUDED.trial_started_at),
           trial_ends_at       = COALESCE(business_clients.trial_ends_at,       EXCLUDED.trial_ends_at),
-          paid_until          = COALESCE(business_clients.paid_until,          EXCLUDED.paid_until)
+          paid_until          = COALESCE(business_clients.paid_until,          EXCLUDED.paid_until),
+          lifecycle_path      = COALESCE(business_clients.lifecycle_path,      EXCLUDED.lifecycle_path)
       `, [
         userId, pid, body.contactName, normalizedEmail,
         subPatch.status,
         subPatch.trialStartedAt ? subPatch.trialStartedAt.toISOString() : null,
         subPatch.trialEndsAt    ? subPatch.trialEndsAt.toISOString()    : null,
         subPatch.paidUntil      ? subPatch.paidUntil.toISOString()      : null,
+        subPatch.lifecyclePath,
       ])
 
       await db.query(`
@@ -1440,11 +1512,15 @@ export async function businessPortalRoutes(app: FastifyInstance) {
 
     const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
     const body = z.object({
-      action: z.enum(['start_trial', 'mark_paid', 'extend', 'lapse']),
+      action: z.enum(['start_trial', 'mark_paid', 'extend', 'lapse', 'grant_grace']),
       days: z.number().int().min(1).max(3650).optional(),
     }).parse(request.body)
 
-    const days = body.days ?? (body.action === 'mark_paid' ? 365 : 180)
+    // Default windows per action. Trial = 6 months, paid = 1 year, grace = 6 months.
+    const days = body.days
+      ?? (body.action === 'mark_paid'  ? 365
+        : body.action === 'grant_grace' ? 180
+        : 180)
     const now = new Date()
     const future = new Date(now.getTime() + days * 86_400_000)
 
@@ -1466,7 +1542,21 @@ export async function businessPortalRoutes(app: FastifyInstance) {
           `UPDATE business_clients
               SET subscription_status = 'active',
                   paid_until          = $2,
+                  lifecycle_path      = COALESCE(lifecycle_path, 'paid_first'),
                   updated_at          = now()
+            WHERE user_id = $1`,
+          [userId, future.toISOString()],
+        )
+        break
+      case 'grant_grace':
+        // Force-grant the retention grace from now. Marks grace as used so
+        // the lazy transition won't grant it again automatically later.
+        await db.query(
+          `UPDATE business_clients
+              SET subscription_status     = 'retention_grace',
+                  retention_grace_ends_at = $2,
+                  retention_grace_used    = true,
+                  updated_at              = now()
             WHERE user_id = $1`,
           [userId, future.toISOString()],
         )

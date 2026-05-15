@@ -482,6 +482,8 @@ const en = {
     activeUntil: "Active until {date}",
     trialEndsAt: "Free trial ends on {date}",
     trialNote: "Subscribe any time before then to keep your listing visible.",
+    graceEndsAt: "Bonus period ends on {date}",
+    graceExplain: "Thanks for paying from day one — we've added 6 free months to your listing. Renew any time within this window to continue.",
     yearlySuffix: "/yr",
     subscribe: "Subscribe",
     redirecting: "Redirecting...",
@@ -669,6 +671,7 @@ const en = {
     // ── Subscription chip in list ──
     subStatusTrial: "Trial",
     subStatusActive: "Active",
+    subStatusGrace: "Bonus",
     subStatusPastDue: "Past due",
     subStatusCancelled: "Cancelled",
     subStatusLapsed: "Lapsed",
@@ -682,9 +685,11 @@ const en = {
     // Status chips
     statusActive: "Active",
     statusTrial: "Free trial",
+    statusGrace: "Bonus 6 months",
     statusPastDue: "Payment failed",
     statusCancelled: "Cancelled",
     statusLapsed: "Not visible in app",
+    graceBadge: "Loyalty gift",
     // Banner copy
     trialActiveTitle: "{{days}} days left of your free trial",
     trialActiveBody: "Activate your annual subscription to keep your listing visible after the trial ends.",
@@ -694,6 +699,14 @@ const en = {
     trialExpiredBody: "Your listing is no longer visible in the app. Subscribe to reactivate.",
     renewalSoonTitle: "Renewal due in {{days}} days",
     renewalSoonBody: "Confirm your renewal to keep your listing visible without interruption.",
+    renewalSoonBodyWithGrace: "If you choose not to renew, you'll get 6 free bonus months as a thank-you for paying from day one.",
+    // Retention grace — only paid_first clients can land here
+    graceActiveTitle: "You have {{days}} bonus days as a loyalty gift",
+    graceActiveBody: "Thanks for being with us from the start. Your listing stays visible — renew any time within these 6 free months.",
+    graceEndingTitle: "Only {{days}} bonus days left",
+    graceEndingBody: "Renew now to keep your listing visible after the bonus period ends.",
+    graceExpiredTitle: "Your bonus period has ended",
+    graceExpiredBody: "Your listing is no longer visible. Renew to bring it back to Goldenbook.",
     expiredTitle: "Your subscription expired",
     expiredBody: "Renew to bring your listing back to the Goldenbook app.",
     pastDueTitle: "Payment failed",
@@ -714,6 +727,8 @@ const en = {
     detailPastDue: "Update your payment method to avoid losing visibility.",
     detailCancelledActive: "Cancelled — listing active until {{date}} ({{days}} days)",
     detailLapsed: "Not visible in the Goldenbook app right now.",
+    detailGrace: "Bonus period — {{days}} days left ({{date}})",
+    detailGraceExpired: "Bonus period ended — listing not visible.",
   },
 
   // ─── Employee Portal — Review Queue ────────────────────────────────────────

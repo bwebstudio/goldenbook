@@ -25,7 +25,7 @@ interface ClientPlace {
 }
 
 type SubscriptionStatus =
-  | "trial" | "active" | "past_due" | "cancelled" | "expired" | "lapsed";
+  | "trial" | "active" | "past_due" | "cancelled" | "expired" | "lapsed" | "retention_grace";
 
 interface BusinessClientUser {
   user_id: string;
@@ -35,6 +35,8 @@ interface BusinessClientUser {
   subscription_status: SubscriptionStatus | null;
   trial_ends_at: string | null;
   paid_until: string | null;
+  retention_grace_ends_at: string | null;
+  lifecycle_path: "trial_first" | "paid_first" | null;
   places: ClientPlace[];
 }
 
@@ -518,7 +520,7 @@ export default function UsersClient({ userRole }: Props) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-text">{c.contact_name ?? c.contact_email}</p>
-                      <SubscriptionChip status={c.subscription_status} trialEnds={c.trial_ends_at} paidUntil={c.paid_until} labels={u} />
+                      <SubscriptionChip status={c.subscription_status} trialEnds={c.trial_ends_at} paidUntil={c.paid_until} graceEndsAt={c.retention_grace_ends_at} labels={u} />
                     </div>
                     <p className="text-xs text-muted">{c.contact_email}</p>
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
@@ -687,11 +689,13 @@ function SubscriptionChip({
   status,
   trialEnds,
   paidUntil,
+  graceEndsAt,
   labels,
 }: {
   status: SubscriptionStatus | null;
   trialEnds: string | null;
   paidUntil: string | null;
+  graceEndsAt: string | null;
   labels: EmpUsersLabels;
 }) {
   if (!status) return null;
@@ -711,6 +715,10 @@ function SubscriptionChip({
     cls = "bg-emerald-50 text-emerald-700";
     const d = daysTo(paidUntil);
     text = d !== null ? `${labels.subStatusActive} · ${d}d` : labels.subStatusActive;
+  } else if (status === "retention_grace") {
+    const d = daysTo(graceEndsAt);
+    cls = d !== null && d <= 30 ? "bg-red-50 text-red-700" : "bg-gold/15 text-gold-dark";
+    text = d !== null && d >= 0 ? `${labels.subStatusGrace} · ${d}d` : labels.subStatusGrace;
   } else if (status === "past_due") {
     cls = "bg-red-50 text-red-700";
     text = labels.subStatusPastDue;

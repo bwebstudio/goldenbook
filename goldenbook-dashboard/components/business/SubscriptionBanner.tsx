@@ -57,10 +57,35 @@ function pickBanner(sub: BusinessSubscription | null, t: ReturnType<typeof useT>
       if (days < 0) {
         return { tone: "danger", title: sb.expiredTitle, body: sb.expiredBody, cta: sb.renewCta };
       }
+      // paid_first clients about to expire — let them know the 6-month retention
+      // grace will kick in automatically, so the transition feels generous, not
+      // punitive. trial_first clients only see the hard renewal reminder.
+      const isPaidFirst = sub.lifecyclePath === "paid_first" && !sub.retentionGraceUsed;
       return {
         tone: "warning",
         title: sb.renewalSoonTitle.replace("{{days}}", String(days)),
-        body: sb.renewalSoonBody,
+        body: isPaidFirst ? sb.renewalSoonBodyWithGrace : sb.renewalSoonBody,
+        cta: sb.renewCta,
+      };
+    }
+    case "retention_grace": {
+      const days = daysBetween(sub.retentionGraceEndsAt);
+      if (days === null) return null;
+      if (days < 0) {
+        return { tone: "danger", title: sb.graceExpiredTitle, body: sb.graceExpiredBody, cta: sb.renewCta };
+      }
+      if (days <= 30) {
+        return {
+          tone: "danger",
+          title: sb.graceEndingTitle.replace("{{days}}", String(days)),
+          body: sb.graceEndingBody,
+          cta: sb.renewCta,
+        };
+      }
+      return {
+        tone: "info",
+        title: sb.graceActiveTitle.replace("{{days}}", String(days)),
+        body: sb.graceActiveBody,
         cta: sb.renewCta,
       };
     }

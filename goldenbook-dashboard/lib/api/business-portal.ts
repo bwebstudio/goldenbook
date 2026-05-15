@@ -8,7 +8,10 @@ export type SubscriptionStatus =
   | "past_due"
   | "cancelled"
   | "expired"
-  | "lapsed";
+  | "lapsed"
+  | "retention_grace";
+
+export type LifecyclePath = "trial_first" | "paid_first";
 
 export interface BusinessSubscription {
   status: SubscriptionStatus | null;
@@ -16,6 +19,9 @@ export interface BusinessSubscription {
   trialEndsAt: string | null;
   paidUntil: string | null;
   foundersBonus: boolean;
+  lifecyclePath: LifecyclePath | null;
+  retentionGraceEndsAt: string | null;
+  retentionGraceUsed: boolean;
 }
 
 // ─── Image type ─────────────────────────────────────────────────────────────
@@ -129,7 +135,7 @@ export async function fetchBusinessMe(): Promise<BusinessMeResponse> {
 
 // ─── Admin: subscription management ─────────────────────────────────────────
 
-export type SubscriptionAction = "start_trial" | "mark_paid" | "extend" | "lapse";
+export type SubscriptionAction = "start_trial" | "mark_paid" | "extend" | "lapse" | "grant_grace";
 
 export async function updateClientSubscription(
   userId: string,
