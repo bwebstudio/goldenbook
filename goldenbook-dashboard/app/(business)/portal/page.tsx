@@ -67,10 +67,10 @@ export default function PortalOverview() {
       <div>
         <p className="text-[10px] font-bold text-muted uppercase tracking-[0.1em] mb-2">{ov.performance}</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <PerfCard icon={<EyeIcon />} value={analytics?.views} prevValue={(analytics as any)?.prevViews} label={t.metrics.views} trendLabel={t.common.thisWeek} />
-          <PerfCard icon={<LinkIcon />} value={analytics?.websiteClicks} prevValue={(analytics as any)?.prevWebsiteClicks} label={t.metrics.websiteClicks} trendLabel={t.common.thisWeek} />
-          <PerfCard icon={<MapIcon />} value={analytics?.directions} prevValue={(analytics as any)?.prevDirections} label={t.metrics.directions} trendLabel={t.common.thisWeek} />
-          <PerfCard icon={<CalIcon />} value={analytics?.reservations} prevValue={(analytics as any)?.prevReservations} label={t.metrics.reservations} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<EyeIcon />} value={analytics?.views} prevValue={analytics?.prevViews} label={t.metrics.views} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<LinkIcon />} value={analytics?.websiteClicks} prevValue={analytics?.prevWebsiteClicks} label={t.metrics.websiteClicks} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<MapIcon />} value={analytics?.directions} prevValue={analytics?.prevDirections} label={t.metrics.directions} trendLabel={t.common.thisWeek} />
+          <PerfCard icon={<CalIcon />} value={analytics?.reservations} prevValue={analytics?.prevReservations} label={t.metrics.reservations} trendLabel={t.common.thisWeek} />
         </div>
       </div>
 

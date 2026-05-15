@@ -636,6 +636,20 @@ const pt: TranslationKeys = {
     place: "Estabelecimento",
     active: "Ativo",
     inactive: "Inativo",
+    // ── Editar info do utilizador ──
+    editInfo: "Editar nome e email",
+    emailUpdateHint: "Atualizar o email também atualiza as credenciais de login.",
+    // ── Eliminar utilizador ──
+    deleteUser: "Eliminar utilizador",
+    deleteTitle: "Eliminar utilizador",
+    deleteConfirm: "Remover o acesso ao dashboard para {{name}}? A conta de login é mantida.",
+    deleteHardLabel: "Eliminar também a conta de login permanentemente",
+    deleteHardHint: "Irreversível — o utilizador perderá todos os dados e deixará de poder iniciar sessão.",
+    deleteConfirmCta: "Revogar acesso",
+    deleteHardConfirm: "Eliminar permanentemente",
+    deleting: "A eliminar...",
+    userDeleted: "Utilizador eliminado.",
+    deleteError: "Não foi possível eliminar o utilizador.",
   },
 
   reviewQueue: {

@@ -487,27 +487,59 @@ export async function businessPortalRoutes(app: FastifyInstance) {
   })
 
   // ── GET /business/analytics ───────────────────────────────────────────────
+  // Reads from the unified analytics_events table populated by the mobile
+  // track() helper. The legacy per-event tables (place_view_events,
+  // place_website_click_events, place_direction_events, booking_click_events)
+  // are no longer written by any client — they were replaced by analytics_events
+  // in 20260418120000_analytics_v2.sql but this reader had not been migrated.
   app.get('/business/analytics', { preHandler: [authenticateBusinessClient] }, async (request, reply) => {
     const client = request.businessClient!
     const { period } = z.object({ period: z.enum(['7d', '30d', '90d']).default('30d') }).parse(request.query)
 
     const days = period === '7d' ? 7 : period === '90d' ? 90 : 30
-    const since = new Date(Date.now() - days * 86_400_000).toISOString()
+    const sinceMs = Date.now() - days * 86_400_000
+    const prevSinceMs = sinceMs - days * 86_400_000
+    const since = new Date(sinceMs).toISOString()
+    const prevSince = new Date(prevSinceMs).toISOString()
     const placeId = client.placeId
 
-    const [views, websiteClicks, directions, reservations] = await Promise.all([
-      db.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM place_view_events WHERE place_id = $1 AND created_at >= $2', [placeId, since]),
-      db.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM place_website_click_events WHERE place_id = $1 AND created_at >= $2', [placeId, since]),
-      db.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM place_direction_events WHERE place_id = $1 AND created_at >= $2', [placeId, since]),
-      db.query<{ count: string }>('SELECT COUNT(*)::text AS count FROM booking_click_events WHERE place_id = $1 AND created_at >= $2', [placeId, since]).catch(() => ({ rows: [{ count: '0' }] })),
-    ])
+    // Single grouped query — uses the (place_id, event_name) index from
+    // 20260418120000_analytics_v2.sql. We bucket the current and previous
+    // period in one pass so trend arrows can render without an extra round
+    // trip. `place_view` and `place_open` both count as a "view" so the
+    // legacy event name keeps working if any older clients still emit it.
+    const { rows } = await db.query<{
+      views: string; website_clicks: string; directions: string; reservations: string
+      prev_views: string; prev_website_clicks: string; prev_directions: string; prev_reservations: string
+    }>(`
+      SELECT
+        COUNT(*) FILTER (WHERE event_name IN ('place_view','place_open') AND created_at >= $2)::text                        AS views,
+        COUNT(*) FILTER (WHERE event_name = 'website_click' AND created_at >= $2)::text                                     AS website_clicks,
+        COUNT(*) FILTER (WHERE event_name = 'map_open' AND created_at >= $2)::text                                          AS directions,
+        COUNT(*) FILTER (WHERE event_name = 'booking_click' AND created_at >= $2)::text                                     AS reservations,
+        COUNT(*) FILTER (WHERE event_name IN ('place_view','place_open') AND created_at >= $3 AND created_at < $2)::text    AS prev_views,
+        COUNT(*) FILTER (WHERE event_name = 'website_click' AND created_at >= $3 AND created_at < $2)::text                 AS prev_website_clicks,
+        COUNT(*) FILTER (WHERE event_name = 'map_open' AND created_at >= $3 AND created_at < $2)::text                      AS prev_directions,
+        COUNT(*) FILTER (WHERE event_name = 'booking_click' AND created_at >= $3 AND created_at < $2)::text                 AS prev_reservations
+      FROM analytics_events
+      WHERE place_id = $1 AND created_at >= $3
+    `, [placeId, since, prevSince]).catch(() => ({ rows: [] as never[] }))
+
+    const r = rows[0] ?? {
+      views: '0', website_clicks: '0', directions: '0', reservations: '0',
+      prev_views: '0', prev_website_clicks: '0', prev_directions: '0', prev_reservations: '0',
+    }
 
     return reply.send({
       period,
-      views: parseInt(views.rows[0]?.count ?? '0'),
-      websiteClicks: parseInt(websiteClicks.rows[0]?.count ?? '0'),
-      directions: parseInt(directions.rows[0]?.count ?? '0'),
-      reservations: parseInt(reservations.rows[0]?.count ?? '0'),
+      views:             parseInt(r.views),
+      websiteClicks:     parseInt(r.website_clicks),
+      directions:        parseInt(r.directions),
+      reservations:      parseInt(r.reservations),
+      prevViews:         parseInt(r.prev_views),
+      prevWebsiteClicks: parseInt(r.prev_website_clicks),
+      prevDirections:    parseInt(r.prev_directions),
+      prevReservations:  parseInt(r.prev_reservations),
     })
   })
 
@@ -1058,6 +1090,262 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       throw err
     } finally {
       client.release()
+    }
+  })
+
+  // ── PATCH /admin/users/admin/:userId ───────────────────────────────────
+  // Edit a dashboard admin (super_admin only). Updates name/email.
+  // If email changes, also updates Supabase auth.users so they can log in
+  // with the new email.
+  app.patch('/admin/users/admin/:userId', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    if (request.adminUser?.dashboardRole !== 'super_admin') {
+      throw new AppError(403, 'Only super admins can edit admin users', 'FORBIDDEN')
+    }
+
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const body = z.object({
+      email: z.string().email().optional(),
+      fullName: z.string().min(1).optional(),
+    }).parse(request.body)
+
+    if (!body.email && !body.fullName) {
+      throw new AppError(400, 'Nothing to update', 'VALIDATION_ERROR')
+    }
+
+    const { rows: existing } = await db.query<{ id: string; email: string; role: string }>(
+      'SELECT id, email, role FROM admin_users WHERE id = $1',
+      [userId],
+    )
+    if (existing.length === 0) {
+      throw new AppError(404, 'Admin user not found', 'NOT_FOUND')
+    }
+    const current = existing[0]
+    const newEmail = body.email ? body.email.toLowerCase().trim() : current.email
+
+    // Update Supabase auth.users if the email changed.
+    if (body.email && newEmail !== current.email) {
+      // Find auth user by current email
+      const { rows: authUsers } = await db.query<{ id: string }>(
+        'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
+        [current.email],
+      ).catch(() => ({ rows: [] as { id: string }[] }))
+
+      if (authUsers.length > 0) {
+        const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${authUsers[0].id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+          body: JSON.stringify({ email: newEmail, email_confirm: true }),
+        })
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({})) as { message?: string }
+          throw new AppError(400, errBody.message ?? 'Could not update email in auth', 'EMAIL_UPDATE_FAILED')
+        }
+      }
+    }
+
+    await db.query(
+      `UPDATE admin_users
+         SET email = $2,
+             full_name = COALESCE($3, full_name)
+       WHERE id = $1`,
+      [userId, newEmail, body.fullName ?? null],
+    )
+
+    return reply.send({ updated: true })
+  })
+
+  // ── DELETE /admin/users/admin/:userId ──────────────────────────────────
+  // Remove dashboard access for an admin (super_admin only).
+  // Default: revoke access only (delete admin_users row).
+  // ?hard=true: also delete the Supabase auth account.
+  app.delete('/admin/users/admin/:userId', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    if (request.adminUser?.dashboardRole !== 'super_admin') {
+      throw new AppError(403, 'Only super admins can delete admin users', 'FORBIDDEN')
+    }
+
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const { hard } = z.object({ hard: z.enum(['true', 'false']).optional() }).parse(request.query)
+
+    const { rows: existing } = await db.query<{ id: string; email: string }>(
+      'SELECT id, email FROM admin_users WHERE id = $1',
+      [userId],
+    )
+    if (existing.length === 0) {
+      throw new AppError(404, 'Admin user not found', 'NOT_FOUND')
+    }
+    const email = existing[0].email
+
+    // Prevent self-deletion: compare emails (DashboardAdminUser exposes email, not id)
+    if (request.adminUser && email.toLowerCase() === request.adminUser.email.toLowerCase()) {
+      throw new AppError(400, 'You cannot delete your own account', 'SELF_DELETE_FORBIDDEN')
+    }
+
+    // Remove the admin row (revokes dashboard access)
+    await db.query('DELETE FROM admin_users WHERE id = $1', [userId])
+
+    if (hard === 'true') {
+      // Find Supabase auth user by email and delete it
+      const { rows: authUsers } = await db.query<{ id: string }>(
+        'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
+        [email],
+      ).catch(() => ({ rows: [] as { id: string }[] }))
+
+      if (authUsers.length > 0) {
+        const authId = authUsers[0].id
+        await db.query('DELETE FROM users WHERE id = $1', [authId]).catch(() => {})
+        const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${authId}`, {
+          method: 'DELETE',
+          headers: {
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          },
+        })
+        if (!res.ok && res.status !== 404) {
+          app.log.error({ authId, status: res.status }, '[delete-admin] Supabase user deletion failed')
+        }
+      }
+    }
+
+    return reply.send({ deleted: true, hard: hard === 'true' })
+  })
+
+  // ── PATCH /admin/users/client/:userId ──────────────────────────────────
+  // Edit a business client (super_admin only). Updates contact name/email
+  // across all places, and the linked auth account if email changed.
+  app.patch('/admin/users/client/:userId', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    if (request.adminUser?.dashboardRole !== 'super_admin') {
+      throw new AppError(403, 'Only super admins can edit business clients', 'FORBIDDEN')
+    }
+
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const body = z.object({
+      contactEmail: z.string().email().optional(),
+      contactName: z.string().min(1).optional(),
+    }).parse(request.body)
+
+    if (!body.contactEmail && !body.contactName) {
+      throw new AppError(400, 'Nothing to update', 'VALIDATION_ERROR')
+    }
+
+    const { rows: existing } = await db.query<{ contact_email: string | null }>(
+      'SELECT contact_email FROM business_clients WHERE user_id = $1 LIMIT 1',
+      [userId],
+    )
+    if (existing.length === 0) {
+      throw new AppError(404, 'Business client not found', 'NOT_FOUND')
+    }
+
+    const newEmail = body.contactEmail ? body.contactEmail.toLowerCase().trim() : null
+
+    // Update Supabase auth email so the user can log in with the new email.
+    if (newEmail) {
+      const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({ email: newEmail, email_confirm: true }),
+      })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { message?: string }
+        throw new AppError(400, errBody.message ?? 'Could not update email in auth', 'EMAIL_UPDATE_FAILED')
+      }
+    }
+
+    await db.query(
+      `UPDATE business_clients
+         SET contact_email = COALESCE($2, contact_email),
+             contact_name  = COALESCE($3, contact_name)
+       WHERE user_id = $1`,
+      [userId, newEmail, body.contactName ?? null],
+    )
+
+    return reply.send({ updated: true })
+  })
+
+  // ── DELETE /admin/users/client/:userId ─────────────────────────────────
+  // Default: revoke access (deactivate business_clients + drop place_users).
+  // ?hard=true: also delete the Supabase auth account + dependent rows.
+  app.delete('/admin/users/client/:userId', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    if (request.adminUser?.dashboardRole !== 'super_admin') {
+      throw new AppError(403, 'Only super admins can delete business clients', 'FORBIDDEN')
+    }
+
+    const { userId } = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const { hard } = z.object({ hard: z.enum(['true', 'false']).optional() }).parse(request.query)
+
+    const safeDelete = async (label: string, sql: string, params: unknown[]) => {
+      try {
+        await db.query(sql, params)
+      } catch (e: any) {
+        app.log.warn({ userId, err: e?.message }, `[delete-client] ${label} — skipped`)
+      }
+    }
+
+    if (hard !== 'true') {
+      // Soft delete: revoke access, keep auth account intact.
+      await db.query(
+        'UPDATE business_clients SET is_active = false WHERE user_id = $1',
+        [userId],
+      )
+      await safeDelete('place_users', 'DELETE FROM place_users WHERE user_id = $1', [userId])
+      return reply.send({ deleted: true, hard: false })
+    }
+
+    // Hard delete: same cleanup as the user-facing /auth/account flow.
+    try {
+      await safeDelete('user_segments',              'DELETE FROM user_segments WHERE user_id = $1', [userId])
+      await safeDelete('place_users',                'DELETE FROM place_users WHERE user_id = $1', [userId])
+      await safeDelete('notifications',              'DELETE FROM notifications WHERE user_id = $1', [userId])
+      await safeDelete('email_verification_tokens',  'DELETE FROM email_verification_tokens WHERE user_id = $1', [userId])
+      await safeDelete('password_reset_tokens',      'DELETE FROM password_reset_tokens WHERE user_id = $1', [userId])
+
+      await safeDelete('purchases (via bc)',
+        `DELETE FROM purchases WHERE business_client_id IN (
+           SELECT id FROM business_clients WHERE user_id = $1
+         )`, [userId])
+      await safeDelete('placement_requests (via bc)',
+        `DELETE FROM placement_requests WHERE client_id IN (
+           SELECT id FROM business_clients WHERE user_id = $1
+         )`, [userId])
+      await safeDelete('business_clients',
+        'DELETE FROM business_clients WHERE user_id = $1', [userId])
+
+      // Anonymise analytics rows
+      await safeDelete('booking_click_events',       'UPDATE booking_click_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('booking_impression_events',  'UPDATE booking_impression_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('now_impressions',            'UPDATE now_impressions SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('now_clicks',                 'UPDATE now_clicks SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('place_view_events',          'UPDATE place_view_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('place_website_click_events', 'UPDATE place_website_click_events SET user_id = NULL WHERE user_id = $1', [userId])
+      await safeDelete('place_direction_events',     'UPDATE place_direction_events SET user_id = NULL WHERE user_id = $1', [userId])
+
+      await safeDelete('users', 'DELETE FROM users WHERE id = $1', [userId])
+
+      const res = await fetch(`${env.SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      })
+      if (!res.ok && res.status !== 404) {
+        const errBody = await res.json().catch(() => ({})) as { message?: string }
+        app.log.error({ userId, status: res.status, message: errBody.message }, '[delete-client] Supabase deletion failed')
+        throw new AppError(500, 'Could not delete user account', 'DELETION_FAILED')
+      }
+
+      return reply.send({ deleted: true, hard: true })
+    } catch (err: any) {
+      app.log.error({ userId, err: err.message }, '[delete-client] hard delete failed')
+      if (err instanceof AppError) throw err
+      throw new AppError(500, 'Could not delete user', 'DELETION_FAILED')
     }
   })
 }

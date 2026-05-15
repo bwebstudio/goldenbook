@@ -235,6 +235,11 @@ export interface BusinessAnalytics {
   websiteClicks: number;
   directions: number;
   reservations: number;
+  // Previous period (same length, immediately preceding) — used for trend arrows.
+  prevViews: number;
+  prevWebsiteClicks: number;
+  prevDirections: number;
+  prevReservations: number;
 }
 
 export async function fetchBusinessAnalytics(period: string = "30d"): Promise<BusinessAnalytics> {

@@ -642,6 +642,20 @@ const en = {
     place: "Place",
     active: "Active",
     inactive: "Inactive",
+    // ── Edit user info ──
+    editInfo: "Edit name & email",
+    emailUpdateHint: "Updating the email also updates the login credentials.",
+    // ── Delete user ──
+    deleteUser: "Delete user",
+    deleteTitle: "Delete user",
+    deleteConfirm: "Remove dashboard access for {{name}}? Their login account is kept.",
+    deleteHardLabel: "Also delete login account permanently",
+    deleteHardHint: "Irreversible — the user will lose all their data and won't be able to sign in.",
+    deleteConfirmCta: "Revoke access",
+    deleteHardConfirm: "Delete permanently",
+    deleting: "Deleting...",
+    userDeleted: "User deleted.",
+    deleteError: "Could not delete user.",
   },
 
   // ─── Employee Portal — Review Queue ────────────────────────────────────────

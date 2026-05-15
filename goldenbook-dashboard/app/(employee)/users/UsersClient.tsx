@@ -2,9 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useT } from "@/lib/i18n";
-import { apiGet, apiPost, apiPut } from "@/lib/api/client";
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api/client";
 import { fetchAdminPlacesList } from "@/lib/api/places";
 import type { AdminPlaceListItem } from "@/types/api/place";
+
+type DeleteTarget =
+  | { kind: "admin"; id: string; label: string }
+  | { kind: "client"; id: string; label: string };
 
 interface AdminUser {
   id: string;
@@ -50,9 +54,20 @@ export default function UsersClient({ userRole }: Props) {
   const [formName, setFormName] = useState("");
   const [formPlaceIds, setFormPlaceIds] = useState<string[]>([]);
 
-  // Edit state
+  // Edit state — places
   const [editingClient, setEditingClient] = useState<BusinessClientUser | null>(null);
   const [editPlaceIds, setEditPlaceIds] = useState<string[]>([]);
+
+  // Edit state — user info (name + email). Super admin only.
+  const [editingInfo, setEditingInfo] = useState<
+    | { kind: "admin"; id: string; email: string; name: string }
+    | { kind: "client"; id: string; email: string; name: string }
+    | null
+  >(null);
+
+  // Delete confirmation state.
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteHard, setDeleteHard] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -125,7 +140,95 @@ export default function UsersClient({ userRole }: Props) {
     setEditingClient(client);
     setEditPlaceIds(client.places.map((p) => p.id));
     setShowForm(null);
+    setEditingInfo(null);
     setMessage(null);
+  };
+
+  const startEditInfoAdmin = (a: AdminUser) => {
+    setEditingInfo({ kind: "admin", id: a.id, email: a.email, name: a.full_name ?? "" });
+    setEditingClient(null);
+    setShowForm(null);
+    setMessage(null);
+  };
+
+  const startEditInfoClient = (c: BusinessClientUser) => {
+    setEditingInfo({
+      kind: "client",
+      id: c.user_id,
+      email: c.contact_email ?? "",
+      name: c.contact_name ?? "",
+    });
+    setEditingClient(null);
+    setShowForm(null);
+    setMessage(null);
+  };
+
+  const handleSaveInfo = async () => {
+    if (!editingInfo) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const path =
+        editingInfo.kind === "admin"
+          ? `/api/v1/admin/users/admin/${editingInfo.id}`
+          : `/api/v1/admin/users/client/${editingInfo.id}`;
+      const body =
+        editingInfo.kind === "admin"
+          ? { email: editingInfo.email, fullName: editingInfo.name }
+          : { contactEmail: editingInfo.email, contactName: editingInfo.name };
+      await apiPatch(path, body);
+      setMessage({ type: "success", text: u.userUpdated });
+      setEditingInfo(null);
+      await load();
+    } catch {
+      setMessage({ type: "error", text: u.updateError });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const askDeleteAdmin = (a: AdminUser) => {
+    setDeleteTarget({ kind: "admin", id: a.id, label: a.full_name ?? a.email });
+    setDeleteHard(false);
+    setEditingInfo(null);
+    setEditingClient(null);
+    setShowForm(null);
+    setMessage(null);
+  };
+
+  const askDeleteClient = (c: BusinessClientUser) => {
+    setDeleteTarget({
+      kind: "client",
+      id: c.user_id,
+      label: c.contact_name ?? c.contact_email ?? c.user_id,
+    });
+    setDeleteHard(false);
+    setEditingInfo(null);
+    setEditingClient(null);
+    setShowForm(null);
+    setMessage(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const base =
+        deleteTarget.kind === "admin"
+          ? `/api/v1/admin/users/admin/${deleteTarget.id}`
+          : `/api/v1/admin/users/client/${deleteTarget.id}`;
+      const path = deleteHard ? `${base}?hard=true` : base;
+      await apiDelete(path);
+      setMessage({ type: "success", text: u.userDeleted });
+      setDeleteTarget(null);
+      setDeleteHard(false);
+      await load();
+    } catch {
+      setMessage({ type: "error", text: u.deleteError });
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (loading) return <p className="text-muted py-10">{t.common.loading}</p>;
@@ -195,6 +298,94 @@ export default function UsersClient({ userRole }: Props) {
         </div>
       )}
 
+      {/* Edit user info form (name + email) — super_admin only */}
+      {editingInfo && (
+        <div className="bg-white rounded-xl border-2 border-gold/30 p-4 sm:p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-bold text-text truncate">
+              {u.editInfo}
+            </p>
+            <button onClick={() => setEditingInfo(null)} className="text-xs text-muted hover:text-text cursor-pointer">
+              {t.common.cancel}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">{u.name}</label>
+              <input
+                type="text"
+                value={editingInfo.name}
+                onChange={(e) => setEditingInfo((s) => (s ? { ...s, name: e.target.value } : s))}
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:border-gold"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">{u.email}</label>
+              <input
+                type="email"
+                value={editingInfo.email}
+                onChange={(e) => setEditingInfo((s) => (s ? { ...s, email: e.target.value } : s))}
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:border-gold"
+              />
+              <p className="text-[11px] text-muted mt-1">{u.emailUpdateHint}</p>
+            </div>
+          </div>
+          <div>
+            <button
+              onClick={handleSaveInfo}
+              disabled={busy || !editingInfo.email || !editingInfo.name}
+              className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {busy ? u.saving : u.saveChanges}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => !busy && setDeleteTarget(null)}>
+          <div className="bg-white rounded-xl border border-border p-5 sm:p-6 w-full max-w-md flex flex-col gap-4" onClick={(e) => e.stopPropagation()}>
+            <div>
+              <p className="text-sm font-bold text-text">{u.deleteTitle}</p>
+              <p className="text-sm text-muted mt-1">
+                {u.deleteConfirm.replace("{{name}}", deleteTarget.label)}
+              </p>
+            </div>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={deleteHard}
+                onChange={(e) => setDeleteHard(e.target.checked)}
+                className="mt-0.5 accent-gold cursor-pointer"
+              />
+              <span className="text-xs text-text">
+                <span className="font-semibold text-red-600">{u.deleteHardLabel}</span>
+                <span className="block text-muted">{u.deleteHardHint}</span>
+              </span>
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={busy}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted hover:text-text transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={busy}
+                className={`w-full sm:w-auto px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors cursor-pointer disabled:opacity-50 ${
+                  deleteHard ? "bg-red-600 hover:bg-red-700" : "bg-gold hover:bg-gold-dark"
+                }`}
+              >
+                {busy ? u.deleting : deleteHard ? u.deleteHardConfirm : u.deleteConfirmCta}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit places form */}
       {editingClient && (
         <div className="bg-white rounded-xl border-2 border-gold/30 p-4 sm:p-6 flex flex-col gap-4">
@@ -231,14 +422,36 @@ export default function UsersClient({ userRole }: Props) {
           <div className="bg-white rounded-xl border border-border overflow-hidden">
             <div className="divide-y divide-border/50">
               {admins.map((a) => (
-                <div key={a.id} className="px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-text">{a.full_name ?? a.email}</p>
-                    <p className="text-xs text-muted">{a.email}</p>
+                <div key={a.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-text truncate">{a.full_name ?? a.email}</p>
+                    <p className="text-xs text-muted truncate">{a.email}</p>
                   </div>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${a.role === "super_admin" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}`}>
-                    {roleLabels[a.role] ?? a.role}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isSuperAdmin && (
+                      <>
+                        <button
+                          onClick={() => startEditInfoAdmin(a)}
+                          className="text-gold hover:text-gold-dark cursor-pointer transition-colors"
+                          title={u.editInfo}
+                          aria-label={u.editInfo}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                        </button>
+                        <button
+                          onClick={() => askDeleteAdmin(a)}
+                          className="text-muted hover:text-red-600 cursor-pointer transition-colors"
+                          title={u.deleteUser}
+                          aria-label={u.deleteUser}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a2 2 0 012-2h2a2 2 0 012 2v2" /></svg>
+                        </button>
+                      </>
+                    )}
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${a.role === "super_admin" ? "bg-purple-50 text-purple-700" : "bg-blue-50 text-blue-700"}`}>
+                      {roleLabels[a.role] ?? a.role}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -268,13 +481,34 @@ export default function UsersClient({ userRole }: Props) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
+                    {isSuperAdmin && (
+                      <button
+                        onClick={() => startEditInfoClient(c)}
+                        className="text-muted hover:text-text cursor-pointer transition-colors"
+                        title={u.editInfo}
+                        aria-label={u.editInfo}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                      </button>
+                    )}
                     <button
                       onClick={() => startEdit(c)}
                       className="text-xs font-medium text-gold hover:text-gold-dark cursor-pointer transition-colors"
                       title={u.editPlaces}
+                      aria-label={u.editPlaces}
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                     </button>
+                    {isSuperAdmin && (
+                      <button
+                        onClick={() => askDeleteClient(c)}
+                        className="text-muted hover:text-red-600 cursor-pointer transition-colors"
+                        title={u.deleteUser}
+                        aria-label={u.deleteUser}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a2 2 0 012-2h2a2 2 0 012 2v2" /></svg>
+                      </button>
+                    )}
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${c.is_active ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-500"}`}>
                       {c.is_active ? u.active : u.inactive}
                     </span>
