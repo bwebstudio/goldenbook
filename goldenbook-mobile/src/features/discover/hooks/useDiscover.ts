@@ -14,6 +14,7 @@ export const DISCOVER_QUERY_KEY = (
 
 export function useDiscover() {
   const city             = useAppStore((s) => s.selectedCity);
+  const isAppHydrated    = useAppStore((s) => s.isHydrated);
   const interests        = useOnboardingStore((s) => s.interests);
   const explorationStyle = useOnboardingStore((s) => s.explorationStyle);
   const locale           = useSettingsStore((s) => s.locale);
@@ -40,8 +41,19 @@ export function useDiscover() {
         explorationStyle ?? undefined,
         locale,
       ),
-    enabled: isAuthHydrated && hasSession,
+    // Also gate on appStore hydration + a non-empty city slug. Without this
+    // a cold start where authStore.isHydrated flipped before appStore.isHydrated
+    // would fire /discover?city= (empty) and the backend replies 404
+    // NotFoundError('City') — surfaced to the user as "Não foi possível
+    // carregar o feed."
+    enabled: isAuthHydrated && hasSession && isAppHydrated && city.length > 0,
     staleTime: 1000 * 60 * 10, // 10 min — editorial content doesn't change fast
+    // Tolerate transient Railway cold-starts / mobile-network blips on the
+    // very first request after launch. Without retries a single ECONNABORTED
+    // on a fresh install (no React Query persistence yet) takes the user
+    // straight to the error screen.
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
     // Keep showing the previous feed while the new locale/city refetches.
     // Without this, changing the language wiped the screen and dropped the
     // user on a full-screen spinner — which felt like the feed had frozen.

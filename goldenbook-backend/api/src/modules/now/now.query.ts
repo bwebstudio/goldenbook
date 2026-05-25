@@ -69,6 +69,11 @@ export async function getNowCandidates(
   userLat?: number,
   userLon?: number,
   cityTimezone?: string,
+  // Emergency fallback: when true, drop the tag requirement AND the
+  // opening-hours window. Used by the route handler as the last step of
+  // progressive relaxation when the strict pool returns zero candidates —
+  // we'd rather show a featured place than leave the NOW slot empty.
+  emergencyFallback = false,
 ): Promise<NowScoredPlace[]> {
   const hasCoords = userLat != null && userLon != null
   const tz = cityTimezone ?? 'Europe/Lisbon'
@@ -225,14 +230,28 @@ export async function getNowCandidates(
       AND p.status = 'published'
       AND p.is_active = true
       AND p.is_temporarily_closed = false
-      -- Eligibility: every NOW candidate MUST have at least one editorial tag.
-      -- Paid placements (place_visibility) still need to satisfy this rule —
-      -- we never surface untagged places, even when they are sponsored.
-      AND EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
+      -- Eligibility: candidate must have either an editorial tag in
+      -- place_now_tags OR auto-generated context tags. Mirrors the SELECT
+      -- fallback above so a place with context_tags_auto is no longer
+      -- silently dropped just because editors have not manually tagged it.
+      -- Without this OR the pool collapses to whatever the editorial team
+      -- has tagged manually (which in production at one point was a single
+      -- place per city), leaving NOW with one repeating result.
+      -- emergencyFallback=true drops the tag requirement entirely.
+      ${emergencyFallback ? '' : `AND (
+        EXISTS (SELECT 1 FROM place_now_tags pnt WHERE pnt.place_id = p.id)
+        OR (
+          p.context_tags_auto IS NOT NULL
+          AND jsonb_typeof(p.context_tags_auto) = 'array'
+          AND jsonb_array_length(p.context_tags_auto) > 0
+        )
+      )`}
       -- Opening hours filter: exclude places that are closed RIGHT NOW
       -- If the place has opening_hours rows, check if current day+time falls within an open slot.
       -- If no opening_hours exist, don't exclude (we don't know their schedule).
-      AND (
+      -- emergencyFallback=true skips this too — we'd rather suggest a closed-now place
+      -- than leave the slot empty.
+      ${emergencyFallback ? '' : `AND (
         NOT EXISTS (SELECT 1 FROM opening_hours oh WHERE oh.place_id = p.id)
         OR EXISTS (
           SELECT 1 FROM opening_hours oh
@@ -242,7 +261,7 @@ export async function getNowCandidates(
             AND oh.opens_at <= (now() AT TIME ZONE '${tz}')::time
             AND oh.closes_at > (now() AT TIME ZONE '${tz}')::time
         )
-      )
+      )`}
       -- Exclude service businesses (misclassified as activity/other)
       AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'

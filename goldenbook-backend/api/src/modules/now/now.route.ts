@@ -17,7 +17,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../../db/postgres'
 import { resolveWeather } from './now.weather'
-import { getNowCandidates } from './now.query'
+import { getNowCandidates, type NowScoredPlace } from './now.query'
 // Shared scoring engine (replaces now.moments + now.scoring)
 import {
   type NowTimeOfDay,
@@ -423,6 +423,8 @@ async function resolveNow(
   timeOfDay: NowTimeOfDay
   weather: WeatherCondition | undefined
   ranked: ScoredCandidate[]
+  candidates: NowScoredPlace[]
+  fellBack: boolean
 }> {
   let city: { slug: string; name: string }
   if (cityParam) {
@@ -446,7 +448,7 @@ async function resolveNow(
   }
 
   // Coordinates are OPTIONAL — NOW works without them
-  const candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon, CITY_TIMEZONES[city.slug])
+  let candidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon, CITY_TIMEZONES[city.slug])
 
   // Merge city-level cooldown into exclude set (6-hour same-place prevention)
   const cooldownIds = await getCooldownPlaceIds(city.slug)
@@ -462,7 +464,7 @@ async function resolveNow(
   scored = applyDiversityRules(scored)
   let ranked = selectTopN(scored, 3)
 
-  // Safety net: if cooldown excluded ALL candidates, retry without cooldown.
+  // Safety net 1: if cooldown excluded ALL candidates, retry without cooldown.
   if (ranked.length === 0 && cooldownIds.size > 0) {
     const retryCtx: ScoringContext = {
       timeOfDay, weather, paidPlaceIds, excludeIds, weights, surface: 'now',
@@ -473,7 +475,31 @@ async function resolveNow(
     ranked = selectTopN(retryScored, 3)
   }
 
-  return { city, timeOfDay, weather, ranked }
+  // Safety net 2: if the strict pool is still empty (e.g. no tagged places
+  // for this city OR all of them are closed right now), fall back to the
+  // emergency query that drops the tag requirement AND the opening-hours
+  // filter. We'd rather suggest a featured place than leave the NOW slot
+  // empty — that was the production "5 Oceanos" / "no suggestions" bug.
+  let fellBack = false
+  if (ranked.length === 0) {
+    const emergencyCandidates = await getNowCandidates(
+      city.slug, locale, 40, timeOfDay, lat, lon, CITY_TIMEZONES[city.slug],
+      true,
+    )
+    if (emergencyCandidates.length > 0) {
+      fellBack = true
+      candidates = emergencyCandidates
+      const emergencyCtx: ScoringContext = {
+        timeOfDay, weather, paidPlaceIds, excludeIds: new Set(),
+        weights, surface: 'now', userInterests, userStyle,
+      }
+      const emergencyScored = rankCandidates(emergencyCandidates, emergencyCtx)
+      // Skip diversity rules on emergency path — pool may be tiny.
+      ranked = selectTopN(emergencyScored, 3)
+    }
+  }
+
+  return { city, timeOfDay, weather, ranked, candidates, fellBack }
 }
 
 /**
@@ -566,33 +592,40 @@ export async function nowRoutes(app: FastifyInstance) {
     // Reset slot history if time window or city changed
     ensureSlotContext(session, timeOfDay, city.slug)
 
-    const { weather, ranked } = await resolveNow(
+    const { weather, ranked, candidates, fellBack } = await resolveNow(
       cityParam, locale, lat, lon, session.shownPlaceIds, weights,
       profile.interests, profile.style,
     )
 
     session.lastContext = { timeOfDay, weather, citySlug: city.slug }
 
-    if (ranked.length === 0) {
-      // ── Diagnostic logging: why are there zero candidates? ──
-      const diagCandidates = await getNowCandidates(city.slug, locale, 40, timeOfDay, lat, lon)
-      const cooldownIds = await getCooldownPlaceIds(city.slug)
+    // ── Low-pool diagnostic ──────────────────────────────────────────────
+    // Surface signal even when we DID return a result, so we can spot the
+    // "5 Oceanos only" pattern in production logs before users complain.
+    if (candidates.length < 3 || fellBack) {
       const placeTypeCounts: Record<string, number> = {}
-      for (const c of diagCandidates) {
+      for (const c of candidates) {
         placeTypeCounts[c.place_type] = (placeTypeCounts[c.place_type] ?? 0) + 1
       }
-      const taggedCandidates = diagCandidates.filter((c) => c.context_tag_slugs.length > 0)
+      const taggedCandidates = candidates.filter((c) => c.context_tag_slugs.length > 0)
       request.log.warn({
         resolvedCity: city.slug,
         requestedCity: cityParam,
         timeOfDay,
-        totalCandidates: diagCandidates.length,
+        totalCandidates: candidates.length,
+        rankedCount: ranked.length,
         placeTypeCounts,
-        withContextTags: taggedCandidates.length,
-        cooldownExcluded: cooldownIds.size,
+        withEditorialOrAutoTags: taggedCandidates.length,
         sessionExcluded: session.shownPlaceIds.size,
-      }, '[NOW] Zero ranked candidates — diagnostic breakdown')
+        fellBack,
+      }, '[NOW] Low candidate pool — diagnostic breakdown')
+    }
 
+    if (ranked.length === 0) {
+      // True last resort: not even the emergency fallback found anything for
+      // this city. Almost always means the destination has zero published
+      // places with a hero image. Surface the existing empty-state copy so
+      // the client renders its editorial fallback card.
       const localeFamily = locale.split('-')[0]
       return reply.send({
         place: null,

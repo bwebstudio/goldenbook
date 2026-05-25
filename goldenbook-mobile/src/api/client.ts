@@ -26,9 +26,16 @@ const DEVICE_TYPE: 'ios' | 'android' | 'web' =
   Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 const APP_VERSION: string = Constants.expoConfig?.version ?? '0.0.0';
 
+// Timeout was 10s, which fired during Railway cold-starts on weak mobile
+// networks (iPhone 11 LTE / Xiaomi HyperOS) — the first request after a
+// long-idle backend would abort before the server finished booting, the
+// user got the "could not load feed" error, and there was nothing in the
+// React Query cache to fall back to on a fresh install. 20s covers a
+// typical Railway cold-start (5–12s) plus normal request time without
+// being so long that a truly hung request leaves the spinner up forever.
 export const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },
