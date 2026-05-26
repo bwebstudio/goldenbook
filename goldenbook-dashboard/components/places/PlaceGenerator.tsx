@@ -69,14 +69,6 @@ export default function PlaceGenerator() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Manual entry mode: editor adds an establishment that isn't on Google Maps
-  // (e.g. a brand-new pop-up, a tiny shop without any web presence, or a
-  // place that only exists on Booking.com / Facebook). Renders an inline
-  // form that hits the same POST /admin/places endpoint with sourceLocale='pt'.
-  if (manualMode) {
-    return <ManualEntryForm onCancel={() => setManualMode(false)} />;
-  }
-
   // Debounced search
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
@@ -226,6 +218,19 @@ export default function PlaceGenerator() {
   }, []);
 
   const cityName = (slug: string) => cities.find(c => c.slug === slug)?.name ?? slug;
+
+  // ── Manual entry mode ─────────────────────────────────────────────────────
+  // Editor adds an establishment that isn't on Google Maps (e.g. a brand-new
+  // pop-up, a tiny shop without web presence, or a place that only exists on
+  // Booking.com / Facebook). Renders an inline form that hits the same
+  // POST /admin/places endpoint with sourceLocale='pt'.
+  //
+  // IMPORTANT: this early return MUST sit after every hook above. Putting it
+  // before useCallback / useEffect changes the hook count between renders
+  // and triggers React error #300 ("rendered fewer hooks than expected").
+  if (manualMode) {
+    return <ManualEntryForm onCancel={() => setManualMode(false)} />;
+  }
 
   // ── Loading overlay ───────────────────────────────────────────────────────
 
