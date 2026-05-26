@@ -1,6 +1,6 @@
 import type { DashboardRole } from "@/types/auth";
 
-const EDITOR_ALLOWED_PREFIXES = ["/dashboard", "/places", "/categories", "/routes", "/analytics", "/users", "/review-queue", "/pricing", "/campaigns"] as const;
+const EDITOR_ALLOWED_PREFIXES = ["/dashboard", "/places", "/routes", "/analytics", "/users", "/review-queue", "/pricing", "/campaigns"] as const;
 const BUSINESS_ALLOWED_PREFIXES = ["/portal"] as const;
 
 export function isAdmin(role: DashboardRole | null | undefined): role is "super_admin" {

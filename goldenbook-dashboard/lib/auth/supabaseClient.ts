@@ -24,10 +24,10 @@ export function getSupabaseBrowserClient(): SupabaseClient {
 
   browserClient = createClient(url, anonKey, {
     auth: {
-      // The Next.js middleware already handles token refresh via
-      // refreshDashboardSession(). If the browser client ALSO tries to
-      // auto-refresh, the two race and Supabase rejects the second
-      // attempt with "Invalid Refresh Token: Already Used".
+      // The Next.js proxy (formerly middleware) already handles token
+      // refresh via refreshDashboardSession(). If the browser client ALSO
+      // tries to auto-refresh, the two race and Supabase rejects the
+      // second attempt with "Invalid Refresh Token: Already Used".
       autoRefreshToken: false,
       persistSession: true,
       detectSessionInUrl: false,

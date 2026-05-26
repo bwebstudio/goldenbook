@@ -1,10 +1,36 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { searchGooglePlaces, previewPlaceFromGoogle, createPlace, ingestGooglePhotos, type PlacePreview } from "@/lib/api/places";
+import { searchGooglePlaces, previewPlaceFromGoogle, createPlace, ingestGooglePhotos, fetchAdminCategories, type PlacePreview } from "@/lib/api/places";
+import type { AdminCategoryDTO } from "@/types/api/place";
 import { ApiError } from "@/lib/api/client";
 import { useLocale } from "@/lib/i18n";
+
+// Slug helper: keep in sync with backend SLUG_RE (lowercase, a-z 0-9 and
+// hyphens). Strips diacritics so "Café d'Olivença" → "cafe-d-olivenca".
+function slugify(input: string): string {
+  // Strip combining diacritics (U+0300–U+036F) after NFD-normalising, so
+  // "Café d'Olivença" becomes "cafe-d-olivenca" — matching backend SLUG_RE.
+  return input
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const CITIES = [
+  { slug: 'algarve', name: 'Algarve' },
+  { slug: 'lisboa', name: 'Lisboa' },
+  { slug: 'madeira', name: 'Madeira' },
+  { slug: 'porto', name: 'Porto' },
+] as const;
+
+const PLACE_TYPES = [
+  'restaurant', 'bar', 'cafe', 'hotel', 'shop', 'museum',
+  'landmark', 'activity', 'beach', 'venue', 'transport', 'other',
+] as const;
 
 interface GoogleResult {
   placeId: string;
@@ -15,16 +41,12 @@ interface GoogleResult {
 }
 
 export default function PlaceGenerator() {
-  const cities = [
-    { slug: 'algarve', name: 'Algarve' },
-    { slug: 'lisboa', name: 'Lisboa' },
-    { slug: 'madeira', name: 'Madeira' },
-    { slug: 'porto', name: 'Porto' },
-  ];
+  const cities = CITIES;
   const router = useRouter();
   const { locale } = useLocale();
   const isPt = locale.startsWith("pt");
 
+  const [manualMode, setManualMode] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<GoogleResult[]>([]);
   const [selected, setSelected] = useState<GoogleResult | null>(null);
@@ -36,6 +58,14 @@ export default function PlaceGenerator() {
   const [savePhase, setSavePhase] = useState<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Manual entry mode: editor adds an establishment that isn't on Google Maps
+  // (e.g. a brand-new pop-up, a tiny shop without any web presence, or a
+  // place that only exists on Booking.com / Facebook). Renders an inline
+  // form that hits the same POST /admin/places endpoint with sourceLocale='pt'.
+  if (manualMode) {
+    return <ManualEntryForm onCancel={() => setManualMode(false)} />;
+  }
 
   // Debounced search
   const handleSearch = useCallback((value: string) => {
@@ -467,6 +497,329 @@ export default function PlaceGenerator() {
           ? "Isto irá buscar dados do Google Places e gerar notas editoriais. O estabelecimento só será criado quando clicar em Guardar."
           : "This will fetch Google Places data and generate editorial notes. The establishment will only be created when you click Save."}
       </p>
+
+      {/* Manual entry escape hatch — for places not on Google Maps. */}
+      <div className="mt-10 pt-6 border-t border-border">
+        <p className="text-xs text-muted mb-2">
+          {isPt
+            ? "Não encontra o estabelecimento no Google?"
+            : "Establishment not on Google Maps?"}
+        </p>
+        <button
+          type="button"
+          onClick={() => setManualMode(true)}
+          className="text-sm font-semibold text-gold hover:text-gold-dark underline-offset-2 hover:underline cursor-pointer"
+        >
+          {isPt ? "Adicionar manualmente →" : "Add manually →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Manual entry form ──────────────────────────────────────────────────────
+// Used when the place isn't on Google Maps. Submits directly to
+// POST /admin/places with sourceLocale='pt' (editor writes natively in PT).
+// Creates the row as `draft` so the editor can complete photos / editorial
+// notes / opening hours on the standard edit page right after.
+
+function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
+  const router = useRouter();
+  const { locale } = useLocale();
+  const isPt = locale.startsWith("pt");
+
+  const [categories, setCategories] = useState<AdminCategoryDTO[]>([]);
+  const [catsLoading, setCatsLoading] = useState(true);
+
+  const [name, setName] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [slug, setSlug] = useState("");
+  const [citySlug, setCitySlug] = useState<string>("lisboa");
+  const [placeType, setPlaceType] = useState<string>("restaurant");
+  const [categorySlug, setCategorySlug] = useState<string>("");
+  const [subcategorySlug, setSubcategorySlug] = useState<string>("");
+  const [addressLine, setAddressLine] = useState("");
+  const [phone, setPhone] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [latitude, setLatitude] = useState<string>("");
+  const [longitude, setLongitude] = useState<string>("");
+  const [shortDescription, setShortDescription] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAdminCategories("pt")
+      .then((c) => setCategories(c))
+      .catch(() => setCategories([]))
+      .finally(() => setCatsLoading(false));
+  }, []);
+
+  // Auto-fill slug from name until the editor edits it explicitly.
+  useEffect(() => {
+    if (!slugTouched) setSlug(slugify(name));
+  }, [name, slugTouched]);
+
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.slug === categorySlug) ?? null,
+    [categories, categorySlug],
+  );
+
+  const subcategories = selectedCategory?.subcategories ?? [];
+
+  // Reset subcategory whenever the parent category changes.
+  useEffect(() => { setSubcategorySlug(""); }, [categorySlug]);
+
+  const canSubmit =
+    name.trim().length >= 2 &&
+    slug.length >= 1 &&
+    !!citySlug &&
+    !!categorySlug &&
+    !saving;
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setSaving(true);
+    setError(null);
+
+    const lat = latitude.trim() ? Number(latitude) : undefined;
+    const lng = longitude.trim() ? Number(longitude) : undefined;
+    if ((latitude && Number.isNaN(lat!)) || (longitude && Number.isNaN(lng!))) {
+      setError(isPt ? "Latitude/longitude inválida." : "Invalid latitude/longitude.");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const result = await createPlace({
+        name: name.trim(),
+        slug,
+        citySlug,
+        placeType,
+        categorySlug,
+        subcategorySlug: subcategorySlug || undefined,
+        addressLine: addressLine.trim() || undefined,
+        phone: phone.trim() || undefined,
+        websiteUrl: websiteUrl.trim() || undefined,
+        latitude: lat,
+        longitude: lng,
+        shortDescription: shortDescription.trim() || undefined,
+        // PT is the canonical editorial locale — manual entry is always
+        // written in Portuguese by the editor.
+        sourceLocale: "pt",
+        // Draft until the editor adds photos + editorial notes on the
+        // standard edit page. Publishing a manual entry with no image or
+        // description would surface a broken card on mobile.
+        status: "draft",
+        featured: false,
+      });
+      router.push(`/places/${result.slug}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setError(
+          isPt
+            ? "Já existe um estabelecimento com este slug. Edite o slug e tente novamente."
+            : "An establishment with this slug already exists. Edit the slug and try again."
+        );
+      } else if (err instanceof ApiError) {
+        const detail = typeof err.data?.error === "string" ? `: ${err.data.error}` : "";
+        setError(`${err.status} ${err.message}${detail}`);
+      } else {
+        setError(err instanceof Error ? err.message : isPt ? "Erro ao guardar." : "Error saving.");
+      }
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-text">
+          {isPt ? "Novo estabelecimento (manual)" : "New establishment (manual)"}
+        </h1>
+        <p className="text-sm text-muted mt-1">
+          {isPt
+            ? "Preencha os campos abaixo. O estabelecimento será criado como rascunho — pode adicionar fotografias e notas editoriais a seguir."
+            : "Fill in the fields below. The establishment will be created as a draft — you can add photos and editorial notes next."}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-4 pb-32">
+        {/* Name + slug */}
+        <Field label={isPt ? "Nome do estabelecimento" : "Establishment name"} required>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={isPt ? "Ex: Tasca do Manuel" : "Ex: Tasca do Manuel"}
+            className="input"
+            autoFocus
+          />
+        </Field>
+
+        <Field
+          label="Slug"
+          required
+          hint={isPt
+            ? "URL única. Gerado a partir do nome — edite se necessário."
+            : "Unique URL identifier. Generated from the name — edit if needed."}
+        >
+          <input
+            type="text"
+            value={slug}
+            onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true); }}
+            placeholder="tasca-do-manuel"
+            className="input font-mono text-sm"
+          />
+        </Field>
+
+        {/* City + type */}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={isPt ? "Cidade" : "City"} required>
+            <select value={citySlug} onChange={(e) => setCitySlug(e.target.value)} className="input">
+              {CITIES.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label={isPt ? "Tipo" : "Type"} required>
+            <select value={placeType} onChange={(e) => setPlaceType(e.target.value)} className="input">
+              {PLACE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        {/* Category + subcategory */}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={isPt ? "Categoria" : "Category"} required>
+            <select
+              value={categorySlug}
+              onChange={(e) => setCategorySlug(e.target.value)}
+              disabled={catsLoading}
+              className="input"
+            >
+              <option value="">{catsLoading ? (isPt ? "A carregar..." : "Loading...") : (isPt ? "Selecionar..." : "Select...")}</option>
+              {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label={isPt ? "Subcategoria" : "Subcategory"}>
+            <select
+              value={subcategorySlug}
+              onChange={(e) => setSubcategorySlug(e.target.value)}
+              disabled={subcategories.length === 0}
+              className="input"
+            >
+              <option value="">{subcategories.length === 0 ? "—" : (isPt ? "Selecionar..." : "Select...")}</option>
+              {subcategories.map((s) => <option key={s.slug} value={s.slug}>{s.name}</option>)}
+            </select>
+          </Field>
+        </div>
+
+        {/* Address + phone */}
+        <Field label={isPt ? "Morada" : "Address"}>
+          <input
+            type="text"
+            value={addressLine}
+            onChange={(e) => setAddressLine(e.target.value)}
+            placeholder={isPt ? "Rua, número, código postal, cidade" : "Street, number, postal code, city"}
+            className="input"
+          />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label={isPt ? "Telefone" : "Phone"}>
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+351 21 000 0000" className="input" />
+          </Field>
+          <Field label="Website">
+            <input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://..." className="input" />
+          </Field>
+        </div>
+
+        {/* Coords */}
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Latitude" hint={isPt ? "Opcional, ex: 38.7223" : "Optional, e.g. 38.7223"}>
+            <input type="text" inputMode="decimal" value={latitude} onChange={(e) => setLatitude(e.target.value)} placeholder="38.7223" className="input" />
+          </Field>
+          <Field label="Longitude" hint={isPt ? "Opcional, ex: -9.1393" : "Optional, e.g. -9.1393"}>
+            <input type="text" inputMode="decimal" value={longitude} onChange={(e) => setLongitude(e.target.value)} placeholder="-9.1393" className="input" />
+          </Field>
+        </div>
+
+        {/* Short description */}
+        <Field label={isPt ? "Descrição curta" : "Short description"} hint={isPt ? "Máx 600 caracteres. Pode completar mais tarde." : "Max 600 characters. Can complete later."}>
+          <textarea
+            value={shortDescription}
+            onChange={(e) => setShortDescription(e.target.value.slice(0, 600))}
+            rows={3}
+            placeholder={isPt ? "Uma frase ou duas que capturem a essência do espaço..." : "A sentence or two capturing the essence of the place..."}
+            className="input"
+          />
+        </Field>
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-3">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky footer */}
+      <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-border px-10 py-5 flex items-center justify-between z-10">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="px-6 py-3 rounded-xl border border-border text-base font-semibold text-muted hover:border-gold/50 hover:text-text transition-colors bg-white cursor-pointer disabled:opacity-50"
+        >
+          {isPt ? "Voltar à pesquisa" : "Back to search"}
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {saving ? (
+            <>
+              <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+              {isPt ? "A guardar..." : "Saving..."}
+            </>
+          ) : (
+            isPt ? "Criar como rascunho" : "Create as draft"
+          )}
+        </button>
+      </div>
+
+      <style jsx>{`
+        :global(.input) {
+          width: 100%;
+          padding: 0.625rem 0.875rem;
+          border-radius: 0.625rem;
+          border: 1px solid var(--border, #e5e0d8);
+          background: white;
+          color: var(--text, #1a1a1a);
+          font-size: 0.875rem;
+          outline: none;
+          transition: border-color 150ms, box-shadow 150ms;
+        }
+        :global(.input:focus) {
+          border-color: rgba(184, 150, 78, 0.5);
+          box-shadow: 0 0 0 3px rgba(184, 150, 78, 0.1);
+        }
+        :global(.input:disabled) { opacity: 0.6; cursor: not-allowed; }
+      `}</style>
+    </div>
+  );
+}
+
+function Field({
+  label, required, hint, children,
+}: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-text mb-1.5">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      {children}
+      {hint && <p className="text-[11px] text-muted mt-1">{hint}</p>}
     </div>
   );
 }

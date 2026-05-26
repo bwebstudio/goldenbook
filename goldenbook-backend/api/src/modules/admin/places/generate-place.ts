@@ -85,6 +85,10 @@ export async function searchGooglePlaces(query: string): Promise<AutocompleteRes
       textQuery: query,
       languageCode: 'pt',
       maxResultCount: 8,
+      // Goldenbook only covers Portugal — restrict at the source so an
+      // editor searching for an ambiguous name (e.g. "Pastelaria do Bairro")
+      // can't accidentally pick a homonym in Brazil/Angola/Mozambique.
+      includedRegionCodes: ['pt'],
     }),
   })
   if (!res.ok) {
