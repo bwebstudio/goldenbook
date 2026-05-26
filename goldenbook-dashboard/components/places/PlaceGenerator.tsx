@@ -32,6 +32,16 @@ const PLACE_TYPES = [
   'landmark', 'activity', 'beach', 'venue', 'transport', 'other',
 ] as const;
 
+// Shared input class string. Mirrors the convention used elsewhere in the
+// dashboard (PlaceForm, etc.) so manual entry fields look identical to the
+// rest of the editor. Avoid styled-jsx here — Next 16 + Turbopack ships
+// without the explicit styled-jsx setup the rest of this project assumes,
+// and the previous `<style jsx>` block was crashing the page at runtime.
+const INPUT_CLS =
+  "w-full px-3.5 py-2.5 rounded-lg border border-border bg-white text-sm text-text " +
+  "placeholder:text-muted/50 focus:outline-none focus:border-gold/50 focus:ring-2 " +
+  "focus:ring-gold/10 transition-all disabled:opacity-60 disabled:cursor-not-allowed";
+
 interface GoogleResult {
   placeId: string;
   name: string;
@@ -652,7 +662,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={isPt ? "Ex: Tasca do Manuel" : "Ex: Tasca do Manuel"}
-            className="input"
+            className={INPUT_CLS}
             autoFocus
           />
         </Field>
@@ -669,7 +679,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
             value={slug}
             onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true); }}
             placeholder="tasca-do-manuel"
-            className="input font-mono text-sm"
+            className={`${INPUT_CLS} font-mono`}
           />
         </Field>
 
@@ -694,7 +704,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
               value={categorySlug}
               onChange={(e) => setCategorySlug(e.target.value)}
               disabled={catsLoading}
-              className="input"
+              className={INPUT_CLS}
             >
               <option value="">{catsLoading ? (isPt ? "A carregar..." : "Loading...") : (isPt ? "Selecionar..." : "Select...")}</option>
               {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
@@ -705,7 +715,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
               value={subcategorySlug}
               onChange={(e) => setSubcategorySlug(e.target.value)}
               disabled={subcategories.length === 0}
-              className="input"
+              className={INPUT_CLS}
             >
               <option value="">{subcategories.length === 0 ? "—" : (isPt ? "Selecionar..." : "Select...")}</option>
               {subcategories.map((s) => <option key={s.slug} value={s.slug}>{s.name}</option>)}
@@ -720,7 +730,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
             value={addressLine}
             onChange={(e) => setAddressLine(e.target.value)}
             placeholder={isPt ? "Rua, número, código postal, cidade" : "Street, number, postal code, city"}
-            className="input"
+            className={INPUT_CLS}
           />
         </Field>
 
@@ -750,7 +760,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
             onChange={(e) => setShortDescription(e.target.value.slice(0, 600))}
             rows={3}
             placeholder={isPt ? "Uma frase ou duas que capturem a essência do espaço..." : "A sentence or two capturing the essence of the place..."}
-            className="input"
+            className={INPUT_CLS}
           />
         </Field>
 
@@ -788,24 +798,6 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
         </button>
       </div>
 
-      <style jsx>{`
-        :global(.input) {
-          width: 100%;
-          padding: 0.625rem 0.875rem;
-          border-radius: 0.625rem;
-          border: 1px solid var(--border, #e5e0d8);
-          background: white;
-          color: var(--text, #1a1a1a);
-          font-size: 0.875rem;
-          outline: none;
-          transition: border-color 150ms, box-shadow 150ms;
-        }
-        :global(.input:focus) {
-          border-color: rgba(184, 150, 78, 0.5);
-          box-shadow: 0 0 0 3px rgba(184, 150, 78, 0.1);
-        }
-        :global(.input:disabled) { opacity: 0.6; cursor: not-allowed; }
-      `}</style>
     </div>
   );
 }
