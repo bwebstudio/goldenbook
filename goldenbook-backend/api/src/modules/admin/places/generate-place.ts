@@ -88,7 +88,10 @@ export async function searchGooglePlaces(query: string): Promise<AutocompleteRes
       // Goldenbook only covers Portugal — restrict at the source so an
       // editor searching for an ambiguous name (e.g. "Pastelaria do Bairro")
       // can't accidentally pick a homonym in Brazil/Angola/Mozambique.
-      includedRegionCodes: ['pt'],
+      // NOTE: places:searchText accepts `regionCode` (singular string),
+      // NOT `includedRegionCodes` — that field is for places:autocomplete
+      // only and using it here returns 400 INVALID_ARGUMENT.
+      regionCode: 'pt',
     }),
   })
   if (!res.ok) {
