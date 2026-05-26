@@ -139,12 +139,26 @@ export async function getBrowserAccessToken(): Promise<string | null> {
   const { isLoggingOut } = await import("@/lib/api/client");
   if (isLoggingOut()) return null;
 
+  // The cookie is the source of truth for this dashboard. The Next.js proxy
+  // refreshes it on every protected navigation, and /api/auth/refresh
+  // rewrites it after a 401 retry. The Supabase browser client has
+  // `autoRefreshToken: false` (set in supabaseClient.ts) so its local
+  // localStorage session is NOT kept in sync — a stale localStorage entry
+  // from an older login would otherwise be returned in front of the fresh
+  // cookie, and the backend would 401 the request as "expired token".
+  const fromCookie = getCookieValue(document.cookie, AUTH_COOKIE_NAMES.accessToken);
+  if (fromCookie) return fromCookie;
+
+  // Only fall back to Supabase localStorage when there is no cookie at all
+  // (early bootstrap, or a browser that wiped the cookie). Even then this
+  // is best-effort — the dashboard auth flow does not seed localStorage,
+  // so this branch usually returns null and the caller surfaces a 401.
   try {
     const supabase = getSupabaseBrowserClient();
     const { data } = await supabase.auth.getSession();
-    return data.session?.access_token ?? getCookieValue(document.cookie, AUTH_COOKIE_NAMES.accessToken);
+    return data.session?.access_token ?? null;
   } catch {
-    return getCookieValue(document.cookie, AUTH_COOKIE_NAMES.accessToken);
+    return null;
   }
 }
 
