@@ -37,7 +37,12 @@ export function GallerySection({ gallery }: GallerySectionProps) {
 
   const BASE_GALLERY_LIMIT = 4;
   const sorted = [...gallery].sort((a, b) => (a.sortOrder ?? 99) - (b.sortOrder ?? 99)).slice(0, BASE_GALLERY_LIMIT);
-  const urls = sorted.map((item) => getStorageUrl(item.bucket, item.path));
+  // Gallery thumbnails on detail page — detail variant. The full-screen
+  // viewer (opened on tap) re-fetches the same path; expo-image's disk
+  // cache will reuse the bytes for the on-screen size and only upgrade
+  // if the viewer renders bigger, which it does (hero variant inside the
+  // viewer if desired in a follow-up).
+  const urls = sorted.map((item) => getStorageUrl(item.bucket, item.path, 'detail'));
 
   const openViewer = (index: number) => {
     setActiveIndex(index);

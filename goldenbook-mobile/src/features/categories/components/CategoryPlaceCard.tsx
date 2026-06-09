@@ -10,7 +10,8 @@ interface CategoryPlaceCardProps {
 
 export function CategoryPlaceCard({ place }: CategoryPlaceCardProps) {
   const router = useRouter();
-  const imageUri = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // Category grid card (aspect 4:3) — card variant.
+  const imageUri = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'card');
 
   return (
     <TouchableOpacity

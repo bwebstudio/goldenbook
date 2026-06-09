@@ -14,7 +14,8 @@ interface FeaturedCategoryCardProps {
 
 export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
   const router = useRouter();
-  const imageUri = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // Featured category card (~screen-wide × 0.6) — card variant.
+  const imageUri = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'card');
 
   return (
     <TouchableOpacity

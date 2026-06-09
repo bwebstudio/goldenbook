@@ -14,7 +14,8 @@ const CARD_HEIGHT = 224;
 function NearbyGemCard({ gem }: { gem: NearbyGem }) {
   const router = useRouter();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(gem.heroImage.bucket, gem.heroImage.path);
+  // Nearby gems card — card variant.
+  const imageUrl = getStorageUrl(gem.heroImage.bucket, gem.heroImage.path, 'card');
   const distanceText = gem.distanceMeters < 1000
     ? `${gem.distanceMeters}m ${t.place.away}`
     : `${(gem.distanceMeters / 1000).toFixed(1)}km ${t.place.away}`;

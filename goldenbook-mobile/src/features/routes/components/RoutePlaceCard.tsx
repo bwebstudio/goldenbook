@@ -16,7 +16,8 @@ interface RoutePlaceCardProps {
 
 export const RoutePlaceCard = React.memo(function RoutePlaceCard({ place, index, isLast }: RoutePlaceCardProps) {
   const router = useRouter();
-  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // 76×76 thumbnail in the route timeline — thumb variant.
+  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'thumb');
   // Prefer the place's localized short description; fall back to the
   // curator's editorial note when no description is available.
   const description = place.shortDescription || place.note;

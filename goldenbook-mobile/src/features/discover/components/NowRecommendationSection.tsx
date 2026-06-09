@@ -176,7 +176,8 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   // ── Normal recommendation card ─────────────────────────────────────────────
 
   const { place, title, subtitle, context, isSponsored } = data
-  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path)
+  // NOW renders a full-width hero — hero variant (1400px @ q82).
+  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'hero')
 
   const weatherKey = context.weather_icon
     ?? (context.weather ? WEATHER_CONDITION_TO_KEY[context.weather] : null)

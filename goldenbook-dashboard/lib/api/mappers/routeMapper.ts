@@ -22,7 +22,8 @@ export function mapRouteToUI(dto: AdminRouteResponseDTO): UIRoute {
     city:             dto.cityName,
     citySlug:         dto.citySlug,
     stopsCount:       dto.placesCount,
-    coverImage:       getStorageUrl(dto.heroImage.bucket, dto.heroImage.path),
+    // Route list card → card variant (mid-size cover).
+    coverImage:       getStorageUrl(dto.heroImage.bucket, dto.heroImage.path, 'card'),
   };
 }
 
@@ -38,7 +39,8 @@ export function mapRouteStopToUI(dto: AdminRoutePlaceDTO): UIRouteStop {
     note:        dto.note ?? "",
     stayMinutes: dto.stayMinutes,
     sortOrder:   dto.sortOrder,
-    image:       getStorageUrl(dto.heroImage.bucket, dto.heroImage.path),
+    // Stop row thumbnail (80px in RouteDetailClient) → thumb variant.
+    image:       getStorageUrl(dto.heroImage.bucket, dto.heroImage.path, 'thumb'),
     city:        dto.city,
   };
 }

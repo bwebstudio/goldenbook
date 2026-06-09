@@ -39,7 +39,8 @@ export function RouteHero({
   const router = useRouter();
   const t = useTranslation();
   const insets = useSafeAreaInsets();
-  const imageUrl = getStorageUrl(heroImage.bucket, heroImage.path);
+  // Full-width route detail hero — hero variant (1400px @ q82).
+  const imageUrl = getStorageUrl(heroImage.bucket, heroImage.path, 'hero');
   const duration = formatDuration(estimatedMinutes);
 
   return (

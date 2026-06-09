@@ -16,7 +16,7 @@ interface EditorialHeroCardProps {
 export function EditorialHeroCard({ hero }: EditorialHeroCardProps) {
   const router = useRouter();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(hero.image.bucket, hero.image.path);
+  const imageUrl = getStorageUrl(hero.image.bucket, hero.image.path, 'hero');
 
   const handlePress = () => {
     if (hero.target.type === 'place') {

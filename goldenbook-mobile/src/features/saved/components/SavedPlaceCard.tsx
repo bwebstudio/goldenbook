@@ -13,7 +13,7 @@ interface SavedPlaceCardProps {
 
 export const SavedPlaceCard = React.memo(function SavedPlaceCard({ place }: SavedPlaceCardProps) {
   const router = useRouter();
-  const imageUrl = getStorageUrl(place.image?.bucket ?? null, place.image?.path ?? null);
+  const imageUrl = getStorageUrl(place.image?.bucket ?? null, place.image?.path ?? null, 'thumb');
 
   return (
     <View style={styles.container}>

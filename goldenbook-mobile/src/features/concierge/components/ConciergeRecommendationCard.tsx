@@ -29,7 +29,8 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
     return (
       <TouchableOpacity style={styles.compact} onPress={handlePress} activeOpacity={0.8}>
         <ProgressiveImage
-          uri={getStorageUrl(recommendation.heroImage.bucket, recommendation.heroImage.path)}
+          // 72-tall compact row → thumb variant.
+          uri={getStorageUrl(recommendation.heroImage.bucket, recommendation.heroImage.path, 'thumb')}
           height={72}
           borderRadius={10}
           style={styles.compactImage}
@@ -52,9 +53,9 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
 
   return (
     <TouchableOpacity onPress={handlePress} activeOpacity={0.92} style={[styles.card, { height: CARD_HEIGHT }]}>
-      {/* Full-bleed hero image */}
+      {/* Full-bleed hero image — full-screen-width on the Concierge card. */}
       <ProgressiveImage
-        uri={getStorageUrl(recommendation.heroImage.bucket, recommendation.heroImage.path)}
+        uri={getStorageUrl(recommendation.heroImage.bucket, recommendation.heroImage.path, 'hero')}
         height={CARD_HEIGHT}
         borderRadius={0}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}

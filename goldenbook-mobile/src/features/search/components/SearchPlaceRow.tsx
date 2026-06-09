@@ -13,7 +13,8 @@ interface Props {
 
 export function SearchPlaceRow({ place, rank }: Props) {
   const router = useRouter();
-  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // 72×72 row thumbnail — thumb variant.
+  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'thumb');
 
   return (
     <TouchableOpacity

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useT, useLocale } from "@/lib/i18n";
 import { fetchBusinessPlace, updateBusinessPlace, fetchBusinessImages, type BusinessPlaceProfile, type BusinessImageDTO, type ChangeRequestInfo } from "@/lib/api/business-portal";
 import { getStorageUrl } from "@/lib/utils/storage";
@@ -191,10 +192,25 @@ export default function PortalListing() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           {visibleImages.slice(0, 4).map((img) => {
-            const url = getStorageUrl(img.bucket, img.path);
+            // Card variant for the 4-up gallery — each cell is ~180-240px
+            // visual width depending on the breakpoint. Using Next/Image
+            // (instead of the previous <img> tag) routes through the Next
+            // optimizer and lets the CDN-cacheable Supabase derivative
+            // do the heavy lifting.
+            const url = getStorageUrl(img.bucket, img.path, 'card');
             return (
               <div key={img.id} className="aspect-[4/3] rounded-lg overflow-hidden border border-border bg-surface relative group">
-                {url ? <img src={url} alt={img.caption ?? ""} className="w-full h-full object-cover" /> : <EmptySlot />}
+                {url ? (
+                  <Image
+                    src={url}
+                    alt={img.caption ?? ""}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover"
+                  />
+                ) : (
+                  <EmptySlot />
+                )}
                 {(img.image_role === 'hero' || img.image_role === 'cover') && (
                   <span className="absolute top-1 left-1 bg-black/50 text-white text-[8px] font-semibold uppercase px-1.5 py-0.5 rounded">{t.listing.cover}</span>
                 )}

@@ -27,7 +27,8 @@ interface RouteCardProps {
 export const RouteCard = React.memo(function RouteCard({ route, featured = false }: RouteCardProps) {
   const router = useRouter();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(route.heroImage.bucket, route.heroImage.path);
+  // Route card on Routes tab (screen-wide × 0.6-0.75) — card variant.
+  const imageUrl = getStorageUrl(route.heroImage.bucket, route.heroImage.path, 'card');
   const duration = formatDuration(route.estimatedMinutes);
   const imageHeight = featured ? (SCREEN_WIDTH - 48) * 0.75 : (SCREEN_WIDTH - 48) * 0.6;
 

@@ -128,7 +128,7 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
         {cover ? (
           <div className="flex gap-4 items-start">
             <div className="relative w-48 aspect-video rounded-xl overflow-hidden border border-border shrink-0">
-              <Image src={getStorageUrl(cover.bucket, cover.path) ?? ""} alt="Cover" fill className="object-cover" sizes="192px" />
+              <Image src={getStorageUrl(cover.bucket, cover.path, 'card') ?? ""} alt="Cover" fill className="object-cover" sizes="192px" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-text font-medium">This image is shown as the main photo in listings and the detail page.</p>
@@ -162,7 +162,7 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
         {gallery.length > 0 ? (
           <div className="grid grid-cols-4 gap-3">
             {gallery.map((img, index) => {
-              const url = getStorageUrl(img.bucket, img.path);
+              const url = getStorageUrl(img.bucket, img.path, 'card');
               const isExtra = index >= BASE_GALLERY_LIMIT;
               return (
                 <div key={img.id} className={`relative group rounded-xl overflow-hidden border ${isExtra ? "border-amber-200" : "border-border"}`}>
@@ -230,7 +230,7 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
           <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-3">Other images</p>
           <div className="flex gap-3 flex-wrap">
             {allNonCover.filter(i => i.image_role !== 'gallery').map(img => {
-              const url = getStorageUrl(img.bucket, img.path);
+              const url = getStorageUrl(img.bucket, img.path, 'thumb');
               return (
                 <div key={img.id} className="relative group rounded-xl overflow-hidden border border-border w-24">
                   <div className="aspect-square relative">

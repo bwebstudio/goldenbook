@@ -26,7 +26,8 @@ export function JourneyCompletionView({
   const visited = stepStatuses.filter(s => s === 'completed' || s === 'arrived').length;
   const skipped = stepStatuses.filter(s => s === 'skipped').length;
   const total = stepStatuses.length;
-  const imageUrl = getStorageUrl(heroImage.bucket, heroImage.path);
+  // Full-screen completion backdrop — hero variant.
+  const imageUrl = getStorageUrl(heroImage.bucket, heroImage.path, 'hero');
 
   return (
     <View style={{ flex: 1 }}>

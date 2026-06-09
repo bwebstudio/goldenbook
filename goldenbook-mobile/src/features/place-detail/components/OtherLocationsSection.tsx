@@ -12,7 +12,8 @@ const CARD_HEIGHT = 200;
 
 function OtherLocationCard({ location }: { location: OtherLocation }) {
   const router = useRouter();
-  const imageUrl = getStorageUrl(location.heroImage.bucket, location.heroImage.path);
+  // "Other locations" horizontal card — card variant.
+  const imageUrl = getStorageUrl(location.heroImage.bucket, location.heroImage.path, 'card');
 
   return (
     <TouchableOpacity

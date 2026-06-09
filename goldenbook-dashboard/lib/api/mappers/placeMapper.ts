@@ -33,7 +33,10 @@ export function mapMapPlaceToUI(dto: MapPlaceDTO): UIPlace {
     address: null, // map endpoint does not return address; available in PlaceDetailDTO
     featured: false, // TODO: cross-reference with discover.editorsPicks when needed
     editorsPick: false, // TODO: cross-reference with discover.editorsPicks when needed
-    mainImage: getStorageUrl(dto.heroImage.bucket, dto.heroImage.path),
+    // Map → admin Places list → PlaceCard thumbnail (w-36 = 144px). Thumb
+    // variant (160px @ q70) gives the CDN a cacheable derivative and stops
+    // streaming the full-size original every refresh.
+    mainImage: getStorageUrl(dto.heroImage.bucket, dto.heroImage.path, 'thumb'),
     bookingEnabled: false,
     hasSuggestion: false,
     suggestionRelevant: null,
@@ -67,9 +70,11 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     bookingUrl: dto.actions.bookingUrl,
     categories: dto.categories,
     subcategories: dto.subcategories,
-    mainImage: getStorageUrl(dto.heroImage.bucket, dto.heroImage.path),
+    // Editor cover preview (w-48 = 192px) → card variant covers 2× retina.
+    mainImage: getStorageUrl(dto.heroImage.bucket, dto.heroImage.path, 'card'),
+    // Gallery grid items render at ~180px → card variant.
     gallery: dto.gallery
-      .map((g) => getStorageUrl(g.bucket, g.path))
+      .map((g) => getStorageUrl(g.bucket, g.path, 'card'))
       .filter((url): url is string => url !== null),
     // Booking fields (from bookingAdmin)
     bookingEnabled: dto.bookingAdmin?.bookingEnabled ?? false,
@@ -103,7 +108,8 @@ export function mapAdminListItemToUI(dto: AdminPlaceListItem): UIPlace {
     address: null,
     featured: false,
     editorsPick: false,
-    mainImage: getStorageUrl(dto.hero_bucket, dto.hero_path),
+    // Admin list view → PlaceCard thumbnail (144px) → thumb variant.
+    mainImage: getStorageUrl(dto.hero_bucket, dto.hero_path, 'thumb'),
     bookingEnabled: dto.booking_enabled,
     hasSuggestion: dto.has_suggestion,
     suggestionRelevant: dto.suggestion_relevant,

@@ -230,7 +230,8 @@ export default function RouteDetailClient({
               .slice()
               .sort((a, b) => a.stopOrder - b.stopOrder)
               .map((stop) => {
-                const heroUrl = getStorageUrl(stop.heroImage?.bucket, stop.heroImage?.path);
+                // Stop row thumbnail (80px) → thumb variant.
+                const heroUrl = getStorageUrl(stop.heroImage?.bucket, stop.heroImage?.path, 'thumb');
                 return (
                   <li
                     key={`${stop.placeId}-${stop.stopOrder}`}

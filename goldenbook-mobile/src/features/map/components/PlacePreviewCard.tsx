@@ -39,7 +39,8 @@ function openInMaps(place: MapPlace, router: ReturnType<typeof useRouter>) {
 export function PlacePreviewCard({ place, onClose }: PlacePreviewCardProps) {
   const router = useRouter();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // 64×64 thumbnail in the map popover — thumb variant.
+  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'thumb');
 
   return (
     <View style={styles.container}>

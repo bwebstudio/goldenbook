@@ -12,7 +12,7 @@ interface SavedRouteCardProps {
 
 export function SavedRouteCard({ route }: SavedRouteCardProps) {
   const router = useRouter();
-  const imageUrl = getStorageUrl(route.image?.bucket ?? null, route.image?.path ?? null);
+  const imageUrl = getStorageUrl(route.image?.bucket ?? null, route.image?.path ?? null, 'thumb');
 
   return (
     <View style={styles.container}>

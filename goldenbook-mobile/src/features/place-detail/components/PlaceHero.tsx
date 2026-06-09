@@ -28,7 +28,8 @@ export function PlaceHero({ heroImage, name, cityName, rating, tags, categories,
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(heroImage.bucket, heroImage.path);
+  // Full-bleed place detail hero — hero variant (1400px @ q82).
+  const imageUrl = getStorageUrl(heroImage.bucket, heroImage.path, 'hero');
 
   const showOverlay = !!name;
   const stars = rating ? Math.round(Math.min(5, Math.max(0, rating))) : 0;

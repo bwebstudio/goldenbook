@@ -18,8 +18,9 @@ interface RouteCardProps {
 export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps) {
   const router = useRouter();
   const t = useTranslation();
+  // Full-bleed card on the Discover feed — card variant covers most devices.
   const imageUrl = route.heroImage
-    ? getStorageUrl(route.heroImage.bucket, route.heroImage.path)
+    ? getStorageUrl(route.heroImage.bucket, route.heroImage.path, 'card')
     : null;
 
   return (

@@ -33,7 +33,8 @@ interface PlaceCardProps {
 function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
   const router = useRouter();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // 80×80 visual — thumb variant (160px preset covers retina @2×).
+  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'thumb');
 
   return (
     <View className="flex-row items-center gap-4">
@@ -91,7 +92,8 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
 function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCard; width?: number }) {
   const router = useRouter();
   const t = useTranslation();
-  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path);
+  // Portrait card up to 224 wide × 1.5 tall — card variant (480px @2× retina).
+  const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'card');
   const CARD_HEIGHT = width * 1.5;
 
   const subtitle = [place.categoryName, place.subcategoryName]
