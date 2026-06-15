@@ -407,27 +407,74 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       insiderTip: z.string().nullable().optional(),
     }).parse(request.body)
 
-    const sets: string[] = []
-    const params: unknown[] = []
-    let i = 1
-    function add(col: string, val: unknown) { sets.push(`${col} = $${i++}`); params.push(val) }
+    const hasAnyField =
+      body.name !== undefined ||
+      body.shortDescription !== undefined ||
+      body.fullDescription !== undefined ||
+      body.goldenbookNote !== undefined ||
+      body.insiderTip !== undefined
+    if (!hasAnyField) return reply.send({ updated: false })
 
-    if (body.name !== undefined) add('name', body.name)
-    if (body.shortDescription !== undefined) add('short_description', body.shortDescription)
-    if (body.fullDescription !== undefined) add('full_description', body.fullDescription)
-    if (body.goldenbookNote !== undefined) add('goldenbook_note', body.goldenbookNote)
-    if (body.insiderTip !== undefined) add('insider_tip', body.insiderTip)
+    // The EN/ES row may not exist yet — e.g. the place was created while
+    // DeepL was unavailable (the per-locale auto-translation upsert swallows
+    // failures, so no row is written) or it predates the translations system
+    // and only has a PT row. A plain UPDATE would silently match zero rows
+    // and the editor's manual translation would be lost. We therefore UPSERT,
+    // merging the submitted fields over the existing row (preserving the
+    // "only touch the columns the caller sent" semantics) and falling back to
+    // the canonical PT name for the NOT NULL `name` column when neither the
+    // request nor the existing row supplies one. The row is then locked as a
+    // manual override so future PT edits / regenerates leave it untouched.
+    const { rows: existingRows } = await db.query<{
+      name: string | null; short_description: string | null; full_description: string | null
+      goldenbook_note: string | null; insider_tip: string | null
+    }>(
+      `SELECT name, short_description, full_description, goldenbook_note, insider_tip
+         FROM place_translations WHERE place_id = $1 AND locale = $2 LIMIT 1`,
+      [id, locale],
+    )
+    const existing = existingRows[0] ?? null
 
-    if (sets.length === 0) return reply.send({ updated: false })
+    let name = body.name !== undefined ? body.name : (existing?.name ?? '')
+    if (!name.trim()) {
+      const { rows: ptRows } = await db.query<{ name: string | null }>(
+        `SELECT name FROM place_translations WHERE place_id = $1 AND locale = 'pt' LIMIT 1`,
+        [id],
+      )
+      name = ptRows[0]?.name ?? ''
+    }
+    if (!name.trim()) {
+      return reply.status(400).send({
+        error: 'TRANSLATION_NAME_REQUIRED',
+        message: 'A name is required to save this translation.',
+      })
+    }
 
-    add('translation_override', true)
-    sets.push('updated_at = now()')
+    const pick = <T,>(provided: T | undefined, fallback: T): T =>
+      provided !== undefined ? provided : fallback
+    const shortDescription = pick(body.shortDescription, existing?.short_description ?? null)
+    const fullDescription = pick(body.fullDescription, existing?.full_description ?? null)
+    const goldenbookNote = pick(body.goldenbookNote, existing?.goldenbook_note ?? null)
+    const insiderTip = pick(body.insiderTip, existing?.insider_tip ?? null)
 
-    params.push(id)
-    params.push(locale)
     await db.query(
-      `UPDATE place_translations SET ${sets.join(', ')} WHERE place_id = $${i} AND locale = $${i + 1}`,
-      params,
+      `
+      INSERT INTO place_translations (
+        place_id, locale, name, short_description, full_description,
+        goldenbook_note, insider_tip, translation_override, is_override, source
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, true, 'manual')
+      ON CONFLICT (place_id, locale) DO UPDATE SET
+        name = EXCLUDED.name,
+        short_description = EXCLUDED.short_description,
+        full_description = EXCLUDED.full_description,
+        goldenbook_note = EXCLUDED.goldenbook_note,
+        insider_tip = EXCLUDED.insider_tip,
+        translation_override = true,
+        is_override = true,
+        source = 'manual',
+        updated_at = now()
+      `,
+      [id, locale, name, shortDescription, fullDescription, goldenbookNote, insiderTip],
     )
     return reply.send({ updated: true, locale })
   })
