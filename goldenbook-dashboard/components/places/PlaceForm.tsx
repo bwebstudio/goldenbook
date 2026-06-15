@@ -36,6 +36,17 @@ function toSlug(name: string) {
     .replace(/^-|-$/g, "");
 }
 
+// Website is optional. If the editor types a bare domain (e.g.
+// "restaurante1811.com" or "www.x.pt") we prepend https:// so the URL
+// validation never blocks a save over a missing protocol. Empty stays empty
+// (which clears the field on the backend).
+function normalizeUrl(value: string): string {
+  const v = value.trim();
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  return `https://${v}`;
+}
+
 // Status options are built inside the component to access translations
 
 interface CategoryOption {
@@ -193,8 +204,16 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
     if (saveStatus === "saving") return;
     if (isEditing && !isDirty) return;
 
-    // 1. Validate
-    const validationErrors = validatePlaceForm(form, isEditing);
+    // Normalize the (optional) website so a bare domain doesn't trip the
+    // URL validation. Reflect it back into the field so the editor sees what
+    // will be saved. Empty is left empty — website is NOT required.
+    const websiteNormalized = normalizeUrl(form.website);
+    if (websiteNormalized !== form.website) {
+      setField("website", websiteNormalized);
+    }
+
+    // 1. Validate (against the normalized website)
+    const validationErrors = validatePlaceForm({ ...form, website: websiteNormalized }, isEditing);
     setErrors(validationErrors);
 
     if (!isFormValid(validationErrors)) {
@@ -226,7 +245,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
         citySlug:         form.citySlug || form.citySlugs[0] || '',
         citySlugs:        form.citySlugs,
         addressLine:      clearable(form.address),
-        websiteUrl:       clearable(form.website),
+        websiteUrl:       clearable(websiteNormalized),
         phone:            clearable(form.phone),
         email:            clearable(form.email),
         bookingUrl:       clearable(form.bookingUrl),
