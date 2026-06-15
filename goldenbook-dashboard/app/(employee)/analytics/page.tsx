@@ -9,6 +9,7 @@ import CampaignAnalyticsClient from "./CampaignAnalyticsClient";
 import AdminInsightsClient from "./AdminInsightsClient";
 import ContentOverviewClient from "./ContentOverviewClient";
 import UserBehaviorV2Client from "./UserBehaviorV2Client";
+import LoadError from "@/components/ui/LoadError";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,16 @@ export default async function AnalyticsPage() {
       console.error(`[AnalyticsPage] ${fetchNames[i]} fetch failed:`, r.reason);
     }
   });
+
+  // If every analytics fetch failed the backend is unreachable — show a
+  // retryable error rather than a shell full of empty charts that reads as
+  // "no data". Partial failures still render with whatever resolved.
+  const allRejected = [overviewResult, campaignsResult, establishmentsResult, timeResult, insightsResult].every(
+    (r) => r.status === "rejected",
+  );
+  if (allRejected) {
+    return <LoadError />;
+  }
 
   const overview = overviewResult.status === "fulfilled" ? overviewResult.value : null;
   const campaigns = campaignsResult.status === "fulfilled" ? campaignsResult.value : [];

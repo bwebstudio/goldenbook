@@ -18,8 +18,13 @@ export async function POST(request: NextRequest) {
     applySessionCookies(response, session);
     return response;
   } catch {
-    const response = NextResponse.json({ message: "Session expired." }, { status: 401 });
-    clearSessionCookies(response);
-    return response;
+    // Do NOT clear the session cookies here. A failure is often transient —
+    // a concurrent refresh that rotated the token a moment earlier ("Already
+    // Used"), or a brief network blip. Wiping the cookies on every failure
+    // turns a recoverable hiccup into a forced logout. We return 401 so the
+    // caller can surface an error / retry; if the session is truly dead the
+    // proxy redirects to /login on the next navigation and the cookies expire
+    // on their own.
+    return NextResponse.json({ message: "Session expired." }, { status: 401 });
   }
 }

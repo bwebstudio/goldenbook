@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useT } from "@/lib/i18n";
 import {
   fetchAdminPricingConfig,
   updatePricingPlanAdmin,
@@ -47,12 +48,14 @@ const SEASON_COLORS: Record<string, string> = {
 type Tab = "plans" | "cities" | "seasons" | "promotions" | "preview" | "products";
 
 export default function PricingClient({ readOnly = false }: { readOnly?: boolean }) {
+  const t = useT();
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [seasons, setSeasons] = useState<SeasonRule[]>([]);
   const [cities, setCities] = useState<CityMultiplier[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [pricingConfigs, setPricingConfigs] = useState<PricingConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [tab, setTab] = useState<Tab>("plans");
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -62,29 +65,24 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
   const [previewMonth, setPreviewMonth] = useState(new Date().getMonth() + 1);
   const [previewResult, setPreviewResult] = useState<PriceComputation | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      try {
-        const [data, configs] = await Promise.all([
-          fetchAdminPricingConfig(),
-          fetchAllPricingConfigs().catch(() => []),
-        ]);
-        if (cancelled) return;
-        setPlans(data.plans);
-        setSeasons(data.seasons);
-        setCities(data.cities);
-        setPromotions(data.promotions);
-        setPricingConfigs(configs);
-      } catch { /* ignore */ }
-      if (!cancelled) setLoading(false);
-    }
-
-    load();
-    return () => { cancelled = true; };
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const [data, configs] = await Promise.all([
+        fetchAdminPricingConfig(),
+        fetchAllPricingConfigs().catch(() => []),
+      ]);
+      setPlans(data.plans);
+      setSeasons(data.seasons);
+      setCities(data.cities);
+      setPromotions(data.promotions);
+      setPricingConfigs(configs);
+    } catch { setLoadError(true); }
+    setLoading(false);
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -173,6 +171,20 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <p className="text-sm text-muted max-w-sm">{t.common.loadError}</p>
+        <button
+          onClick={() => load()}
+          className="px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer"
+        >
+          {t.common.retry}
+        </button>
       </div>
     );
   }

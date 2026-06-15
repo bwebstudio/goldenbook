@@ -11,6 +11,7 @@ import {
   isFormValid,
 } from "@/types/forms/place";
 import { createPlace, updatePlace, deletePlaceById } from "@/lib/api/places";
+import { fetchPlaceTranslations } from "@/lib/api/translations";
 import { applySuggestion, dismissSuggestion, generateSuggestionForPlace } from "@/lib/api/suggestions";
 import { ApiError } from "@/lib/api/client";
 import { useT, useLocale } from "@/lib/i18n";
@@ -114,6 +115,9 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saveStatus,        setSaveStatus]       = useState<"idle" | "saving" | "success">("idle");
   const [showToast,         setShowToast]        = useState(false);
+  // Set after a save when EN/ES are manual overrides, so the editor understands
+  // why their Portuguese edit did not propagate to the other languages.
+  const [manualTranslationNotice, setManualTranslationNotice] = useState(false);
 
   // Read on every regenerate so PlaceTranslations sees unsaved PT edits.
   const formRef = useRef(form);
@@ -153,6 +157,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
     // Once the user edits again, drop the "saved" state so the sticky bar
     // returns to "unsaved changes" and the Save button re-enables.
     if (saveStatus === "success") setSaveStatus("idle");
+    if (manualTranslationNotice) setManualTranslationNotice(false);
   }
 
   function setField<K extends keyof PlaceFormValues>(key: K, value: PlaceFormValues[K]) {
@@ -202,20 +207,29 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
     setSaveError(null);
 
     try {
+      // Optional free-text / contact fields are sent as their raw value
+      // (empty string included) rather than coerced to `undefined`. The
+      // backend treats an empty string as "clear this field" (nullify → NULL),
+      // but OMITS any key that is `undefined` — so `form.website || undefined`
+      // made it impossible to remove a website/phone/etc. once set. Sending the
+      // empty string lets editors blank a field. Enum/relational fields below
+      // keep `|| undefined` because the backend rejects empty strings for them.
+      const clearable = (v: string) => (isEditing ? v : v || undefined);
+
       const payload = {
         name:             form.name,
         slug:             form.slug             || undefined,
-        shortDescription: form.shortDescription || undefined,
-        fullDescription:  form.fullDescription  || undefined,
-        goldenbookNote:   form.goldenbookNote   || undefined,
-        insiderTip:       form.insiderTip       || undefined,
+        shortDescription: clearable(form.shortDescription),
+        fullDescription:  clearable(form.fullDescription),
+        goldenbookNote:   clearable(form.goldenbookNote),
+        insiderTip:       clearable(form.insiderTip),
         citySlug:         form.citySlug || form.citySlugs[0] || '',
         citySlugs:        form.citySlugs,
-        addressLine:      form.address          || undefined,
-        websiteUrl:       form.website          || undefined,
-        phone:            form.phone            || undefined,
-        email:            form.email            || undefined,
-        bookingUrl:       form.bookingUrl       || undefined,
+        addressLine:      clearable(form.address),
+        websiteUrl:       clearable(form.website),
+        phone:            clearable(form.phone),
+        email:            clearable(form.email),
+        bookingUrl:       clearable(form.bookingUrl),
         placeType:        form.placeType || undefined,
         categorySlug:     form.categorySlug,
         subcategorySlug:  form.subcategorySlug  || undefined,
@@ -224,8 +238,8 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
         // Booking fields
         bookingEnabled:      form.bookingEnabled,
         bookingMode:         form.bookingMode,
-        bookingLabel:        form.bookingLabel   || undefined,
-        bookingNotes:        form.bookingNotes   || undefined,
+        bookingLabel:        clearable(form.bookingLabel),
+        bookingNotes:        clearable(form.bookingNotes),
         reservationRelevant: form.reservationRelevant,
         reservationSource:   form.reservationSource || undefined,
       };
@@ -239,10 +253,34 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           nowTagSlugs:   nowForm.nowTagSlugs,
           nowTimeWindows: nowForm.nowTimeWindows,
         };
+        // Did the editor change any Portuguese editorial field in this save?
+        // Only then is "why didn't EN/ES translate?" a relevant question.
+        const editorialChanged =
+          form.name !== place.name ||
+          form.shortDescription !== (place.shortDescription ?? "") ||
+          form.fullDescription !== (place.fullDescription ?? "") ||
+          form.goldenbookNote !== (place.goldenbookNote ?? "") ||
+          form.insiderTip !== (place.insiderTip ?? "");
+
         await updatePlace(place.id, fullPayload);
         setIsDirty(false);
         setSaveStatus("success");
         setShowToast(true);
+        setManualTranslationNotice(false);
+
+        // Best-effort, non-blocking: if EN/ES are manual overrides they were
+        // NOT auto-translated from the PT edit (by design). Surface that so the
+        // editor knows to regenerate them in the Translations section rather
+        // than assuming the translation silently failed.
+        if (editorialChanged) {
+          try {
+            const translations = await fetchPlaceTranslations(place.id);
+            if ((translations.en?.translation_override ?? false) || (translations.es?.translation_override ?? false)) {
+              setManualTranslationNotice(true);
+            }
+          } catch { /* ignore — notice is advisory */ }
+        }
+
         router.refresh();
       } else {
         const result = await createPlace({ ...payload, slug: form.slug });
@@ -316,6 +354,29 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
               onClick={() => setSaveError(null)}
               className="shrink-0 text-red-500 hover:text-red-700 transition-colors"
               aria-label="Dismiss"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* ── Manual-translation notice ──
+            Shown after a PT editorial save when EN/ES are manual overrides, so
+            the editor understands the translation did not propagate by design. */}
+        {manualTranslationNotice && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start justify-between gap-4">
+            <p className="text-sm text-amber-800">
+              {(pf as { manualTranslationNotice?: string }).manualTranslationNotice ??
+                "Saved. EN/ES are manual translations and were not auto-translated. Use the Translations section to update them."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setManualTranslationNotice(false)}
+              className="shrink-0 text-amber-500 hover:text-amber-700 transition-colors"
+              aria-label={pf.dismiss}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />

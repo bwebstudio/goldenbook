@@ -23,6 +23,8 @@ const pt: TranslationKeys = {
     language: "Idioma",
     logout: "Terminar sessão",
     error: "Erro",
+    loadError: "Não foi possível carregar os dados. Tente novamente.",
+    retry: "Tentar novamente",
     thisWeek: "esta semana",
   },
 
@@ -608,6 +610,7 @@ const pt: TranslationKeys = {
     // ── Toast / barra de estado ──
     allChangesSaved: "Todas as alterações guardadas.",
     successToast: "Alterações guardadas com sucesso.",
+    manualTranslationNotice: "Guardado. EN/ES estão marcadas como traduções manuais e não foram traduzidas automaticamente a partir da sua edição em português. Para as atualizar, use a secção Traduções abaixo.",
     dismiss: "Fechar",
   },
 

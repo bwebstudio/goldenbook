@@ -6,6 +6,7 @@ import { fetchCuratedRoutes, type CuratedRouteDTO } from "@/lib/api/curated-rout
 import { fetchCategories } from "@/lib/api/categories";
 import { fetchPlacesForCity } from "@/lib/api/places";
 import DashboardContent from "./DashboardContent";
+import LoadError from "@/components/ui/LoadError";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,27 @@ export default async function DashboardPage() {
     redirect("/portal");
   }
 
-  const [destinations, routes, categoryDTOs] = await Promise.all([
-    fetchDestinations().catch(() => []),
-    fetchCuratedRoutes().catch(() => [] as CuratedRouteDTO[]),
-    fetchCategories().catch(() => []),
+  const [destinationsR, routesR, categoriesR] = await Promise.allSettled([
+    fetchDestinations(),
+    fetchCuratedRoutes(),
+    fetchCategories(),
   ]);
+
+  // If every primary fetch failed the backend is effectively unreachable —
+  // render a retryable error instead of a dashboard full of misleading zeros
+  // (which looks like a real but empty account). Partial failures still render
+  // with whatever loaded.
+  if (
+    destinationsR.status === "rejected" &&
+    routesR.status === "rejected" &&
+    categoriesR.status === "rejected"
+  ) {
+    return <LoadError />;
+  }
+
+  const destinations = destinationsR.status === "fulfilled" ? destinationsR.value : [];
+  const routes = routesR.status === "fulfilled" ? routesR.value : ([] as CuratedRouteDTO[]);
+  const categoryDTOs = categoriesR.status === "fulfilled" ? categoriesR.value : [];
 
   const placesPerCity = await Promise.all(
     destinations.map((d) =>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useLocale } from "@/lib/i18n";
+import { useLocale, useT } from "@/lib/i18n";
 import {
   generateEditorialRoute,
   deactivateRoute,
@@ -136,12 +136,15 @@ interface Props {
 
 export default function RoutesClient({ initialRoutes, userRole }: Props) {
   const { locale } = useLocale();
+  const t = useT();
   const labels = useLabels();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSuperAdmin = isAdmin(userRole);
 
   const [routes, setRoutes] = useState(initialRoutes);
+  const [loadError, setLoadError] = useState(false);
+  const triedClientLoad = useRef(false);
   const [cityFilter, setCityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState<RouteTypeFilter>("all");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
@@ -168,6 +171,29 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
   const [modalSaving, setModalSaving] = useState(false);
   const [allPlaces, setAllPlaces] = useState<Array<{ id: string; name: string; slug: string; city_name: string }>>([]);
   const [placesLoaded, setPlacesLoaded] = useState(false);
+
+  // Primary data load. The route list is fetched server-side and passed in via
+  // `initialRoutes`; when that server fetch fails (e.g. a transient 401 during a
+  // token refresh) the page silently renders an empty `initialRoutes`. This
+  // client-side re-fetch lets us tell a genuine empty list apart from a failed
+  // load and surface a retryable error instead of a blank screen.
+  const load = useCallback(async () => {
+    setLoadError(false);
+    try {
+      const fresh = await fetchCuratedRoutes();
+      setRoutes(fresh);
+    } catch {
+      setLoadError(true);
+    }
+  }, []);
+
+  // On mount, if the server handed us an empty list, attempt a client fetch to
+  // distinguish a real empty state from a swallowed server-side fetch failure.
+  useEffect(() => {
+    if (triedClientLoad.current || initialRoutes.length > 0) return;
+    triedClientLoad.current = true;
+    load();
+  }, [initialRoutes, load]);
 
   const loadPlaces = useCallback(async () => {
     if (placesLoaded) return;
@@ -361,6 +387,20 @@ export default function RoutesClient({ initialRoutes, userRole }: Props) {
 
   const cityLabel = (slug: string) =>
     CITIES.find((c) => c.value === slug)?.[locale === "pt" ? "labelPt" : "labelEn"] ?? slug;
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <p className="text-sm text-muted max-w-sm">{t.common.loadError}</p>
+        <button
+          onClick={() => load()}
+          className="px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer"
+        >
+          {t.common.retry}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-5xl flex flex-col gap-6">

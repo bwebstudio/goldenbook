@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useT } from "@/lib/i18n";
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from "@/lib/api/client";
 import { fetchAdminPlacesList } from "@/lib/api/places";
@@ -56,6 +56,8 @@ export default function UsersClient({ userRole }: Props) {
   const [clients, setClients] = useState<BusinessClientUser[]>([]);
   const [places, setPlaces] = useState<AdminPlaceListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const autoRetried = useRef(false);
   const [showForm, setShowForm] = useState<"editor" | "client" | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -82,19 +84,58 @@ export default function UsersClient({ userRole }: Props) {
   const [deleteHard, setDeleteHard] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      const [data, placesList] = await Promise.all([
-        apiGet<{ admins: AdminUser[]; clients: BusinessClientUser[] }>("/api/v1/admin/users/list"),
-        fetchAdminPlacesList(),
-      ]);
-      setAdmins(data.admins);
-      setClients(data.clients);
-      setPlaces(placesList);
-    } catch { /* empty */ }
-    finally { setLoading(false); }
-  }, []);
+    setLoading(true);
+    setLoadError(false);
+
+    // Load the two payloads independently. The user list is the critical data
+    // for this screen; the places list only feeds the place picker in the
+    // create/edit-client forms. Using allSettled means a failure (or transient
+    // 401 during a token refresh) in one request never blanks out the other.
+    const [usersRes, placesRes] = await Promise.allSettled([
+      apiGet<{ admins: AdminUser[]; clients: BusinessClientUser[] }>("/api/v1/admin/users/list"),
+      fetchAdminPlacesList(),
+    ]);
+
+    if (usersRes.status === "fulfilled") {
+      setAdmins(usersRes.value.admins);
+      setClients(usersRes.value.clients);
+      autoRetried.current = false;
+    }
+    if (placesRes.status === "fulfilled") {
+      setPlaces(placesRes.value);
+    }
+
+    // Safe diagnostic (no tokens / no PII) — only on failure, to explain an
+    // empty screen without spamming the console on every successful load.
+    if (usersRes.status === "rejected" || placesRes.status === "rejected") {
+      const reason = usersRes.status === "rejected" ? usersRes.reason : null;
+      const status = reason && typeof reason === "object" && "status" in reason ? (reason as { status: number }).status : undefined;
+      console.warn("[users] load", {
+        role: userRole,
+        usersList: usersRes.status,
+        usersStatusCode: status,
+        placesList: placesRes.status,
+        adminCount: usersRes.status === "fulfilled" ? usersRes.value.admins.length : 0,
+        clientCount: usersRes.status === "fulfilled" ? usersRes.value.clients.length : 0,
+      });
+    }
+
+    // Only the user-list failure is screen-blocking. Surface a retryable error
+    // instead of a silent blank page.
+    setLoadError(usersRes.status === "rejected");
+    setLoading(false);
+  }, [userRole]);
 
   useEffect(() => { load(); }, [load]);
+
+  // One automatic retry on a failed load — covers the brief window where the
+  // access token expired and is being refreshed in the background.
+  useEffect(() => {
+    if (!loadError || autoRetried.current) return;
+    autoRetried.current = true;
+    const timer = setTimeout(() => { load(); }, 1500);
+    return () => clearTimeout(timer);
+  }, [loadError, load]);
 
   const resetForm = () => {
     setFormEmail("");
@@ -261,6 +302,20 @@ export default function UsersClient({ userRole }: Props) {
   };
 
   if (loading) return <p className="text-muted py-10">{t.common.loading}</p>;
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <p className="text-sm text-muted max-w-sm">{t.common.loadError}</p>
+        <button
+          onClick={() => { autoRetried.current = false; load(); }}
+          className="px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer"
+        >
+          {t.common.retry}
+        </button>
+      </div>
+    );
+  }
 
   const roleLabels: Record<string, string> = { super_admin: u.roleSuperAdmin, editor: u.roleEditor };
 

@@ -26,6 +26,7 @@ export default function ReviewQueueClient() {
   const rq = t.reviewQueue;
   const [items, setItems] = useState<ChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<Filter>("pending");
   const [busy, setBusy] = useState(false);
   const [modal, setModal] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
@@ -33,8 +34,9 @@ export default function ReviewQueueClient() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoadError(false);
     try { setItems(await fetchReviewQueue(filter)); }
-    catch { setItems([]); }
+    catch { setItems([]); setLoadError(true); }
     finally { setLoading(false); }
   }, [filter]);
 
@@ -53,6 +55,20 @@ export default function ReviewQueueClient() {
 
   const fieldLabels = rq.fieldLabels as Record<string, string>;
   const filters: [Filter, string][] = [["pending", rq.pending], ["approved", rq.approved], ["rejected", rq.rejected]];
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <p className="text-sm text-muted max-w-sm">{t.common.loadError}</p>
+        <button
+          onClick={() => load()}
+          className="px-4 py-2 rounded-lg bg-gold text-white text-sm font-semibold hover:bg-gold-dark transition-colors cursor-pointer"
+        >
+          {t.common.retry}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl flex flex-col gap-6">

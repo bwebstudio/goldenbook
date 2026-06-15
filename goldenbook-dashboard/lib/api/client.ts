@@ -76,17 +76,40 @@ async function buildHeaders(extraHeaders?: Record<string, string>): Promise<Reco
   };
 }
 
+// ─── Single-flight refresh ───────────────────────────────────────────────────
+// Parallel requests (e.g. Promise.all on a page) can all 401 at the same time
+// when the access token has just expired. If each one independently POSTs to
+// /api/auth/refresh, they race on the SAME refresh token. Supabase rotates
+// refresh tokens (single use), so the first call invalidates the token and the
+// others fail with "Invalid Refresh Token: Already Used" — which previously
+// blanked the page and could even clear the session cookies. We coalesce all
+// concurrent refreshes into ONE in-flight request that every caller awaits.
+let _refreshInFlight: Promise<boolean> | null = null;
+
 async function refreshBrowserSession(): Promise<boolean> {
   if (typeof window === "undefined") {
     return false;
   }
 
-  const response = await fetch("/api/auth/refresh", {
-    method: "POST",
-    cache: "no-store",
-  });
+  if (_refreshInFlight) {
+    return _refreshInFlight;
+  }
 
-  return response.ok;
+  _refreshInFlight = (async () => {
+    try {
+      const response = await fetch("/api/auth/refresh", {
+        method: "POST",
+        cache: "no-store",
+      });
+      return response.ok;
+    } catch {
+      return false;
+    } finally {
+      _refreshInFlight = null;
+    }
+  })();
+
+  return _refreshInFlight;
 }
 
 async function requestWithAuthRetry(input: RequestInfo | URL, init: RequestInit): Promise<Response> {

@@ -21,6 +21,8 @@ const en = {
     language: "Language",
     logout: "Log out",
     error: "Error",
+    loadError: "We couldn't load the data. Please try again.",
+    retry: "Try again",
     thisWeek: "this week",
   },
 
@@ -613,6 +615,7 @@ const en = {
     // ── Toast / sticky bar states ──
     allChangesSaved: "All changes saved.",
     successToast: "Changes saved successfully.",
+    manualTranslationNotice: "Saved. EN/ES are marked as manual translations and were not auto-translated from your Portuguese edit. To update them, use the Translations section below.",
     dismiss: "Dismiss",
   },
 

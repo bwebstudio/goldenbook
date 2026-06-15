@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocale, useT } from "@/lib/i18n";
 import CategoriesClient from "./CategoriesClient";
 import { fetchCategories } from "@/lib/api/categories";
@@ -13,30 +13,23 @@ export default function CategoriesPage() {
   const ct = t.employeePages.categories;
   const [categories, setCategories] = useState<UICategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(async () => {
     setLoading(true);
-    setErrorMessage(null);
+    setLoadError(false);
+    try {
+      const dtos = await fetchCategories(locale);
+      setCategories(mapCategoriesToUI(dtos));
+    } catch (err) {
+      console.error("[CategoriesPage] Failed to load categories:", err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [locale]);
 
-    fetchCategories(locale)
-      .then((dtos) => {
-        if (!cancelled) {
-          setCategories(mapCategoriesToUI(dtos));
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error("[CategoriesPage] Failed to load categories:", err);
-        if (!cancelled) {
-          setErrorMessage(ct.couldNotLoad);
-          setLoading(false);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [locale, ct.couldNotLoad]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
@@ -48,7 +41,7 @@ export default function CategoriesPage() {
     );
   }
 
-  if (errorMessage) {
+  if (loadError) {
     return (
       <div className="max-w-4xl">
         <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-20 flex flex-col items-center gap-5 text-center">
@@ -61,10 +54,10 @@ export default function CategoriesPage() {
           </div>
           <div>
             <h3 className="text-xl font-bold text-text">{ct.couldNotLoad}</h3>
-            <p className="text-base text-muted mt-2 max-w-sm">{errorMessage}</p>
+            <p className="text-base text-muted mt-2 max-w-sm">{t.common.loadError}</p>
           </div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => load()}
             className="px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors cursor-pointer"
           >
             {ct.tryAgain}

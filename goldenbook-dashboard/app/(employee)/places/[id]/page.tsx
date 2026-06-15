@@ -10,6 +10,7 @@ import { fetchDestinations } from "@/lib/api/destinations";
 import { mapPlaceDetailToUI } from "@/lib/api/mappers/placeMapper";
 import { ApiError } from "@/lib/api/client";
 import PlaceForm from "@/components/places/PlaceForm";
+import PlaceLoadError from "@/components/places/PlaceLoadError";
 import { requireDashboardUser } from "@/lib/auth/server";
 
 export default async function EditPlacePage({
@@ -60,30 +61,6 @@ export default async function EditPlacePage({
       notFound();
     }
 
-    return (
-      <div className="max-w-3xl">
-        <div className="bg-white rounded-2xl border border-border shadow-sm px-8 py-20 flex flex-col items-center gap-5 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#FBF7F0] flex items-center justify-center text-gold">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-text">Could not load place</h3>
-            <p className="text-base text-muted mt-2 max-w-sm">
-              The place &ldquo;{slug}&rdquo; could not be loaded from the backend. Please check the API and try again.
-            </p>
-          </div>
-          <a
-            href="/places"
-            className="px-6 py-3 rounded-xl border border-border text-base font-semibold text-muted hover:border-gold/50 hover:text-text transition-colors bg-white"
-          >
-            Back to places
-          </a>
-        </div>
-      </div>
-    );
+    return <PlaceLoadError slug={slug} />;
   }
 }
