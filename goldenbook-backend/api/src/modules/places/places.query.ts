@@ -103,10 +103,14 @@ const BOOKING_SELECT = `,
   p.suggestion_generated_at,
   p.suggestion_dismissed`
 
-const FROM_CLAUSE = `
+// Shared JOINs + projection. The trailing WHERE/LIMIT differs between the
+// public read (published only) and the admin editor read (any status,
+// including drafts), so it is appended per-caller — see FROM_CLAUSE and
+// FROM_CLAUSE_ADMIN below.
+const FROM_BODY = `
 FROM places p
 LEFT JOIN brands br ON br.id = p.brand_id
-JOIN destinations d
+LEFT JOIN destinations d
        ON d.id = p.destination_id
 LEFT JOIN destination_translations dt
        ON dt.destination_id = d.id AND dt.locale = $2
@@ -136,9 +140,20 @@ LEFT JOIN LATERAL (
   ORDER  BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
   LIMIT  1
 ) hero_img ON true
-LEFT JOIN place_stats ps ON ps.place_id = p.id
+LEFT JOIN place_stats ps ON ps.place_id = p.id`
+
+// Public read: only published places are exposed to the mobile app / web.
+const FROM_CLAUSE = `${FROM_BODY}
 WHERE p.slug = $1
   AND p.status = 'published'
+LIMIT 1`
+
+// Admin editor read: returns the place at ANY status (draft / review /
+// published / archived) so the dashboard can reopen an unfinished draft.
+// MUST stay behind dashboard authentication — never wire this into a public
+// route.
+const FROM_CLAUSE_ADMIN = `${FROM_BODY}
+WHERE p.slug = $1
 LIMIT 1`
 
 // ─── Safe defaults for when booking/suggestion columns don't exist ───────────
@@ -186,6 +201,31 @@ export async function getPlaceBySlug(slug: string, locale: string): Promise<Plac
       // Booking/suggestion migrations not applied yet — fall back to core columns
       const { rows } = await db.query<Record<string, unknown>>(
         `SELECT ${CORE_SELECT} ${FROM_CLAUSE}`,
+        [slug, locale],
+      )
+      return rows[0] ? withBookingDefaults(rows[0]) : null
+    }
+    throw err
+  }
+}
+
+// ─── getPlaceBySlugAdmin ─────────────────────────────────────────────────────
+// Identical to getPlaceBySlug but WITHOUT the `status = 'published'` filter, so
+// the dashboard editor can load a draft (or any unpublished) place. Same
+// booking/suggestion column fallback. Authenticated callers only.
+
+export async function getPlaceBySlugAdmin(slug: string, locale: string): Promise<PlaceRow | null> {
+  try {
+    const { rows } = await db.query<PlaceRow>(
+      `SELECT ${CORE_SELECT}${BOOKING_SELECT} ${FROM_CLAUSE_ADMIN}`,
+      [slug, locale],
+    )
+    return rows[0] ?? null
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : ''
+    if (msg.includes('does not exist')) {
+      const { rows } = await db.query<Record<string, unknown>>(
+        `SELECT ${CORE_SELECT} ${FROM_CLAUSE_ADMIN}`,
         [slug, locale],
       )
       return rows[0] ? withBookingDefaults(rows[0]) : null

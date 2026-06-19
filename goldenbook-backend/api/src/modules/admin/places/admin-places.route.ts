@@ -14,6 +14,9 @@ import { ValidationError } from '../../../shared/errors/AppError'
 import { authenticateDashboardUser } from '../../../shared/auth/dashboardAuth'
 import { createPlaceSchema, updatePlaceSchema } from './admin-places.dto'
 import { createPlace, updatePlace, deletePlace } from './admin-places.query'
+import { getPlaceBySlugAdmin } from '../../places/places.query'
+import { buildPlaceDetailDTO } from '../../places/places.route'
+import { normalizeLocale } from '../../../shared/i18n/locale'
 import { getAdminPlacesList } from './admin-places-list.query'
 import { getPlaceImages, setCoverImage, setGalleryOrder, moveImageToGallery, removeImageFromGallery, deleteImage, addImageToPlace } from './admin-images.query'
 import { searchGooglePlaces, previewPlaceFromGoogle, ingestGooglePhotos } from './generate-place'
@@ -120,6 +123,22 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
   app.get('/admin/places', { preHandler: [authenticateDashboardUser] }, async (_request, reply) => {
     const rows = await getAdminPlacesList()
     return reply.send({ items: rows })
+  })
+
+  // ── GET /admin/places/by-slug/:slug ─────────────────────────────────────────
+  // Load a single place for the dashboard editor REGARDLESS of status. The
+  // public GET /places/:slug only returns published rows, so an unfinished
+  // draft (status='draft') 404s there and the editor can't reopen it. This
+  // authenticated endpoint returns the same PlaceDetailDTO for any status.
+  app.get('/admin/places/by-slug/:slug', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { slug } = z.object({ slug: z.string().min(1) }).parse(request.params)
+    const { locale: rawLocale } = z.object({ locale: z.string().min(2).max(5).default('pt') }).parse(request.query)
+    const locale = normalizeLocale(rawLocale)
+
+    const place = await getPlaceBySlugAdmin(slug, locale)
+    if (!place) return reply.status(404).send({ error: 'PLACE_NOT_FOUND', message: 'Place not found' })
+
+    return reply.send(await buildPlaceDetailDTO(place, locale))
   })
 
   // ── POST /admin/places ──────────────────────────────────────────────────────
@@ -457,25 +476,55 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     const goldenbookNote = pick(body.goldenbookNote, existing?.goldenbook_note ?? null)
     const insiderTip = pick(body.insiderTip, existing?.insider_tip ?? null)
 
-    await db.query(
-      `
-      INSERT INTO place_translations (
-        place_id, locale, name, short_description, full_description,
-        goldenbook_note, insider_tip, translation_override, is_override, source
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, true, 'manual')
-      ON CONFLICT (place_id, locale) DO UPDATE SET
-        name = EXCLUDED.name,
-        short_description = EXCLUDED.short_description,
-        full_description = EXCLUDED.full_description,
-        goldenbook_note = EXCLUDED.goldenbook_note,
-        insider_tip = EXCLUDED.insider_tip,
-        translation_override = true,
-        is_override = true,
-        source = 'manual',
-        updated_at = now()
-      `,
-      [id, locale, name, shortDescription, fullDescription, goldenbookNote, insiderTip],
-    )
+    const upsertParams = [id, locale, name, shortDescription, fullDescription, goldenbookNote, insiderTip]
+    try {
+      // Full upsert — writes the provenance columns (is_override, source) added
+      // by migration 20260418100000_translation_metadata.
+      await db.query(
+        `
+        INSERT INTO place_translations (
+          place_id, locale, name, short_description, full_description,
+          goldenbook_note, insider_tip, translation_override, is_override, source
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, true, 'manual')
+        ON CONFLICT (place_id, locale) DO UPDATE SET
+          name = EXCLUDED.name,
+          short_description = EXCLUDED.short_description,
+          full_description = EXCLUDED.full_description,
+          goldenbook_note = EXCLUDED.goldenbook_note,
+          insider_tip = EXCLUDED.insider_tip,
+          translation_override = true,
+          is_override = true,
+          source = 'manual',
+          updated_at = now()
+        `,
+        upsertParams,
+      )
+    } catch (err: unknown) {
+      // The provenance migration may not be applied in this environment yet
+      // (is_override / source columns absent). Rather than failing the
+      // editor's save with a raw "column does not exist" error, fall back to
+      // the legacy override-only upsert. Mirrors the booking/suggestion
+      // column fallbacks in places.query.ts and admin-places.query.ts.
+      const msg = err instanceof Error ? err.message : ''
+      if (!msg.includes('does not exist')) throw err
+      await db.query(
+        `
+        INSERT INTO place_translations (
+          place_id, locale, name, short_description, full_description,
+          goldenbook_note, insider_tip, translation_override
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+        ON CONFLICT (place_id, locale) DO UPDATE SET
+          name = EXCLUDED.name,
+          short_description = EXCLUDED.short_description,
+          full_description = EXCLUDED.full_description,
+          goldenbook_note = EXCLUDED.goldenbook_note,
+          insider_tip = EXCLUDED.insider_tip,
+          translation_override = true,
+          updated_at = now()
+        `,
+        upsertParams,
+      )
+    }
     return reply.send({ updated: true, locale })
   })
 

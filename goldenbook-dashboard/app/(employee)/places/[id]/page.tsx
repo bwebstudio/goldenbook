@@ -5,7 +5,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { fetchPlaceBySlug, fetchAdminCategories } from "@/lib/api/places";
+import { fetchAdminPlaceBySlug, fetchAdminCategories } from "@/lib/api/places";
 import { fetchDestinations } from "@/lib/api/destinations";
 import { mapPlaceDetailToUI } from "@/lib/api/mappers/placeMapper";
 import { ApiError } from "@/lib/api/client";
@@ -45,7 +45,9 @@ export default async function EditPlacePage({
   ]);
 
   try {
-    const placeDetail = await fetchPlaceBySlug(slug);
+    // Use the admin endpoint so drafts (status !== 'published') open in the
+    // editor — the public endpoint is published-only and 404s on drafts.
+    const placeDetail = await fetchAdminPlaceBySlug(slug);
     const place = mapPlaceDetailToUI(placeDetail);
 
     return (

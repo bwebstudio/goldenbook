@@ -20,10 +20,18 @@ export async function fetchPlacesForCity(citySlug: string): Promise<MapPlaceDTO[
 }
 
 // GET /api/v1/places/:slug
-// Returns full place detail. Used for the edit/detail page.
+// Returns full place detail. Public read — PUBLISHED places only.
 // Default locale is 'pt' because Portuguese is the source of truth for editorial.
 export async function fetchPlaceBySlug(slug: string, locale = "pt"): Promise<PlaceDetailDTO> {
   return apiGet<PlaceDetailDTO>(`/api/v1/places/${encodeURIComponent(slug)}`, { locale });
+}
+
+// GET /api/v1/admin/places/by-slug/:slug
+// Returns full place detail for the editor at ANY status (including drafts).
+// The public endpoint above is published-only, so an unfinished draft 404s
+// there — the editor must use this authenticated endpoint to reopen drafts.
+export async function fetchAdminPlaceBySlug(slug: string, locale = "pt"): Promise<PlaceDetailDTO> {
+  return apiGet<PlaceDetailDTO>(`/api/v1/admin/places/by-slug/${encodeURIComponent(slug)}`, { locale });
 }
 
 // GET /api/v1/admin/categories

@@ -9,10 +9,50 @@ import {
   getPlaceGallery,
   getNearbyGems,
   getOtherLocations,
+  type PlaceRow,
 } from './places.query'
 import { toPlaceDetailDTO } from './places.dto'
+import type { PlaceDetailDTO } from './places.dto'
 import { getManualBookingCandidate } from '../booking-candidates/candidates.query'
 import { normalizeLocale } from '../../shared/i18n/locale'
+
+// Assemble the full place-detail DTO from a base PlaceRow. Shared by the
+// public read (GET /places/:slug) and the authenticated admin editor read
+// (GET /admin/places/by-slug/:slug) so both return an identical shape — the
+// only difference between them is which query loads the base row (published
+// only vs. any status).
+export async function buildPlaceDetailDTO(place: PlaceRow, locale: string): Promise<PlaceDetailDTO> {
+  // Booking URL resolution — fall back to a manual dashboard candidate.
+  if (!place.booking_url) {
+    try {
+      const manual = await getManualBookingCandidate(place.id)
+      if (manual?.candidate_url) {
+        place.booking_url = manual.candidate_url
+      }
+    } catch {
+      // candidates table may not exist — ignore
+    }
+  }
+
+  const hasCoords = place.latitude != null && place.longitude != null
+
+  const [categories, openingHours, gallery, nearbyGems, otherLocations, citySlugs] = await Promise.all([
+    getPlaceCategories(place.id, locale),
+    getOpeningHours(place.id),
+    getPlaceGallery(place.id),
+    hasCoords
+      ? getNearbyGems(place.id, place.latitude!, place.longitude!, locale)
+      : Promise.resolve([]),
+    place.brand_id
+      ? getOtherLocations(place.brand_id, place.id, locale)
+      : Promise.resolve([]),
+    db.query<{ slug: string }>(`SELECT d.slug FROM place_destinations pd JOIN destinations d ON d.id = pd.destination_id WHERE pd.place_id = $1 ORDER BY d.name`, [place.id])
+      .then((r) => r.rows.map((row) => row.slug))
+      .catch(() => [place.city_slug]),
+  ])
+
+  return toPlaceDetailDTO(place, categories, openingHours, gallery, nearbyGems, otherLocations, citySlugs.length > 0 ? citySlugs : undefined)
+}
 
 const paramsSchema = z.object({ slug: z.string().min(1) })
 // PT is the canonical editorial locale (see modules/admin/places/translation-policy.ts).
@@ -37,42 +77,6 @@ export async function placesRoutes(app: FastifyInstance) {
 
     if (!place) throw new NotFoundError('Place')
 
-    const hasCoords = place.latitude != null && place.longitude != null
-
-    // ── Booking URL resolution ────────────────────────────────────────────
-    //
-    // Priority:
-    //   1. places.booking_url (set directly on the place row)
-    //   2. Manual candidate from dashboard (set by editor via PlaceCandidates)
-    //
-    // Google Maps URLs are NOT used as booking links.
-    // Affiliate candidates are NOT used.
-    if (!place.booking_url) {
-      try {
-        const manual = await getManualBookingCandidate(place.id)
-        if (manual?.candidate_url) {
-          place.booking_url = manual.candidate_url
-        }
-      } catch {
-        // candidates table may not exist — ignore
-      }
-    }
-
-    const [categories, openingHours, gallery, nearbyGems, otherLocations, citySlugs] = await Promise.all([
-      getPlaceCategories(place.id, locale),
-      getOpeningHours(place.id),
-      getPlaceGallery(place.id),
-      hasCoords
-        ? getNearbyGems(place.id, place.latitude!, place.longitude!, locale)
-        : Promise.resolve([]),
-      place.brand_id
-        ? getOtherLocations(place.brand_id, place.id, locale)
-        : Promise.resolve([]),
-      db.query<{ slug: string }>(`SELECT d.slug FROM place_destinations pd JOIN destinations d ON d.id = pd.destination_id WHERE pd.place_id = $1 ORDER BY d.name`, [place.id])
-        .then((r) => r.rows.map((row) => row.slug))
-        .catch(() => [place.city_slug]),
-    ])
-
-    return reply.send(toPlaceDetailDTO(place, categories, openingHours, gallery, nearbyGems, otherLocations, citySlugs.length > 0 ? citySlugs : undefined))
+    return reply.send(await buildPlaceDetailDTO(place, locale))
   })
 }
