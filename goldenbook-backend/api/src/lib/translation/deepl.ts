@@ -184,13 +184,18 @@ export async function translatePlaceFields(
   targetLocale: string,
   sourceLocale = 'en',
 ): Promise<PlaceTranslationFields> {
+  // The establishment NAME is a proper noun and must NEVER be auto-translated —
+  // DeepL turned "Aroma Antilhano" into "Caribean Flavor". Only the editorial
+  // prose fields go to DeepL; the name is carried over verbatim from the source.
+  // (Editors can still hand-edit a locale's name in the Translations panel.)
+  const { name: _name, ...translatableFields } = source
   const translated = await translateFields(
-    source as unknown as Record<string, string | null | undefined>,
+    translatableFields as unknown as Record<string, string | null | undefined>,
     targetLocale,
     sourceLocale,
   )
   return {
-    name: translated.name ?? source.name,
+    name: source.name,
     short_description: source.short_description ? (translated.short_description ?? source.short_description) : null,
     full_description: source.full_description ? (translated.full_description ?? source.full_description) : null,
     goldenbook_note: source.goldenbook_note ? (translated.goldenbook_note ?? source.goldenbook_note) : null,

@@ -134,19 +134,35 @@ export async function addImageToPlace(placeId: string, data: {
       RETURNING id
     `, [data.bucket, data.path, data.mimeType, data.width, data.height, data.sizeBytes])
 
-    // Get next sort_order
+    // Does this place already have a cover/hero? If not, the first uploaded
+    // image becomes the cover automatically. Editors frequently upload photos
+    // without explicitly marking one as the cover (the UI lands every upload in
+    // the gallery), which left new places with NO cover photo in the app and
+    // editor. Auto-promoting the first image guarantees a cover.
+    const { rows: [{ has_cover }] } = await client.query<{ has_cover: boolean }>(`
+      SELECT EXISTS(
+        SELECT 1 FROM place_images
+        WHERE place_id = $1 AND image_role IN ('hero', 'cover')
+      ) AS has_cover
+    `, [placeId])
+
+    const role = has_cover ? 'gallery' : 'cover'
+    const isPrimary = !has_cover
+
+    // Get next sort_order (gallery images are ordered; the cover sits at 0)
     const { rows: [{ max_order }] } = await client.query<{ max_order: number }>(`
       SELECT COALESCE(MAX(sort_order), -1) + 1 AS max_order
       FROM place_images WHERE place_id = $1 AND image_role = 'gallery'
     `, [placeId])
+    const sortOrder = role === 'cover' ? 0 : max_order
 
     // Create place_image
     const { rows: [img] } = await client.query<PlaceImageRow>(`
-      INSERT INTO place_images (place_id, asset_id, image_role, sort_order)
-      VALUES ($1, $2, 'gallery', $3)
+      INSERT INTO place_images (place_id, asset_id, image_role, sort_order, is_primary)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id, asset_id, image_role, sort_order, is_primary, caption,
-                $4::text AS bucket, $5::text AS path, $6::int AS width, $7::int AS height
-    `, [placeId, asset.id, max_order, data.bucket, data.path, data.width, data.height])
+                $6::text AS bucket, $7::text AS path, $8::int AS width, $9::int AS height
+    `, [placeId, asset.id, role, sortOrder, isPrimary, data.bucket, data.path, data.width, data.height])
 
     await client.query('COMMIT')
     return img
