@@ -2,7 +2,7 @@
 // Base URL is read from NEXT_PUBLIC_API_BASE_URL (set in .env.local).
 // Backend runs on port 3000 by default.
 
-import { AUTH_COOKIE_NAMES, getBrowserAccessToken } from "@/lib/api/auth";
+import { AUTH_COOKIE_NAMES, getBrowserAccessToken, getCookieValue } from "@/lib/api/auth";
 
 function resolveBaseUrl(): string {
   let url = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
@@ -76,17 +76,31 @@ async function buildHeaders(extraHeaders?: Record<string, string>): Promise<Reco
   };
 }
 
-// ─── Single-flight refresh ───────────────────────────────────────────────────
+// ─── Single-flight + cross-tab refresh ───────────────────────────────────────
 // Parallel requests (e.g. Promise.all on a page) can all 401 at the same time
 // when the access token has just expired. If each one independently POSTs to
 // /api/auth/refresh, they race on the SAME refresh token. Supabase rotates
 // refresh tokens (single use), so the first call invalidates the token and the
-// others fail with "Invalid Refresh Token: Already Used" — which previously
-// blanked the page and could even clear the session cookies. We coalesce all
-// concurrent refreshes into ONE in-flight request that every caller awaits.
+// others fail with "Invalid Refresh Token: Already Used".
+//
+// Two layers of protection:
+//   1. `_refreshInFlight` coalesces concurrent refreshes WITHIN a tab.
+//   2. The Web Locks API (`navigator.locks`) serializes refreshes ACROSS tabs,
+//      so opening the dashboard in several tabs no longer breaks the session
+//      (the multi-tab "Already Used" 401 that broke saves / image loads).
+// Plus: before and after each refresh we compare the cookie token — if another
+// tab already rotated it, we simply reuse the new token instead of refreshing
+// again (which would fail "Already Used").
 let _refreshInFlight: Promise<boolean> | null = null;
 
-async function refreshBrowserSession(): Promise<boolean> {
+function readAccessToken(): string | null {
+  if (typeof document === "undefined") return null;
+  return getCookieValue(document.cookie, AUTH_COOKIE_NAMES.accessToken);
+}
+
+// `usedToken` is the access token the 401'd request was sent with. If the cookie
+// already holds a different token, another tab refreshed it — reuse it.
+async function refreshBrowserSession(usedToken?: string | null): Promise<boolean> {
   if (typeof window === "undefined") {
     return false;
   }
@@ -95,13 +109,35 @@ async function refreshBrowserSession(): Promise<boolean> {
     return _refreshInFlight;
   }
 
+  const doRefresh = async (): Promise<boolean> => {
+    // Another tab may have rotated the cookie since this request was sent.
+    const current = readAccessToken();
+    if (usedToken && current && current !== usedToken) {
+      return true;
+    }
+
+    try {
+      const response = await fetch("/api/auth/refresh", { method: "POST", cache: "no-store" });
+      if (response.ok) return true;
+    } catch {
+      // fall through to the cross-tab check below
+    }
+
+    // Refresh failed (commonly "Already Used" when another tab won the race).
+    // If the cookie changed underneath us, that other tab succeeded — reuse it.
+    const after = readAccessToken();
+    return !!(after && after !== usedToken);
+  };
+
   _refreshInFlight = (async () => {
     try {
-      const response = await fetch("/api/auth/refresh", {
-        method: "POST",
-        cache: "no-store",
-      });
-      return response.ok;
+      const locks = (typeof navigator !== "undefined"
+        ? (navigator as unknown as { locks?: { request?: <T>(name: string, cb: () => Promise<T>) => Promise<T> } }).locks
+        : undefined);
+      if (locks?.request) {
+        return await locks.request("gb-token-refresh", doRefresh);
+      }
+      return await doRefresh();
     } catch {
       return false;
     } finally {
@@ -124,7 +160,11 @@ async function requestWithAuthRetry(input: RequestInfo | URL, init: RequestInit)
     return response;
   }
 
-  const refreshed = await refreshBrowserSession();
+  // The token this request was sent with — lets the refresh path detect whether
+  // another tab already rotated the cookie (avoids the multi-tab "Already Used").
+  const usedToken = readAccessToken();
+
+  const refreshed = await refreshBrowserSession(usedToken);
   if (!refreshed || _loggingOut) {
     return response;
   }
