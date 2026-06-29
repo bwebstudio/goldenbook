@@ -83,10 +83,12 @@ const CORE_SELECT = `
   p.context_windows_auto,
   p.context_tags_auto,
   p.moment_tags_auto,
-  p.google_maps_url`
+  p.google_maps_url,
+  -- booking_enabled lives in CORE (it's the one booking column that exists in
+  -- prod) so the "poder reservar" toggle is read even on the fallback query path.
+  p.booking_enabled`
 
 const BOOKING_SELECT = `,
-  p.booking_enabled,
   p.booking_mode::text          AS booking_mode,
   p.booking_label,
   p.reservation_relevant,
@@ -160,7 +162,9 @@ LIMIT 1`
 
 function withBookingDefaults(row: Record<string, unknown>): PlaceRow {
   const r = row as any
-  r.booking_enabled             = r.booking_enabled ?? false
+  // booking_enabled now comes from CORE_SELECT; default to true (reserve allowed)
+  // only if a legacy row somehow lacks it.
+  r.booking_enabled             = r.booking_enabled ?? true
   r.booking_mode                = r.booking_mode ?? 'none'
   r.booking_label               = r.booking_label ?? null
   r.reservation_relevant        = r.reservation_relevant ?? false

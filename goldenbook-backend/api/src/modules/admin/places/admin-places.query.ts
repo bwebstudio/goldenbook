@@ -213,9 +213,13 @@ export async function createPlace(
       throw new AppError(409, `Slug "${input.slug}" is already taken`, 'SLUG_CONFLICT')
     }
 
-    // Check if booking columns exist
+    // Check if the FULL booking system columns exist. Keyed on `booking_mode`
+    // (NOT booking_enabled): booking_enabled now exists on its own, but the rest
+    // of the booking columns (booking_mode, reservation_*) do not — so this block
+    // must stay disabled to avoid INSERTing into non-existent columns. New places
+    // get booking_enabled via its column DEFAULT (true).
     const hasBookingCols = await client.query(
-      `SELECT 1 FROM information_schema.columns WHERE table_name = 'places' AND column_name = 'booking_enabled' LIMIT 1`
+      `SELECT 1 FROM information_schema.columns WHERE table_name = 'places' AND column_name = 'booking_mode' LIMIT 1`
     ).then(r => r.rows.length > 0)
 
     // Insert place
@@ -423,13 +427,25 @@ export async function updatePlace(
     if (input.featured     !== undefined) addField('featured',       input.featured)
     if (input.placeType    !== undefined) addField('place_type',     input.placeType)
 
-    // Booking fields — only if the booking migration has been applied
-    const hasBookingColumns = await client.query(
+    // The "poder reservar" toggle. booking_enabled is the one booking column
+    // that exists, so persist it independently of the rest of the (absent)
+    // booking system below.
+    const hasBookingEnabled = await client.query(
       `SELECT 1 FROM information_schema.columns WHERE table_name = 'places' AND column_name = 'booking_enabled' LIMIT 1`
+    ).then(r => r.rows.length > 0)
+    if (hasBookingEnabled && input.bookingEnabled !== undefined) {
+      addField('booking_enabled', input.bookingEnabled)
+    }
+
+    // Full booking system — only if those columns exist (keyed on booking_mode,
+    // which does NOT exist here, so this block stays disabled).
+    const hasBookingColumns = await client.query(
+      `SELECT 1 FROM information_schema.columns WHERE table_name = 'places' AND column_name = 'booking_mode' LIMIT 1`
     ).then(r => r.rows.length > 0)
 
     if (hasBookingColumns) {
-      if (input.bookingEnabled      !== undefined) addField('booking_enabled',      input.bookingEnabled)
+      // NOTE: booking_enabled is handled above (it exists on its own); do NOT
+      // write it here too or the SET clause would list it twice.
       if (input.bookingMode         !== undefined) {
         setClauses.push(`booking_mode = $${i}::booking_mode`)
         params.push(input.bookingMode)
@@ -447,10 +463,9 @@ export async function updatePlace(
         setClauses.push(`reservation_last_reviewed_at = now()`)
       }
 
-      // Auto-sync: when a booking URL is set, auto-enable booking fields
+      // Auto-sync: when a booking URL is set, auto-enable reservation relevance
       const newBookingUrl = input.bookingUrl !== undefined ? nullify(input.bookingUrl) : null
       if (newBookingUrl && /^https?:\/\/.+/i.test(newBookingUrl)) {
-        if (input.bookingEnabled === undefined) addField('booking_enabled', true)
         if (input.reservationRelevant === undefined) addField('reservation_relevant', true)
         if (input.bookingMode === undefined) {
           setClauses.push(`booking_mode = 'direct_website'::booking_mode`)

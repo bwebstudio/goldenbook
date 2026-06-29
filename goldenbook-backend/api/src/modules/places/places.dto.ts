@@ -142,7 +142,11 @@ export function toPlaceDetailDTO(
       ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`
       : null
 
-  const { bookingUrl, reservationPhone } = normalizeBooking(place.booking_url)
+  // The "poder reservar" toggle (booking_enabled) gates the reserve CTA: when an
+  // editor turns it off, neither the web nor the phone reserve button is shown.
+  const { bookingUrl, reservationPhone } = place.booking_enabled
+    ? normalizeBooking(place.booking_url)
+    : { bookingUrl: null, reservationPhone: null }
 
   // Build booking input for the resolver
   const bookingInput: PlaceBookingInput = {
