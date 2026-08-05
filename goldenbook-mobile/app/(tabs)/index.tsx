@@ -18,6 +18,7 @@ import { LocalitySwitcher } from '@/components/locality/LocalitySwitcher';
 import { GoldenMenu } from '@/components/GoldenMenu';
 import { CachedDataHint } from '@/components/CachedDataHint';
 import { useTranslation } from '@/i18n';
+import { PlanSection } from '@/features/plan';
 
 export default function DiscoverScreen() {
   const router = useRouter();
@@ -113,6 +114,12 @@ export default function DiscoverScreen() {
               <NowRecommendationSection
                 cityName={data.cityHeader.name}
               />
+
+              {/* El plan va justo debajo de Now: Now dice donde ir, el plan dice como
+
+                  encadenarlo. Si no hay plan posible, la seccion no se dibuja. */}
+
+              <PlanSection />
             </View>
 
             {/* 4. Golden Picks — premium placements (monetizable) */}

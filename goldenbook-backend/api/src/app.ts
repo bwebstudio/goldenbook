@@ -38,10 +38,14 @@ import { trackingRoutes } from './modules/analytics/tracking.route'
 import { behaviorAnalyticsRoutes } from './modules/analytics/behavior-analytics.route'
 import { analyticsEventsRoutes, closeStaleSessions } from './modules/analytics/events.route'
 import { adminAnalyticsV2Routes } from './modules/admin/analytics/admin-analytics-v2.route'
+import { refreshPlaceExposure } from './modules/shared-scoring/exposure'
 import { contentVersionRoutes } from './modules/content/content-version.route'
 import { mobileVersionCheckRoutes } from './modules/mobile/version-check.route'
 import { recommendationsRoutes } from './modules/recommendations/recommendations.route'
 import { nowRoutes } from './modules/now/now.route'
+import { planRoutes } from './modules/plan/plan.route'
+import { pushRoutes } from './modules/push/push.route'
+import { sendDailyRitual } from './modules/push/push.service'
 import { notificationsRoutes } from './modules/notifications/notifications.route'
 import { stripeWebhookRoutes } from './modules/stripe/stripe-webhook.route'
 import { pricingConfigRoutes } from './modules/pricing-config/pricing-config.route'
@@ -108,6 +112,8 @@ export function buildApp() {
   app.register(mobileVersionCheckRoutes, { prefix: env.API_PREFIX })
   app.register(recommendationsRoutes,  { prefix: env.API_PREFIX })
   app.register(nowRoutes,              { prefix: env.API_PREFIX })
+  app.register(planRoutes,             { prefix: env.API_PREFIX })
+  app.register(pushRoutes,             { prefix: env.API_PREFIX })
   app.register(notificationsRoutes,   { prefix: env.API_PREFIX })
   app.register(pricingConfigRoutes,   { prefix: env.API_PREFIX })
 
@@ -204,6 +210,29 @@ export function buildApp() {
         app.log.error(err, '[analytics] close-stale-sessions failed'),
       )
     }, 5 * 60 * 1000)
+
+    // ── Catalogue rotation: refresh the exposure rollup every 15 minutes ──
+    // Feeds the rotation lift in the scoring engine, which surfaces places
+    // nobody has opened lately. Kept off the request path because it scans
+    // analytics_events, our largest table. 15 minutes is well inside the
+    // resolution the rotation curve cares about (it steps at 14, 30 and 90
+    // days), so a stale rollup never changes a decision.
+    const refreshExposure = () =>
+      refreshPlaceExposure().catch((err) =>
+        app.log.error(err, '[rotation] place-exposure refresh failed'),
+      )
+    refreshExposure()
+    setInterval(refreshExposure, 15 * 60 * 1000)
+
+    // ── Ritual diario: se comprueba cada 15 minutos ───────────────────────
+    // El envío se dispara cuando en la ciudad son las 18:00, así que basta
+    // con mirar de rato en rato. El indice unico (token, sent_on) impide que
+    // dos comprobaciones dentro de la misma hora envien dos veces.
+    const ritual = () =>
+      sendDailyRitual()
+        .then((n) => { if (n > 0) app.log.info({ sent: n }, "[push] ritual diario enviado") })
+        .catch((err) => app.log.error(err, "[push] ritual diario fallo"))
+    setInterval(ritual, 15 * 60 * 1000)
   })
 
   return app
