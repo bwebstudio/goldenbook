@@ -21,7 +21,7 @@ export const pt: Translations = {
     showingCached: 'A mostrar conteúdo guardado',
     lastUpdated: 'Última atualização',
     cantLoadOffline: 'Estás offline e ainda não temos uma cópia guardada.',
-    savedResultsHint: 'Offline — a mostrar resultados guardados',
+    savedResultsHint: 'Offline: a mostrar resultados guardados',
     offlineEmptyTitle: 'Estás offline',
     liveNeedsInternet: 'As recomendações em tempo real precisam de ligação à internet. Volta a ligar-te para continuar.',
     placesNeedInternet: 'Abre esta categoria uma vez com ligação e guardamos uma cópia no teu dispositivo para a próxima.',
@@ -77,7 +77,7 @@ export const pt: Translations = {
   preferences: {
     title: 'As Minhas Preferências',
     subtitle: 'O que adoras?',
-    body: 'Seleciona os teus interesses — o Goldenbook Go usa-os para mostrar os picks, rotas e lugares que mais importam para ti.',
+    body: 'Seleciona os teus interesses. O Goldenbook Go usa-os para mostrar os picks, rotas e lugares que mais importam para ti.',
     saved: 'Guardado',
     selectHint: 'Seleciona quantos quiseres',
     selectedSingular: 'interesse selecionado',
@@ -140,6 +140,20 @@ export const pt: Translations = {
     searchPlaceholder: 'Pesquisar destinos, hotéis ou restauração',
   },
 
+  plan: {
+    eyebrow: 'O teu plano de hoje',
+    summary: '{stops} paragens, {min} min a pé no total',
+    walkLeg: '{min} min a pé',
+    until: 'até às {time}',
+    locationPitch: 'Ativa a localização e montamos três paragens a um passeio de onde estás.',
+    enableLocation: 'Ativar localização',
+    wrongCity: 'Parece que estás no {city}. Muda de destino e montamos o plano daqui.',
+    switchTo: 'Mudar para {city}',
+    share: 'Partilhar plano',
+    shareHeadline: 'Um plano para hoje',
+    shareFooter: 'Visto no Goldenbook Go',
+  },
+
   now: {
     eyebrowMorning: 'AGORA EM',
     eyebrowMidday: 'PARA ESTE MOMENTO EM',
@@ -157,6 +171,10 @@ export const pt: Translations = {
     supportingEvening: 'Aberto agora · Elegante · Esta noite',
     supportingNight: 'Aberto agora · Para a noite que se aproxima',
     seeAnother: 'Ver outra opção',
+    // Sinais concretos do cartão Now: a razão para ir agora e não depois.
+    walkMinutes: '{min} min a pé',
+    openUntil: 'Aberto até às {time}',
+    closesInMinutes: 'Fecha em {min} min',
     errorLoading: 'Não conseguimos carregar uma recomendação neste momento.',
     offlineMessage: 'Liga-te à internet para receber uma recomendação em tempo real.',
     lastSavedHint: 'A mostrar a tua última recomendação guardada',
@@ -232,7 +250,7 @@ export const pt: Translations = {
     editorsFavorite: 'Favorito da Redação',
     threeMichelinStars: 'Três Estrelas Michelin',
     exceptional: 'Excecional',
-    goldenbookNotePlaceholder: 'Um endereço verdadeiramente essencial nesta cidade. Cada detalhe foi escolhido com intenção — é exatamente o tipo de lugar que o Goldenbook Go existe para revelar.',
+    goldenbookNotePlaceholder: 'Um endereço verdadeiramente essencial nesta cidade. Cada detalhe foi escolhido com intenção. É exatamente o tipo de lugar que o Goldenbook Go existe para revelar.',
     insiderTipPlaceholder: 'Chega cedo ou reserva com antecedência. As horas mais tranquilas revelam uma atmosfera completamente diferente, e o serviço é muito mais atento quando não está cheio.',
     readMore: 'Ler mais',
     readLess: 'Ler menos',

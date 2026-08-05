@@ -21,7 +21,7 @@ interface SharePlacePayload {
 
 export async function sharePlace(place: SharePlacePayload): Promise<void> {
   const headline = place.cityName
-    ? `${place.name} — ${place.cityName}`
+    ? `${place.name}, ${place.cityName}`
     : place.name;
 
   const parts = [headline];
@@ -53,7 +53,7 @@ interface ShareRoutePayload {
 
 export async function shareRoute(route: ShareRoutePayload): Promise<void> {
   const headline = route.cityName
-    ? `${route.title} — ${route.cityName}`
+    ? `${route.title}, ${route.cityName}`
     : route.title;
 
   const parts = [headline];
