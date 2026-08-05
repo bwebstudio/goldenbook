@@ -48,6 +48,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                ) d
           LEFT JOIN analytics_events ae
                  ON ae.created_at::date = d::date
+                AND NOT ae.is_internal
           LEFT JOIN user_sessions s
                  ON s.session_id = ae.session_id
          GROUP BY d ORDER BY d
@@ -64,7 +65,9 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                  now()::date,
                  '1 day'
                ) d
-          LEFT JOIN user_sessions us ON us.started_at::date = d::date
+          LEFT JOIN user_sessions us
+                 ON us.started_at::date = d::date
+                AND NOT us.is_internal
          GROUP BY d ORDER BY d
       `, [d]),
 
@@ -77,6 +80,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_sec)::text AS p95
           FROM user_sessions
          WHERE ended_at IS NOT NULL
+           AND NOT is_internal
            AND started_at >= now() - ($1 || ' days')::interval
       `, [d]),
 
@@ -103,23 +107,29 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                FROM analytics_events ae
                LEFT JOIN user_sessions s ON s.session_id = ae.session_id
               WHERE ae.created_at::date = current_date
+                AND NOT ae.is_internal
              UNION
              SELECT user_id
                FROM user_sessions
               WHERE user_id IS NOT NULL
+                AND NOT is_internal
                 AND (last_seen_at::date = current_date OR started_at::date = current_date)
            ) u WHERE user_id IS NOT NULL)::text AS dau_today,
           (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
              FROM analytics_events ae
              LEFT JOIN user_sessions s ON s.session_id = ae.session_id
-            WHERE ae.created_at >= now() - interval '7 days')::text AS wau,
+            WHERE ae.created_at >= now() - interval '7 days'
+              AND NOT ae.is_internal)::text AS wau,
           (SELECT COUNT(DISTINCT COALESCE(ae.user_id, s.user_id))
              FROM analytics_events ae
              LEFT JOIN user_sessions s ON s.session_id = ae.session_id
-            WHERE ae.created_at >= now() - interval '30 days')::text AS mau,
+            WHERE ae.created_at >= now() - interval '30 days'
+              AND NOT ae.is_internal)::text AS mau,
           (SELECT (COUNT(*)::numeric / NULLIF(COUNT(DISTINCT user_id), 0))::text
              FROM user_sessions
-            WHERE user_id IS NOT NULL AND started_at >= now() - ($1 || ' days')::interval) AS sessions_per_user
+            WHERE user_id IS NOT NULL
+              AND NOT is_internal
+              AND started_at >= now() - ($1 || ' days')::interval) AS sessions_per_user
       `, [d]),
     ])
 
@@ -156,6 +166,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
           JOIN places p ON p.id = ae.place_id
          WHERE ae.event_name = 'place_view'
            AND ae.created_at >= now() - ($1 || ' days')::interval
+           AND NOT ae.is_internal
          GROUP BY ae.place_id, p.name
          ORDER BY COUNT(*) DESC
          LIMIT 10
@@ -167,6 +178,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
           JOIN places p ON p.id = ae.place_id
          WHERE ae.event_name = 'favorite_add'
            AND ae.created_at >= now() - ($1 || ' days')::interval
+           AND NOT ae.is_internal
          GROUP BY ae.place_id, p.name
          ORDER BY COUNT(*) DESC
          LIMIT 10
@@ -178,6 +190,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
           JOIN places p ON p.id = ae.place_id
          WHERE ae.event_name = 'booking_click'
            AND ae.created_at >= now() - ($1 || ' days')::interval
+           AND NOT ae.is_internal
          GROUP BY ae.place_id, p.name
          ORDER BY COUNT(*) DESC
          LIMIT 10
@@ -189,6 +202,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
          WHERE category IS NOT NULL
            AND event_name IN ('place_view','place_open')
            AND created_at >= now() - ($1 || ' days')::interval
+           AND NOT is_internal
          GROUP BY category
          ORDER BY COUNT(*) DESC
          LIMIT 10
@@ -200,6 +214,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
          WHERE city IS NOT NULL
            AND event_name IN ('place_view','place_open','map_open')
            AND created_at >= now() - ($1 || ' days')::interval
+           AND NOT is_internal
          GROUP BY city
          ORDER BY COUNT(*) DESC
          LIMIT 10
@@ -218,6 +233,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
           FROM analytics_events ae
           JOIN places p ON p.id = ae.place_id
          WHERE ae.created_at >= now() - ($1 || ' days')::interval
+           AND NOT ae.is_internal
          GROUP BY p.id, p.name
         HAVING COUNT(*) FILTER (WHERE ae.event_name = 'place_view') >= 20
          ORDER BY ctr DESC NULLS LAST
@@ -265,6 +281,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
         FROM analytics_events ae
         LEFT JOIN user_sessions s ON s.session_id = ae.session_id
        WHERE ae.created_at >= now() - ($1 || ' days')::interval
+           AND NOT ae.is_internal
     `, [d])
 
     const r = rows[0] ?? {} as Record<string, string>
@@ -295,6 +312,8 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                ROUND(AVG(result_count), 1)::text AS avg_results
           FROM search_queries
          WHERE created_at >= now() - ($1 || ' days')::interval
+           AND NOT is_internal
+           AND NOT superseded
            AND length(trim(query)) > 0
          GROUP BY lower(trim(query))
          ORDER BY COUNT(*) DESC
@@ -305,6 +324,8 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
         SELECT lower(trim(query)) AS query, COUNT(*)::text AS count
           FROM search_queries
          WHERE created_at >= now() - ($1 || ' days')::interval
+           AND NOT is_internal
+           AND NOT superseded
            AND result_count = 0
            AND length(trim(query)) > 0
          GROUP BY lower(trim(query))
@@ -317,6 +338,8 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
                ROUND(AVG(result_count), 1)::text AS avg_results
           FROM search_queries
          WHERE created_at >= now() - ($1 || ' days')::interval
+           AND NOT is_internal
+           AND NOT superseded
       `, [d]),
     ])
 

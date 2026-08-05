@@ -29,11 +29,33 @@ export type AnalyticsEventName =
   | 'route_start'
   | 'route_complete';
 
+/**
+ * Where a place was opened from. Every entry point into a place detail screen
+ * must name itself, otherwise we cannot answer "which surface actually sends
+ * people to a place?" — the question that orders the whole product. The 5 Aug
+ * audit found this set on 0,6% of events; `openPlace()` is now the only
+ * sanctioned way to navigate, and it always carries one.
+ */
+export type PlaceSource =
+  | 'discover'    // Golden Picks feed and editorial cards
+  | 'now'         // the Now recommendation hero
+  | 'map'
+  | 'search'
+  | 'saved'
+  | 'plan'        // tonight's plan
+  | 'route'
+  | 'category'
+  | 'nearby'      // "gems near here" on another place
+  | 'concierge'
+  | 'notification'
+  | 'deep_link'
+  | 'direct';     // opened with no attributable origin
+
 export interface TrackProps {
   placeId?: string;
   routeId?: string;
   category?: string;
-  source?: 'discover' | 'map' | 'search' | 'saved' | 'route' | 'concierge' | 'deep_link';
+  source?: PlaceSource;
   metadata?: Record<string, unknown>;
 }
 

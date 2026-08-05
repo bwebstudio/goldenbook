@@ -6,6 +6,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { PlaceSaveButton } from './PlaceSaveButton';
 import type { SavedPlaceDTO } from '@/types/api';
 import { colors, typography, spacing, radius } from '@/design/tokens';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 interface SavedPlaceCardProps {
   place: SavedPlaceDTO;
@@ -18,7 +19,7 @@ export const SavedPlaceCard = React.memo(function SavedPlaceCard({ place }: Save
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        onPress={() => router.push(`/places/${place.slug}` as any)}
+        onPress={() => openPlace(router, place.slug, { source: 'saved', placeId: place.id })}
         activeOpacity={0.85}
         style={styles.touchRow}
       >

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
 import type { CategoryPlaceDTO } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_HEIGHT = (SCREEN_WIDTH - 48) * 0.6;
@@ -19,7 +20,7 @@ export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/places/${place.slug}` as any)}
+      onPress={() => openPlace(router, place.slug, { source: 'category', placeId: place.id })}
       activeOpacity={0.9}
       className="mx-6 mb-4 rounded-2xl overflow-hidden"
       style={{

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
 import type { CategoryPlaceDTO } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 interface CategoryPlaceCardProps {
   place: CategoryPlaceDTO;
@@ -15,7 +16,7 @@ export function CategoryPlaceCard({ place }: CategoryPlaceCardProps) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/places/${place.slug}` as any)}
+      onPress={() => openPlace(router, place.slug, { source: 'category', placeId: place.id })}
       activeOpacity={0.85}
       style={styles.card}
       className="flex-1 rounded-xl overflow-hidden bg-ivory"

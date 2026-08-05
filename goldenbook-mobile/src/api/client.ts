@@ -26,6 +26,13 @@ const DEVICE_TYPE: 'ios' | 'android' | 'web' =
   Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 const APP_VERSION: string = Constants.expoConfig?.version ?? '0.0.0';
 
+// Marks this build's traffic as internal so QA and simulator sessions never
+// reach the numbers we report. Every dev build sets it automatically; set
+// EXPO_PUBLIC_GB_INTERNAL=1 in the TestFlight profile to cover internal
+// testers too. Store builds send nothing and count as real users.
+const IS_INTERNAL_BUILD: boolean =
+  __DEV__ || process.env.EXPO_PUBLIC_GB_INTERNAL === '1';
+
 // Timeout was 10s, which fired during Railway cold-starts on weak mobile
 // networks (iPhone 11 LTE / Xiaomi HyperOS) — the first request after a
 // long-idle backend would abort before the server finished booting, the
@@ -53,6 +60,7 @@ apiClient.interceptors.request.use(async (config) => {
   config.headers['x-session-id']  = SESSION_ID;
   config.headers['x-device-type'] = DEVICE_TYPE;
   config.headers['x-app-version'] = APP_VERSION;
+  if (IS_INTERNAL_BUILD) config.headers['x-gb-internal'] = '1';
 
   // Auto-inject the user's current locale as a query param on GET requests
   // that don't already specify one. Eliminates the silent `locale='en'`

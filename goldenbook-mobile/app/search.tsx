@@ -21,6 +21,11 @@ import {
   SearchCategoryRow,
 } from '@/features/search/components';
 
+// Shortest query worth recording. Below this the search API returns nothing
+// useful, so logging it would only manufacture zero-result rows. Keep in sync
+// with MIN_QUERY_LEN in the backend's analytics ingest.
+const MIN_SEARCH_LEN = 3;
+
 export default function SearchScreen() {
   const router = useRouter();
   const t = useTranslation();
@@ -42,20 +47,50 @@ export default function SearchScreen() {
     return () => clearTimeout(t);
   }, []);
 
-  const { data, isLoading } = useSearch(query, city);
+  const { data, isLoading, isFetching, isSuccess } = useSearch(query, city);
 
-  // Fire search_query on committed (debounced) query changes. Skip the very
-  // short inputs (< 2 chars) that never hit the API.
+  // Log one row per search the user actually finished.
+  //
+  // The previous version fired on every debounced keystroke and again when the
+  // response arrived, reading the result count before it existed. That turned
+  // one search into a handful of rows and reported 91% of them as "no results",
+  // which was an artefact, not a content gap.
+  //
+  // Now: wait until the query has settled (results resolved, not refetching),
+  // log it once, and when the next query extends the one we just logged
+  // ("algar" then "algarve") tell the server to retire the shorter row.
+  const loggedQueryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (query.length < 2) return;
+    if (query.length < MIN_SEARCH_LEN) return;
+    // isSuccess && !isFetching means `data` belongs to THIS query, not the
+    // previous one. useSearch keeps no placeholder data, so there is no window
+    // where a stale count could be attributed to a new query.
+    if (!isSuccess || isFetching) return;
+    if (loggedQueryRef.current === query) return;
+
+    const previous = loggedQueryRef.current;
+    loggedQueryRef.current = query;
+
     const resultCount =
       (data?.places?.length ?? 0) +
       (data?.routes?.length ?? 0) +
       (data?.categories?.length ?? 0);
+
+    // A refinement is the same search continued, not a new one.
+    const refines =
+      previous && previous.length < query.length && query.toLowerCase().startsWith(previous.toLowerCase())
+        ? previous
+        : undefined;
+
     track('search_query', {
-      metadata: { query: query.slice(0, 80), result_count: resultCount, city },
+      metadata: {
+        query: query.slice(0, 80),
+        result_count: resultCount,
+        city,
+        ...(refines ? { supersedes: refines.slice(0, 80) } : {}),
+      },
     });
-  }, [query, data, city]);
+  }, [query, isSuccess, isFetching, data, city]);
 
   const hasResults =
     data &&

@@ -5,6 +5,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
 import type { DiscoverResponse } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = SCREEN_HEIGHT * 0.45;
@@ -20,7 +21,7 @@ export function EditorialHeroCard({ hero }: EditorialHeroCardProps) {
 
   const handlePress = () => {
     if (hero.target.type === 'place') {
-      router.push(`/places/${hero.target.slug}` as any);
+      openPlace(router, hero.target.slug, { source: 'discover' });
     }
   };
 

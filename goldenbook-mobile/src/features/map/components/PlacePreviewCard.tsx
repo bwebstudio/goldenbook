@@ -6,6 +6,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { useTranslation } from '@/i18n';
 import type { MapPlace } from '@/types/api';
 import { colors, typography, spacing, radius, elevation } from '@/design/tokens';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 interface PlacePreviewCardProps {
   place: MapPlace;
@@ -32,7 +33,7 @@ function openInMaps(place: MapPlace, router: ReturnType<typeof useRouter>) {
     });
   } else {
     // No coordinates → open place detail instead
-    router.push(`/places/${place.slug}` as any);
+    openPlace(router, place.slug, { source: 'map', placeId: place.id });
   }
 }
 
@@ -49,7 +50,7 @@ export function PlacePreviewCard({ place, onClose }: PlacePreviewCardProps) {
       <View style={styles.row}>
         {/* Thumbnail */}
         <TouchableOpacity
-          onPress={() => router.push(`/places/${place.slug}` as any)}
+          onPress={() => openPlace(router, place.slug, { source: 'map', placeId: place.id })}
           activeOpacity={0.85}
         >
           <ProgressiveImage
@@ -63,7 +64,7 @@ export function PlacePreviewCard({ place, onClose }: PlacePreviewCardProps) {
 
         {/* Name + city — tap opens detail */}
         <TouchableOpacity
-          onPress={() => router.push(`/places/${place.slug}` as any)}
+          onPress={() => openPlace(router, place.slug, { source: 'map', placeId: place.id })}
           activeOpacity={0.85}
           style={styles.info}
         >

@@ -8,6 +8,7 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
 import { PlaceSaveButton } from '@/features/saved/components/PlaceSaveButton';
 import type { DiscoverPlaceCard } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 function toSnapshot(place: DiscoverPlaceCard) {
   return {
@@ -39,7 +40,7 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
   return (
     <View className="flex-row items-center gap-4">
       <TouchableOpacity
-        onPress={() => router.push(`/places/${place.slug}` as any)}
+        onPress={() => openPlace(router, place.slug, { source: 'discover', placeId: place.id })}
         activeOpacity={0.85}
         className="flex-row items-center gap-4 flex-1"
       >
@@ -103,7 +104,7 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
   return (
     <View className="mr-6" style={{ width }}>
       <TouchableOpacity
-        onPress={() => router.push(`/places/${place.slug}` as any)}
+        onPress={() => openPlace(router, place.slug, { source: 'discover', placeId: place.id })}
         activeOpacity={0.92}
       >
         <View
