@@ -12,6 +12,7 @@ import { useNowContextStore, type NowAdjustment } from '@/store/nowContextStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { useNetworkStore, selectIsOffline } from '@/store/networkStore'
 import { track } from '@/analytics/track'
+import { openPlace } from '@/features/place-detail/openPlace'
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.38
@@ -214,8 +215,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
     <View>
       <TouchableOpacity
         onPress={() => {
-          track('place_open', { placeId: place.id, source: 'concierge' })
-          router.push(`/places/${place.slug}` as any)
+          openPlace(router, place.slug, { source: 'now', placeId: place.id })
         }}
         activeOpacity={0.96}
         className="mx-6 rounded-2xl overflow-hidden"
@@ -330,7 +330,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
           )}
 
           <Text
-            className="text-white text-sm font-bold tracking-wide mb-4"
+            className="text-white text-sm font-bold tracking-wide mb-2"
             numberOfLines={1}
             style={{
               maxWidth: Math.max(200, SCREEN_WIDTH * 0.65),
@@ -342,9 +342,17 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
             {place.name}
           </Text>
 
+          {/* The reason to go now rather than later. Everything above this line
+              says the place is nice; this line says why tonight. */}
+          <NowSignals
+            walkMinutes={place.walkMinutes}
+            closesAt={place.closesAt}
+            t={t}
+          />
+
           <View className="flex-row" style={{ gap: 10 }}>
             <TouchableOpacity
-              onPress={() => router.push(`/places/${place.slug}` as any)}
+              onPress={() => openPlace(router, place.slug, { source: 'now', placeId: place.id })}
               activeOpacity={0.85}
               className="bg-primary rounded-lg px-5 py-3 items-center justify-center"
             >
@@ -431,6 +439,87 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
       </View>
     </View>
   )
+}
+
+// ─── Now signals ─────────────────────────────────────────────────────────────
+// The concrete facts that turn a recommendation into a decision: how far it is
+// on foot, and how long it stays open. Both come from data we already hold, so
+// nothing here waits on an editor. When we know neither, the row renders
+// nothing at all rather than padding the card with a vague reassurance.
+
+interface NowSignalsProps {
+  walkMinutes: number | null
+  closesAt: string | null
+  t: any
+}
+
+function NowSignals({ walkMinutes, closesAt, t }: NowSignalsProps) {
+  const signals: { icon: IoniconsName; label: string; urgent?: boolean }[] = []
+
+  if (walkMinutes != null) {
+    signals.push({
+      icon: 'walk-outline',
+      label: (t.now?.walkMinutes ?? '{min} min a pie').replace('{min}', String(walkMinutes)),
+    })
+  }
+
+  if (closesAt) {
+    const remaining = minutesUntil(closesAt)
+    // Under an hour left is the whole point of the card, so it gets the
+    // stronger phrasing and the gold treatment. Above that, plain hours.
+    const closingSoon = remaining != null && remaining <= 60
+    signals.push({
+      icon: closingSoon ? 'time' : 'time-outline',
+      label: closingSoon
+        ? (t.now?.closesInMinutes ?? 'Cierra en {min} min').replace('{min}', String(remaining))
+        : (t.now?.openUntil ?? 'Abierto hasta las {time}').replace('{time}', closesAt),
+      urgent: closingSoon,
+    })
+  }
+
+  if (signals.length === 0) return <View style={{ marginBottom: 16 }} />
+
+  return (
+    <View className="flex-row items-center mb-4" style={{ gap: 14, flexWrap: 'wrap' }}>
+      {signals.map((s) => (
+        <View key={s.label} className="flex-row items-center" style={{ gap: 5 }}>
+          <Ionicons
+            name={s.icon}
+            size={11}
+            color={s.urgent ? '#D2B68A' : 'rgba(255,255,255,0.62)'}
+          />
+          <Text
+            style={{
+              color: s.urgent ? '#D2B68A' : 'rgba(255,255,255,0.62)',
+              fontSize: 10.5,
+              fontWeight: s.urgent ? '700' : '500',
+              letterSpacing: 0.3,
+              textShadowColor: 'rgba(0,0,0,0.5)',
+              textShadowOffset: { width: 0, height: 1 },
+              textShadowRadius: 3,
+            }}
+          >
+            {s.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/**
+ * Minutes from now until an "HH:MM" wall-clock time today. Returns null when
+ * the time has already passed, so a stale card never claims a place closes in
+ * minus twenty minutes.
+ */
+function minutesUntil(hhmm: string): number | null {
+  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10))
+  if (Number.isNaN(h) || Number.isNaN(m)) return null
+  const now = new Date()
+  const target = new Date(now)
+  target.setHours(h, m, 0, 0)
+  const diff = Math.round((target.getTime() - now.getTime()) / 60_000)
+  return diff > 0 ? diff : null
 }
 
 // ─── Editorial fallback card ────────────────────────────────────────────────

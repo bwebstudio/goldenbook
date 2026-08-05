@@ -6,6 +6,7 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage'
 import { getStorageUrl } from '@/utils/storage'
 import { useTranslation } from '@/i18n'
 import type { ConciergeRecommendationDTO } from '../types'
+import { openPlace } from '@/features/place-detail/openPlace'
 
 const GOLD = '#D2B68A'
 const NAVY = '#222D52'
@@ -22,7 +23,7 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
     // Navigate to place detail using slug.
     // V2 TODO: once EstablishmentScreen is migrated to slug-based lookup, this
     // will work end-to-end. Currently falls through to place-detail by slug.
-    router.push(`/places/${recommendation.slug}`)
+    openPlace(router, recommendation.slug, { source: 'concierge', placeId: recommendation.id })
   }
 
   if (compact) {

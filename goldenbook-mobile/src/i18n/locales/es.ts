@@ -21,7 +21,7 @@ export const es: Translations = {
     showingCached: 'Mostrando contenido guardado',
     lastUpdated: 'Última actualización',
     cantLoadOffline: 'Estás sin conexión y aún no tenemos una copia guardada.',
-    savedResultsHint: 'Sin conexión — mostrando resultados guardados',
+    savedResultsHint: 'Sin conexión: mostrando resultados guardados',
     offlineEmptyTitle: 'Estás sin conexión',
     liveNeedsInternet: 'Las recomendaciones en tiempo real necesitan conexión a internet. Vuelve a conectarte para continuar.',
     placesNeedInternet: 'Abre esta categoría una vez con conexión y guardaremos una copia en tu dispositivo para la próxima.',
@@ -77,7 +77,7 @@ export const es: Translations = {
   preferences: {
     title: 'Mis Preferencias',
     subtitle: '¿Qué te encanta?',
-    body: 'Selecciona tus intereses — Goldenbook Go los usa para mostrarte los picks, rutas y lugares que más te importan.',
+    body: 'Selecciona tus intereses. Goldenbook Go los usa para mostrarte los picks, rutas y lugares que más te importan.',
     saved: 'Guardado',
     selectHint: 'Selecciona tantos como quieras',
     selectedSingular: 'interés seleccionado',
@@ -140,6 +140,20 @@ export const es: Translations = {
     searchPlaceholder: 'Buscar destinos, hoteles o restaurantes',
   },
 
+  plan: {
+    eyebrow: 'Tu plan de hoy',
+    summary: '{stops} paradas, {min} min andando en total',
+    walkLeg: '{min} min a pie',
+    until: 'hasta las {time}',
+    locationPitch: 'Activa la ubicación y te armamos tres paradas a un paseo de donde estás.',
+    enableLocation: 'Activar ubicación',
+    wrongCity: 'Parece que estás en {city}. Cambia de destino y te armamos el plan de aquí.',
+    switchTo: 'Cambiar a {city}',
+    share: 'Compartir plan',
+    shareHeadline: 'Un plan para hoy',
+    shareFooter: 'Visto en Goldenbook Go',
+  },
+
   now: {
     eyebrowMorning: 'AHORA EN',
     eyebrowMidday: 'PARA ESTE MOMENTO EN',
@@ -157,6 +171,10 @@ export const es: Translations = {
     supportingEvening: 'Abierto ahora · Elegante · Esta noche',
     supportingNight: 'Abierto ahora · Para la noche que viene',
     seeAnother: 'Ver otra opción',
+    // Señales concretas de la tarjeta Now: el motivo para ir ahora y no luego.
+    walkMinutes: '{min} min a pie',
+    openUntil: 'Abierto hasta las {time}',
+    closesInMinutes: 'Cierra en {min} min',
     errorLoading: 'No pudimos cargar una recomendación ahora mismo.',
     offlineMessage: 'Conéctate a internet para recibir una recomendación en tiempo real.',
     lastSavedHint: 'Mostrando tu última recomendación guardada',
@@ -232,7 +250,7 @@ export const es: Translations = {
     editorsFavorite: 'Favorito de la Redacción',
     threeMichelinStars: 'Tres Estrellas Michelin',
     exceptional: 'Excepcional',
-    goldenbookNotePlaceholder: 'Una dirección verdaderamente esencial en esta ciudad. Cada detalle ha sido elegido con intención — este es exactamente el tipo de lugar que Goldenbook Go existe para descubrir.',
+    goldenbookNotePlaceholder: 'Una dirección verdaderamente esencial en esta ciudad. Cada detalle ha sido elegido con intención. Este es exactamente el tipo de lugar que Goldenbook Go existe para descubrir.',
     insiderTipPlaceholder: 'Llega temprano o reserva con antelación. Las horas tranquilas revelan una atmósfera completamente distinta, y el equipo está mucho más atento cuando no hay aglomeraciones.',
     readMore: 'Leer más',
     readLess: 'Leer menos',

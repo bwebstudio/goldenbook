@@ -9,6 +9,7 @@ import { usePlaceDetail } from '@/features/place-detail/hooks/usePlaceDetail';
 import { useSavePlace } from '@/features/saved/hooks/useSavePlace';
 import { sharePlace } from '@/features/place-detail/share';
 import { track } from '@/analytics/track';
+import { parsePlaceSource } from '@/features/place-detail/openPlace';
 import {
   PlaceHero,
   PlaceActions,
@@ -22,7 +23,10 @@ import {
 } from '@/features/place-detail/components';
 
 export default function PlaceDetailScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, src } = useLocalSearchParams<{ slug: string; src?: string }>();
+  // This route is also the deep-link target, so an open with no `src` param
+  // really did arrive from outside the app.
+  const source = parsePlaceSource(src, 'deep_link');
   const router = useRouter();
   const t = useTranslation();
   const { data, isLoading, isError, refetch, isFetching } = usePlaceDetail(slug ?? '');
@@ -54,8 +58,8 @@ export default function PlaceDetailScreen() {
   // Fire once per successfully loaded place. Re-fires when navigating between
   // place detail screens since the effect key changes with data.id.
   useEffect(() => {
-    if (data?.id) track('place_view', { placeId: data.id, source: 'deep_link' });
-  }, [data?.id]);
+    if (data?.id) track('place_view', { placeId: data.id, source });
+  }, [data?.id, source]);
 
   if (isLoading) {
     return (

@@ -196,6 +196,10 @@ interface NowRecommendationDTO {
     subcategory: string | null
     neighborhood: string | null
     distance: number | null
+    /** Minutes on foot at 80 m/min, when we know where the user is. */
+    walkMinutes: number | null
+    /** "HH:MM" the place stops serving today, when we hold its hours. */
+    closesAt: string | null
     // Contact / booking fields — used by mobile reservation button
     bookingUrl: string | null
     websiteUrl: string | null
@@ -316,6 +320,22 @@ function formatCurrentTime(citySlug?: string): string {
   return `${h}:${m}`
 }
 
+/**
+ * Walking minutes from a straight-line distance, at 80 m/min.
+ *
+ * Deliberately coarse. The point is not routing accuracy, it is turning an
+ * abstract "1.2 km" into "15 min a pie", which is the form a person actually
+ * decides on. Anything beyond half an hour on foot stops being a nudge and
+ * becomes a different kind of trip, so we return null and let the card say
+ * nothing rather than something discouraging.
+ */
+function walkMinutes(distanceMeters: number | null): number | null {
+  if (distanceMeters == null || distanceMeters <= 0) return null
+  const minutes = Math.round(distanceMeters / 80)
+  if (minutes < 1) return 1
+  return minutes <= 30 ? minutes : null
+}
+
 /** Extract neighborhood/zone from address_line — only returns known neighborhood names */
 function extractNeighborhood(addressLine: string | null | undefined): string | null {
   if (!addressLine) return null
@@ -387,6 +407,9 @@ function buildNowDTO(
       subcategory: classificationSub,
       neighborhood: extractNeighborhood(addressLine),
       distance: place.distance_meters ? Math.round(place.distance_meters) : null,
+      walkMinutes: walkMinutes(place.distance_meters),
+      // Also read off `raw`: the unified candidate path doesn't carry it.
+      closesAt: raw.closes_at_today ?? null,
       bookingUrl: place.booking_url ?? place.website_url ?? null,
       websiteUrl: place.website_url ?? null,
       phone: place.phone ?? null,

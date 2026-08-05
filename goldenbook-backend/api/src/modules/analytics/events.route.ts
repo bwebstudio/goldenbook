@@ -52,6 +52,11 @@ const StartSchema = z.object({
 const PingSchema = z.object({ sessionId: z.string().min(4).max(64) })
 const EndSchema  = z.object({ sessionId: z.string().min(4).max(64) })
 
+// Shortest query the search API will answer. Anything below this never hits
+// the index, so recording it would only fabricate zero-result rows. Keep in
+// sync with MIN_SEARCH_LEN in the mobile search screen.
+const MIN_QUERY_LEN = 3
+
 // ─── In-memory rate limiter ────────────────────────────────────────────────
 const limiter = new Map<string, { count: number; resetAt: number }>()
 function ratePass(key: string, max = 100): boolean {
@@ -88,6 +93,27 @@ function headerStr(request: FastifyRequest, name: string): string | null {
   return Array.isArray(v) ? (v[0] ?? null) : v
 }
 
+// Dev and TestFlight builds send `x-gb-internal: 1`. Store builds never do.
+// Rows flagged this way are excluded from every admin reader, so QA sessions
+// stop inflating DAU, retention and the search reports.
+function isInternalTraffic(request: FastifyRequest): boolean {
+  return headerStr(request, 'x-gb-internal') === '1'
+}
+
+// Analytics writes are fire-and-forget by design: the caller gets its 204
+// immediately and a failed insert must never surface in the app. But
+// swallowing the error entirely is what let a foreign-key violation drop
+// every route event for 107 days without a trace. Log instead.
+function fireAndForget(
+  request: FastifyRequest,
+  what: string,
+  promise: Promise<unknown>,
+): void {
+  promise.catch((err) => {
+    request.log.error({ err, what }, '[analytics] write failed')
+  })
+}
+
 // ─── Routes ────────────────────────────────────────────────────────────────
 
 export async function analyticsEventsRoutes(app: FastifyInstance) {
@@ -100,20 +126,29 @@ export async function analyticsEventsRoutes(app: FastifyInstance) {
 
     const userId = await tryReadUserId(request)
 
-    // Upsert — treats repeated starts as idempotent
-    db.query(
+    // Upsert — repeated starts are idempotent, and a start on an already-closed
+    // session REOPENS it (`ended_at = NULL`). That last part is the fix for the
+    // frozen-duration bug: the client sends a start on every foreground, so a
+    // session the user comes back to resumes accumulating instead of staying
+    // stamped with the moment it first lost focus. `duration_sec` is generated
+    // from ended_at - started_at, so the final close yields the true span.
+    fireAndForget(request, 'sessions/start', db.query(
       `INSERT INTO user_sessions (
-         session_id, user_id, started_at, locale, city, app_version, device_type, last_seen_at
-       ) VALUES ($1, $2, now(), $3, $4, $5, $6, now())
+         session_id, user_id, started_at, locale, city, app_version, device_type,
+         last_seen_at, is_internal
+       ) VALUES ($1, $2, now(), $3, $4, $5, $6, now(), $7)
        ON CONFLICT (session_id) DO UPDATE SET
          user_id      = COALESCE(user_sessions.user_id, EXCLUDED.user_id),
          locale       = COALESCE(EXCLUDED.locale, user_sessions.locale),
          city         = COALESCE(EXCLUDED.city,   user_sessions.city),
          app_version  = COALESCE(EXCLUDED.app_version, user_sessions.app_version),
          device_type  = COALESCE(EXCLUDED.device_type, user_sessions.device_type),
+         is_internal  = user_sessions.is_internal OR EXCLUDED.is_internal,
+         ended_at     = NULL,
          last_seen_at = now()`,
-      [sessionId, userId, locale ?? null, city ?? null, appVersion ?? null, deviceType ?? null],
-    ).catch(() => {})
+      [sessionId, userId, locale ?? null, city ?? null, appVersion ?? null,
+       deviceType ?? null, isInternalTraffic(request)],
+    ))
 
     return reply.status(204).send()
   })
@@ -122,10 +157,10 @@ export async function analyticsEventsRoutes(app: FastifyInstance) {
   app.post('/analytics/sessions/ping', async (request, reply) => {
     const parsed = PingSchema.safeParse(request.body)
     if (!parsed.success) return reply.status(204).send()
-    db.query(
+    fireAndForget(request, 'sessions/ping', db.query(
       `UPDATE user_sessions SET last_seen_at = now() WHERE session_id = $1`,
       [parsed.data.sessionId],
-    ).catch(() => {})
+    ))
     return reply.status(204).send()
   })
 
@@ -133,13 +168,17 @@ export async function analyticsEventsRoutes(app: FastifyInstance) {
   app.post('/analytics/sessions/end', async (request, reply) => {
     const parsed = EndSchema.safeParse(request.body)
     if (!parsed.success) return reply.status(204).send()
-    db.query(
+    // Always stamp `now()`. The old COALESCE kept the first close forever, so
+    // a session reopened on foreground could never record its real end. The
+    // start handler clears `ended_at`, so the last close before the app is
+    // gone for good is the one that sticks.
+    fireAndForget(request, 'sessions/end', db.query(
       `UPDATE user_sessions
-          SET ended_at = COALESCE(ended_at, now()),
+          SET ended_at = now(),
               last_seen_at = now()
         WHERE session_id = $1`,
       [parsed.data.sessionId],
-    ).catch(() => {})
+    ))
     return reply.status(204).send()
   })
 
@@ -200,30 +239,58 @@ export async function analyticsEventsRoutes(app: FastifyInstance) {
       category = rows[0]?.slug ?? null
     }
 
-    db.query(
+    const internal = isInternalTraffic(request)
+
+    fireAndForget(request, `events/${p.event}`, db.query(
       `INSERT INTO analytics_events (
          event_name, user_id, session_id, place_id, route_id,
-         category, city, locale, device, app_version, source, metadata, created_at
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12, now())`,
+         category, city, locale, device, app_version, source, metadata,
+         is_internal, created_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13, now())`,
       [
         p.event, userId, sessionId,
         p.placeId ?? null, p.routeId ?? null,
         category, enriched.city, enriched.locale,
         enriched.device, enriched.app_version, p.source ?? null,
         p.metadata ? JSON.stringify(p.metadata) : '{}',
+        internal,
       ],
-    ).catch(() => {})
+    ))
 
     // Side-effect: search_query events also land in search_queries so
     // the dashboard can answer "zero-result queries" without scanning JSON.
+    //
+    // The client now sends one event per query the user actually finished,
+    // with the result count read after the response resolved. When a query
+    // refines an earlier one ("algar" → "algarve"), it carries `supersedes`
+    // so we retire the shorter row rather than letting keystrokes pile up in
+    // the report. Anything under MIN_QUERY_LEN never reaches the search API,
+    // so logging it would only manufacture zero-result rows.
     if (p.event === 'search_query' && typeof p.metadata?.query === 'string') {
-      const q = String(p.metadata.query).slice(0, 160)
+      const q = String(p.metadata.query).trim().slice(0, 160)
       const resultCount = Number(p.metadata?.result_count ?? 0) | 0
-      db.query(
-        `INSERT INTO search_queries (user_id, session_id, query, result_count, city, locale)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [userId, sessionId, q, resultCount, enriched.city, enriched.locale],
-      ).catch(() => {})
+      const supersedes = typeof p.metadata?.supersedes === 'string'
+        ? String(p.metadata.supersedes).trim().slice(0, 160)
+        : null
+
+      if (q.length >= MIN_QUERY_LEN) {
+        if (supersedes && sessionId) {
+          fireAndForget(request, 'search/supersede', db.query(
+            `UPDATE search_queries
+                SET superseded = true
+              WHERE session_id = $1
+                AND lower(query) = lower($2)
+                AND created_at >= now() - interval '5 minutes'`,
+            [sessionId, supersedes],
+          ))
+        }
+        fireAndForget(request, 'search/insert', db.query(
+          `INSERT INTO search_queries (
+             user_id, session_id, query, result_count, city, locale, is_internal
+           ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [userId, sessionId, q, resultCount, enriched.city, enriched.locale, internal],
+        ))
+      }
     }
 
     return reply.status(204).send()

@@ -6,6 +6,7 @@
 // context tags, time windows, and moment match.
 
 import { db } from '../../db/postgres'
+import { EXCLUDE_NON_VISITABLE_SQL } from '../shared-scoring/place-types'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,18 @@ export interface NowScoredPlace {
   latitude: number | null
   longitude: number | null
   distance_meters: number | null
+  /**
+   * When the slot the place is open in right now ends, as "HH:MM" in the
+   * city's timezone. Null when we hold no hours for it.
+   *
+   * This is the difference between "here is somewhere nice" and "here is
+   * somewhere nice that stops serving in 40 minutes". The Now card had the
+   * first and 2.272 users saw it while only 225 opened a place; a closing
+   * time is the cheapest honest reason to go now instead of later.
+   */
+  closes_at_today: string | null
+  /** Last time a real user opened this place. Null means nobody ever has. */
+  last_viewed_at: Date | null
   category_slugs: string[]
   // ── Place detail fields ──
   cuisine_types: string[] | null
@@ -185,6 +198,18 @@ export async function getNowCandidates(
       p.latitude,
       p.longitude,
       (${distanceExpr}) AS distance_meters,
+      -- Closing time of the slot the place is open in right now. Drives the
+      -- "open until" line on the Now card.
+      (SELECT to_char(oh.closes_at, 'HH24:MI')
+         FROM opening_hours oh
+        WHERE oh.place_id = p.id
+          AND oh.is_closed = false
+          AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE '${tz}')::int
+          AND oh.opens_at  <= (now() AT TIME ZONE '${tz}')::time
+          AND oh.closes_at >  (now() AT TIME ZONE '${tz}')::time
+        ORDER BY oh.closes_at DESC
+        LIMIT 1) AS closes_at_today,
+      pe.last_viewed_at,
       (${categorySlugsExpr}) AS category_slugs,
       -- Place detail fields for eyebrow display
       p.cuisine_types,
@@ -203,6 +228,8 @@ export async function getNowCandidates(
       (${nowTagMaxWeightExpr}) AS context_tag_max_weight,
       (${timeWindowMatchExpr}) AS now_time_window_match
     FROM places p
+    -- Rotation input: how long this place has gone unseen.
+    LEFT JOIN place_exposure pe ON pe.place_id = p.id
     JOIN destinations d ON d.id = p.destination_id
     LEFT JOIN destination_translations dt
            ON dt.destination_id = d.id AND dt.locale = $2
@@ -263,7 +290,7 @@ export async function getNowCandidates(
         )
       )`}
       -- Exclude service businesses (misclassified as activity/other)
-      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND ${EXCLUDE_NON_VISITABLE_SQL}
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
@@ -298,8 +325,10 @@ export async function getNowPlaceById(
   locale: string,
   userLat?: number,
   userLon?: number,
+  cityTimezone?: string,
 ): Promise<NowScoredPlace | null> {
   const hasCoords = userLat != null && userLon != null
+  const tz = cityTimezone ?? 'Europe/Lisbon'
 
   const distanceExpr = hasCoords
     ? `
@@ -345,6 +374,18 @@ export async function getNowPlaceById(
       p.created_at,
       p.latitude, p.longitude,
       (${distanceExpr}) AS distance_meters,
+      -- Closing time of the slot the place is open in right now. Drives the
+      -- "open until" line on the Now card.
+      (SELECT to_char(oh.closes_at, 'HH24:MI')
+         FROM opening_hours oh
+        WHERE oh.place_id = p.id
+          AND oh.is_closed = false
+          AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE '${tz}')::int
+          AND oh.opens_at  <= (now() AT TIME ZONE '${tz}')::time
+          AND oh.closes_at >  (now() AT TIME ZONE '${tz}')::time
+        ORDER BY oh.closes_at DESC
+        LIMIT 1) AS closes_at_today,
+      pe.last_viewed_at,
       (${categorySlugsExpr}) AS category_slugs,
       COALESCE(p.now_enabled, false) AS now_enabled,
       COALESCE(p.now_priority, 0) AS now_priority,
@@ -353,6 +394,8 @@ export async function getNowPlaceById(
       1.0::real AS now_tag_max_weight,
       true AS now_time_window_match
     FROM places p
+    -- Rotation input: how long this place has gone unseen.
+    LEFT JOIN place_exposure pe ON pe.place_id = p.id
     JOIN destinations d ON d.id = p.destination_id
     LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $2
     LEFT JOIN place_translations pt_lang

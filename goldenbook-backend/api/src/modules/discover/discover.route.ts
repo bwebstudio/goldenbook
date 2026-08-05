@@ -22,6 +22,7 @@ import {
 } from '../../shared/ranking/place.ranking'
 import { getActiveVisibilityPlaceIds, getActiveVisibilityBySlot } from '../visibility/visibility.query'
 import { normalizeLocale } from '../../shared/i18n/locale'
+import { getExposureMap, rotationBoost } from '../shared-scoring/exposure'
 
 const querySchema = z.object({
   city:      z.string().min(1),
@@ -85,10 +86,25 @@ export async function discoverRoutes(app: FastifyInstance) {
       pinnedNewIds = new Set(newIds)
     } catch {}
 
+    // How long each of these places has gone unseen. One query for the whole
+    // feed; the rollup table is tiny and already indexed on place_id.
+    let exposure = new Map<string, Date | null>()
+    try {
+      exposure = await getExposureMap([
+        ...editorsPicks.map(p => p.id),
+        ...hiddenSpots.map(p => p.id),
+        ...newPlaces.map(p => p.id),
+      ])
+    } catch {
+      // Rotation is an enhancement, never a dependency. An empty map means
+      // every place scores the same lift, which leaves the existing ranking
+      // exactly as it was.
+    }
+
     // Re-rank with pinned, then apply rotation for non-pinned
-    const rankedEditorsPicks = rerankWithPinned(editorsPicks, pinnedPickIds, 'golden_picks', profile)
-    const rankedHiddenSpots  = rerankWithPinned(hiddenSpots, pinnedSpotIds, 'discover', profile)
-    const rankedNewPlaces    = rerankWithPinned(newPlaces, pinnedNewIds, 'discover', profile)
+    const rankedEditorsPicks = rerankWithPinned(editorsPicks, pinnedPickIds, 'golden_picks', profile, exposure)
+    const rankedHiddenSpots  = rerankWithPinned(hiddenSpots, pinnedSpotIds, 'discover', profile, exposure)
+    const rankedNewPlaces    = rerankWithPinned(newPlaces, pinnedNewIds, 'discover', profile, exposure)
 
     // Mark sponsored items
     markSponsored(rankedEditorsPicks, pinnedPickIds)
@@ -137,28 +153,58 @@ function rerankWithPinned<T extends { id: string }>(
   pinnedIds: Set<string>,
   surface: RankingSurface,
   profile: OnboardingProfile,
+  exposure: Map<string, Date | null>,
 ): T[] {
   if (pinnedIds.size === 0) {
     const ranked = rerankPlaces(places, surface, profile)
-    return applyRotation(ranked)
+    return applyRotation(ranked, exposure)
   }
 
   const pinned = places.filter(p => pinnedIds.has(p.id))
   const rest = places.filter(p => !pinnedIds.has(p.id))
   const rankedRest = rerankPlaces(rest, surface, profile)
-  return [...pinned, ...applyRotation(rankedRest)]
+  return [...pinned, ...applyRotation(rankedRest, exposure)]
 }
 
-/** Light rotation: shuffle items with similar scores so the feed doesn't feel static */
-function applyRotation<T>(items: T[]): T[] {
+/**
+ * Rotation, weighted by how long each place has gone unseen.
+ *
+ * The previous version shuffled by day-of-year. It changed the order daily,
+ * which made the feed feel alive, but it had no idea what anyone had actually
+ * looked at, so a place sitting at the bottom of the pool stayed at the bottom
+ * of every permutation. On 5 Aug 2026 that had left 114 of 346 published
+ * places never opened by a single user.
+ *
+ * This keeps the same two guarantees the old one had: the top item never
+ * moves (relevance still wins the first slot, and pinned placements are
+ * handled by the caller), and the order is stable for the whole day so a
+ * pull-to-refresh doesn't reshuffle under the user's thumb. What changes is
+ * the tiebreak: among the rest, longer-unseen places move up.
+ */
+function applyRotation<T extends { id: string }>(
+  items: T[],
+  exposure: Map<string, Date | null>,
+): T[] {
   if (items.length <= 2) return items
-  // Use day-of-year as seed so rotation changes daily but stays stable within a day
+
+  // Day-of-year still seeds the shuffle, so two places with the same lift
+  // swap places from one day to the next instead of freezing in one order.
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000)
-  const rotated = [...items]
-  // Rotate by dayOfYear mod length, keeping first item stable
-  const first = rotated.shift()!
-  const offset = dayOfYear % rotated.length
-  const reordered = [...rotated.slice(offset), ...rotated.slice(0, offset)]
+
+  const rest = [...items]
+  const first = rest.shift()!
+
+  const reordered = rest
+    .map((item, index) => ({
+      item,
+      // exposure.get() returning undefined (place absent from the rollup)
+      // means never seen, which is exactly what rotationBoost treats null as.
+      lift: rotationBoost(exposure.get(item.id) ?? null),
+      tiebreak: (index + dayOfYear) % rest.length,
+    }))
+    .sort((a, b) => (b.lift - a.lift) || (a.tiebreak - b.tiebreak))
+    .map(x => x.item)
+
   return [first, ...reordered]
 }
 

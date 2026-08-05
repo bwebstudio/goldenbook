@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import type { RoutePlaceDTO } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 const IMAGE_SIZE = 76;
 
@@ -48,7 +49,7 @@ export const RoutePlaceCard = React.memo(function RoutePlaceCard({ place, index,
 
       {/* Card */}
       <TouchableOpacity
-        onPress={() => router.push(`/places/${place.slug}` as any)}
+        onPress={() => openPlace(router, place.slug, { source: 'route', placeId: place.id })}
         activeOpacity={0.88}
         className="flex-1 mb-5"
       >

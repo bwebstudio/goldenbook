@@ -21,7 +21,7 @@ export const en = {
     cantLoadOffline: 'You\'re offline and we don\'t have a saved copy of this yet.',
     // Inline pill shown above lists/details that are being served from
     // the on-device cache while the device is offline.
-    savedResultsHint: 'Offline — showing saved results',
+    savedResultsHint: 'Offline: showing saved results',
     // Empty-state title when the user opens a feature that strictly
     // requires the network (e.g. live concierge / NOW with no cache).
     offlineEmptyTitle: 'You\'re offline',
@@ -79,7 +79,7 @@ export const en = {
   preferences: {
     title: 'My Preferences',
     subtitle: 'What do you love?',
-    body: 'Select your interests — Goldenbook Go uses these to surface the picks, routes, and places that matter most to you.',
+    body: 'Select your interests. Goldenbook Go uses these to surface the picks, routes, and places that matter most to you.',
     saved: 'Saved',
     selectHint: 'Select as many as you like',
     selectedSingular: 'interest selected',
@@ -142,6 +142,20 @@ export const en = {
     searchPlaceholder: 'Search destinations, hotels, or dining',
   },
 
+  plan: {
+    eyebrow: 'Your plan today',
+    summary: '{stops} stops, {min} min walking in total',
+    walkLeg: '{min} min walk',
+    until: 'until {time}',
+    locationPitch: 'Turn on location and we will put together three stops within a walk of you.',
+    enableLocation: 'Turn on location',
+    wrongCity: 'Looks like you are in {city}. Switch destination and we will put together the plan for here.',
+    switchTo: 'Switch to {city}',
+    share: 'Share plan',
+    shareHeadline: 'A plan for today',
+    shareFooter: 'Found on Goldenbook Go',
+  },
+
   now: {
     eyebrowMorning: 'RIGHT NOW IN',
     eyebrowMidday: 'FOR THIS MOMENT IN',
@@ -159,6 +173,10 @@ export const en = {
     supportingEvening: 'Open now · Elegant · Tonight',
     supportingNight: 'Open now · For the night ahead',
     seeAnother: 'See another option',
+    // Concrete signals on the Now card: the reason to go now, not later.
+    walkMinutes: '{min} min walk',
+    openUntil: 'Open until {time}',
+    closesInMinutes: 'Closes in {min} min',
     errorLoading: "We couldn't load a recommendation right now.",
     offlineMessage: 'Connect to the internet to get a real-time recommendation.',
     // Pill shown over the NOW card when we rendered the section from disk
@@ -242,7 +260,7 @@ export const en = {
     editorsFavorite: "Editor's Favorite",
     threeMichelinStars: 'Three Michelin Stars',
     exceptional: 'Exceptional',
-    goldenbookNotePlaceholder: 'A truly essential address in this city. Every detail here has been chosen with intention — this is exactly the kind of place Goldenbook Go exists to surface.',
+    goldenbookNotePlaceholder: 'A truly essential address in this city. Every detail here has been chosen with intention. This is exactly the kind of place Goldenbook Go exists to surface.',
     insiderTipPlaceholder: 'Arrive early or book well ahead. The quieter hours reveal a completely different atmosphere, and the staff are far more attentive when it isn\'t crowded.',
     readMore: 'Read more',
     readLess: 'Read less',

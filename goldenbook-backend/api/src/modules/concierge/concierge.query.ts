@@ -1,6 +1,7 @@
 import { db } from '../../db/postgres'
 import type { ConciergeIntent } from './concierge.intents'
 import type { UnifiedCandidate } from '../shared-scoring/types'
+import { EXCLUDE_NON_VISITABLE_SQL } from '../shared-scoring/place-types'
 
 // ─── City lookup ──────────────────────────────────────────────────────────────
 
@@ -185,8 +186,13 @@ export async function getConciergeRecommendations(
       COALESCE(p.now_enabled, false) AS now_enabled,
       COALESCE(p.now_priority, 0) AS now_priority,
       COALESCE(p.now_featured, false) AS now_featured,
-      (${timeWindowMatchExpr}) AS now_time_window_match
+      (${timeWindowMatchExpr}) AS now_time_window_match,
+      pe.last_viewed_at
     FROM places p
+    -- Rotation input: how long this place has gone unseen. Without it every
+    -- candidate would score the same lift, which flattens the weighted-random
+    -- pick in selectTopN instead of leaving it untouched.
+    LEFT JOIN place_exposure pe ON pe.place_id = p.id
     JOIN destinations d ON d.id = p.destination_id
     LEFT JOIN destination_translations dt
            ON dt.destination_id = d.id AND dt.locale = $2
@@ -216,7 +222,7 @@ export async function getConciergeRecommendations(
       AND p.is_temporarily_closed = false
       AND p.place_type IN (${typeParams})
       -- Exclude service-type businesses (not visitable experiences)
-      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND ${EXCLUDE_NON_VISITABLE_SQL}
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
@@ -248,7 +254,7 @@ export async function getViableIntents(citySlug: string, minPlaces = 2): Promise
     WHERE p.status = 'published' AND p.is_active = true
       AND d.slug = lower($1)
       AND p.intents != ARRAY[]::text[]
-      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND ${EXCLUDE_NON_VISITABLE_SQL}
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
     GROUP BY unnest(p.intents)
@@ -358,7 +364,7 @@ export async function getFallbackPlaces(
     WHERE d.slug = lower($1)
       AND p.status = 'published' AND p.is_active = true AND p.is_temporarily_closed = false
       AND p.place_type IN (${typeParams})
-      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND ${EXCLUDE_NON_VISITABLE_SQL}
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'
@@ -430,8 +436,13 @@ export async function getPlacesByIds(
         WHEN NOT EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id) THEN true
         WHEN EXISTS (SELECT 1 FROM place_now_time_windows tw WHERE tw.place_id = p.id AND tw.time_window = $${twIdx}) THEN true
         ELSE false
-      END AS now_time_window_match
+      END AS now_time_window_match,
+      pe.last_viewed_at
     FROM places p
+    -- Rotation input: how long this place has gone unseen. Without it every
+    -- candidate would score the same lift, which flattens the weighted-random
+    -- pick in selectTopN instead of leaving it untouched.
+    LEFT JOIN place_exposure pe ON pe.place_id = p.id
     JOIN destinations d ON d.id = p.destination_id
     LEFT JOIN place_translations pt ON pt.place_id = p.id AND pt.locale = $1
     LEFT JOIN place_translations pt_fb ON pt_fb.place_id = p.id AND pt_fb.locale = 'pt'
@@ -448,7 +459,7 @@ export async function getPlacesByIds(
     WHERE p.id IN (${placeholders})
       AND p.status = 'published'
       AND p.is_active = true
-      AND p.place_type NOT IN ('services', 'real_estate', 'corporate', 'transport', 'other')
+      AND ${EXCLUDE_NON_VISITABLE_SQL}
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%relocation%'
       AND COALESCE(p.short_description, '') NOT ILIKE '%property management%'

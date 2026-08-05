@@ -5,9 +5,11 @@
 //     / appVersion / deviceType context.
 //   • Heartbeat POST /analytics/sessions/ping every 60s while the app is
 //     foregrounded. Stops pinging when backgrounded, resumes on return.
-//   • POST /analytics/sessions/end when the app goes to background or the
-//     component unmounts. The server also force-closes stale sessions after
-//     30 min via a cron, so a force-quit never leaves an open row.
+//   • POST /analytics/sessions/end when the app goes to BACKGROUND or the
+//     component unmounts. Deliberately not on 'inactive', which iOS fires for
+//     transient overlays; ending there froze session duration seconds after
+//     launch. The server reopens the session on the next start and force-
+//     closes stale ones after 30 min, so a force-quit never leaves an open row.
 //   • Emit app_session_start / app_session_end events on cold start AND on
 //     warm-resume foreground transitions, so that "active users today"
 //     correctly counts users who already had the app installed and just
@@ -84,7 +86,15 @@ export function useSessionLifecycle(): void {
         // protects against rapid active/inactive churn.
         emitForegroundOpen('foreground');
         if (!pingTimer.current) pingTimer.current = setInterval(sessionPing, PING_MS);
-      } else {
+      } else if (next === 'background') {
+        // Only 'background' ends a session. iOS also emits 'inactive' when it
+        // puts anything over the app (Face ID, control centre, the share
+        // sheet, an incoming call banner), and treating that as an end is
+        // what froze session duration at a few seconds: the app kept being
+        // used, but ended_at was already stamped. 'inactive' is a blink, not
+        // a departure, so we leave the session open and keep the heartbeat
+        // running. The 30-minute stale-session cron still closes anything a
+        // force-quit leaves behind.
         if (pingTimer.current) {
           clearInterval(pingTimer.current);
           pingTimer.current = null;

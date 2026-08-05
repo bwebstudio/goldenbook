@@ -17,6 +17,7 @@ import { useSessionLifecycle } from '@/analytics/useSessionLifecycle';
 import { useContentVersionSync } from '@/api/useContentVersion';
 import { useVersionCheck } from '@/hooks/useVersionCheck';
 import * as Localization from 'expo-localization';
+import { usePushRegistration, useNotificationHandler } from '@/features/push';
 import { useFonts } from 'expo-font';
 import {
   PlayfairDisplay_400Regular,
@@ -205,6 +206,14 @@ export default function RootLayout() {
   }, [animationDone, authHydrated, isHydrated, onboardingHydrated, settingsHydrated]);
 
   // Activate the navigation guard once the Stack is mounted.
+  // Push: el handler escucha toques y el registro refresca el token en
+
+  // silencio si el permiso ya estaba dado. Ninguno de los dos pide nada.
+
+  useNotificationHandler();
+
+  usePushRegistration();
+
   useNavigationGuard(splashComplete);
 
   // ── Fonts not loaded — keep native splash visible ──────────────────────────

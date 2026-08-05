@@ -34,6 +34,10 @@ export interface NowPlaceDTO {
   subcategory: string | null
   neighborhood: string | null
   distance: number | null
+  /** Minutes on foot, when the user shared their location. Null beyond 30. */
+  walkMinutes: number | null
+  /** "HH:MM" this place stops serving today, when we hold its hours. */
+  closesAt: string | null
 }
 
 export interface NowRecommendationResponse {

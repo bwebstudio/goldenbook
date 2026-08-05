@@ -5,6 +5,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { track } from '@/analytics/track';
 import type { SearchPlaceDTO } from '@/types/api';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 interface Props {
   place: SearchPlaceDTO;
@@ -24,8 +25,11 @@ export function SearchPlaceRow({ place, rank }: Props) {
           source: 'search',
           metadata: rank != null ? { rank } : undefined,
         });
-        track('place_open', { placeId: place.id, source: 'search' });
-        router.push(`/places/${place.slug}` as any);
+        openPlace(router, place.slug, {
+          source: 'search',
+          placeId: place.id,
+          ...(rank != null ? { rank } : {}),
+        });
       }}
       activeOpacity={0.85}
       className="flex-row items-center gap-4"

@@ -4,6 +4,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
 import type { PlaceDetailDTO } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 type OtherLocation = PlaceDetailDTO['otherLocations'][number];
 
@@ -17,7 +18,7 @@ function OtherLocationCard({ location }: { location: OtherLocation }) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/places/${location.slug}` as any)}
+      onPress={() => openPlace(router, location.slug, { source: 'nearby', placeId: location.id })}
       activeOpacity={0.88}
       className="mr-6"
       style={{ width: CARD_WIDTH }}

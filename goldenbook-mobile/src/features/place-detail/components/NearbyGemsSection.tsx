@@ -5,6 +5,7 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { PlaceSaveButton } from '@/features/saved/components/PlaceSaveButton';
 import { useTranslation } from '@/i18n';
 import type { PlaceDetailDTO } from '../types';
+import { openPlace } from '@/features/place-detail/openPlace';
 
 type NearbyGem = PlaceDetailDTO['nearbyGems'][number];
 
@@ -23,7 +24,7 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
   return (
     <View className="mr-6" style={{ width: CARD_WIDTH }}>
       <TouchableOpacity
-        onPress={() => router.push(`/places/${gem.slug}` as any)}
+        onPress={() => openPlace(router, gem.slug, { source: 'nearby', placeId: gem.id })}
         activeOpacity={0.88}
       >
         <View
