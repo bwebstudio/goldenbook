@@ -4,6 +4,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useNetworkStore } from '@/store/networkStore';
 import { useMutationQueueStore } from '@/store/mutationQueueStore';
 import { savedApi } from '../api';
+import { usePrefetchRouteOffline } from '@/features/routes/hooks/usePrefetchRouteOffline';
 import { useSaved, SAVED_QUERY_KEY } from './useSaved';
 import type { SavedResponse, SavedRouteDTO } from '@/types/api';
 
@@ -15,6 +16,7 @@ export function useSaveRoute(routeId: string, options: UseSaveRouteOptions = {})
   const queryClient = useQueryClient();
   const locale = useSettingsStore((s) => s.locale);
   const { data: saved, isLoading: savedLoading } = useSaved();
+  const prefetchOffline = usePrefetchRouteOffline();
 
   const isSaved = !!routeId && (saved?.savedRoutes.some((r) => r.id === routeId) ?? false);
 
@@ -102,8 +104,12 @@ export function useSaveRoute(routeId: string, options: UseSaveRouteOptions = {})
 
   const toggle = useCallback(() => {
     if (!routeId || mutation.isPending) return;
+    // Al guardar (no al quitar) dejamos el detalle en la cache persistida, para
+    // que la ruta se pueda seguir sin cobertura. Va sin await: guardar no debe
+    // esperar a una descarga anticipada que puede fallar sin consecuencias.
+    if (!isSavedRef.current) void prefetchOffline(options.snapshot?.slug);
     mutation.mutate();
-  }, [routeId, mutation]);
+  }, [routeId, mutation, prefetchOffline, options.snapshot?.slug]);
 
   return {
     isSaved,

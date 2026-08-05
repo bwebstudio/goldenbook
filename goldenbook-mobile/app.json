@@ -79,7 +79,13 @@
         }
       ],
       "./plugins/withAndroid16KBPages.js",
-      "./plugins/withImageDeps16KB.js"
+      "./plugins/withImageDeps16KB.js",
+      [
+        "expo-notifications",
+        {
+          "color": "#D2B68A"
+        }
+      ]
     ],
     "scheme": "goldenbook",
     "experiments": {
