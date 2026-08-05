@@ -42,6 +42,7 @@ import type {
 } from './types'
 import { DEFAULT_WEIGHTS } from './types'
 import type { NowTimeOfDay } from './types'
+import { rotationBoost } from './exposure'
 import {
   TIME_TAG_BOOSTS,
   WEATHER_TAG_BOOSTS,
@@ -540,8 +541,19 @@ export function scoreCandidate(
     if (hasTag('dinner') || hasTag('fine-dining'))        timeAdjustment -= 25
   }
 
-  // totalScore = baseScore + personalization + time adjustment
-  const totalScore = baseScore + personalizationBonus + timeAdjustment
+  // Catalogue rotation: a bounded lift for places nobody has opened lately.
+  //
+  // Ranking is self-reinforcing. Whatever surfaced yesterday collects the
+  // views and saves that make it surface again tomorrow, and on 5 Aug 2026
+  // that had left 106 of 346 published places never opened by anyone. This
+  // sits outside the weighted sum on purpose: the weights are normalised to
+  // 1.0 and A/B tested, and rotation is a correction, not a relevance signal
+  // competing with the others. It also runs after eligibility, so it can only
+  // reorder places that were already allowed to appear.
+  const rotation = rotationBoost(place.last_viewed_at)
+
+  // totalScore = baseScore + personalization + time adjustment + rotation
+  const totalScore = baseScore + personalizationBonus + timeAdjustment + rotation
 
   const breakdown: ScoreBreakdown = {
     commercial: { raw: commercialScore, weighted: round2(w.commercial * commercialScore) },
@@ -549,6 +561,7 @@ export function scoreCandidate(
     editorial:  { raw: editorialScore,  weighted: round2(w.editorial * editorialScore) },
     quality:    { raw: qualityScore,    weighted: round2(w.quality * qualityScore) },
     proximity:  { raw: proximityScore,  weighted: round2(w.proximity * proximityScore) },
+    rotation:   { raw: rotation,        weighted: rotation },
   }
 
   return {

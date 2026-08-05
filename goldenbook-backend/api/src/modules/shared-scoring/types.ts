@@ -40,6 +40,14 @@ export interface UnifiedCandidate {
   now_priority: number
   now_featured: boolean
   now_time_window_match: boolean
+  /**
+   * Last time a real user opened this place, or null if nobody ever has.
+   * Feeds the rotation lift in scoreCandidate. Optional so callers that build
+   * candidates without joining place_exposure still type-check; a missing
+   * value is treated the same as never seen, which is the safe default for a
+   * signal whose whole job is to rescue the tail.
+   */
+  last_viewed_at?: Date | string | null
 }
 
 // ─── Scoring weights ────────────────────────────────────────────────────────
@@ -70,6 +78,11 @@ export interface ScoreBreakdown {
   editorial:  { raw: number; weighted: number }
   quality:    { raw: number; weighted: number }
   proximity:  { raw: number; weighted: number }
+  /**
+   * Rotation lift, applied after the weighted sum rather than inside it.
+   * raw === weighted because it is not scaled by a weight.
+   */
+  rotation:   { raw: number; weighted: number }
 }
 
 // ─── Scored result ──────────────────────────────────────────────────────────
