@@ -1,6 +1,7 @@
 import { db } from '../../../db/postgres'
 import { AppError, NotFoundError, ValidationError } from '../../../shared/errors/AppError'
 import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from './admin-places.dto'
+import { normalizeNowTimeWindows } from './admin-places.dto'
 import { translatePlaceFields, type PlaceTranslationFields } from '../../../lib/translation/deepl'
 import { autoClassifyPlace } from './auto-classify'
 import {
@@ -584,9 +585,13 @@ export async function updatePlace(
 
     // Sync NOW time windows if provided
     if (input.nowTimeWindows !== undefined) {
+      // Normalise legacy aliases ('night' → 'late_evening') and de-duplicate
+      // before writing, so the table only ever holds values the NOW candidate
+      // query can actually match. See admin-places.dto.ts:NOW_TIME_WINDOWS.
+      const timeWindows = normalizeNowTimeWindows(input.nowTimeWindows)
       await client.query(`DELETE FROM place_now_time_windows WHERE place_id = $1`, [placeId])
-      if (input.nowTimeWindows.length > 0) {
-        for (const tw of input.nowTimeWindows) {
+      if (timeWindows.length > 0) {
+        for (const tw of timeWindows) {
           await client.query(
             `INSERT INTO place_now_time_windows (place_id, time_window) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
             [placeId, tw],

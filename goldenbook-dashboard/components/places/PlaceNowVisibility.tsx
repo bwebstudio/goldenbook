@@ -6,13 +6,61 @@ import { useT, useLocale } from "@/lib/i18n";
 
 // ─── Time windows ──────────────────────────────────────────────────────────
 
+// The six canonical windows the recommendation engine actually works with
+// (backend: shared-scoring/context-tags.ts → getNowTimeOfDay).
+//
+// This list used to stop at five and collapse 22:00–06:00 into a single
+// "night" entry that the engine never emits. Two things went wrong:
+// places seeded with `late_evening` / `deep_night` showed those values in
+// neither the UI nor any button, yet the form kept submitting them, and the
+// API rejected the save ("nowTimeWindows.4: Invalid enum value"). Editors
+// could not see the offending value, let alone remove it, so the whole
+// place became uneditable.
 const TIME_WINDOWS = [
-  { value: "morning",   en: "Morning (6–11)",    pt: "Manhã (6–11)" },
-  { value: "midday",    en: "Lunch (11–15)",     pt: "Almoço (11–15)" },
-  { value: "afternoon", en: "Afternoon (15–18)", pt: "Tarde (15–18)" },
-  { value: "evening",   en: "Evening (18–22)",   pt: "Noite (18–22)" },
-  { value: "night",     en: "Late Night (22–6)", pt: "Madrugada (22–6)" },
+  { value: "morning",      en: "Morning (6–11)",      pt: "Manhã (6–11)" },
+  { value: "midday",       en: "Lunch (11–15)",       pt: "Almoço (11–15)" },
+  { value: "afternoon",    en: "Afternoon (15–18)",   pt: "Tarde (15–18)" },
+  { value: "evening",      en: "Evening (18–22)",     pt: "Noite (18–22)" },
+  { value: "late_evening", en: "Late night (22–2)",   pt: "Fim de noite (22–2)" },
+  { value: "deep_night",   en: "After hours (2–6)",   pt: "Madrugada (2–6)" },
 ] as const;
+
+const KNOWN_TIME_WINDOWS: readonly string[] = TIME_WINDOWS.map((w) => w.value);
+
+/** Legacy dashboard value → canonical engine value. */
+const TIME_WINDOW_ALIASES: Record<string, string> = { night: "late_evening" };
+
+/**
+ * Pure helper — exported so it can be unit-tested.
+ *
+ * The form round-trips whatever the API returns for `nowTimeWindows`, so any
+ * value without a button here is invisible to the editor yet still submitted
+ * on save. When the API rejects it, every other field on the place becomes
+ * unsaveable and there is nothing the editor can click to fix it.
+ *
+ * So we normalise on load: map the known legacy alias, drop anything we
+ * cannot render, and report what was dropped so the editor is told rather
+ * than silently losing a selection.
+ */
+export function sanitizeTimeWindows(windows: readonly string[]): {
+  windows: string[];
+  dropped: string[];
+} {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  const dropped: string[] = [];
+  for (const w of windows) {
+    const canonical = TIME_WINDOW_ALIASES[w] ?? w;
+    if (!KNOWN_TIME_WINDOWS.includes(canonical)) {
+      if (!dropped.includes(w)) dropped.push(w);
+      continue;
+    }
+    if (seen.has(canonical)) continue;
+    seen.add(canonical);
+    normalized.push(canonical);
+  }
+  return { windows: normalized, dropped };
+}
 
 // ─── Tag translations ──────────────────────────────────────────────────────
 
@@ -132,6 +180,7 @@ interface PlaceContextualRelevanceProps {
 export default function PlaceNowVisibility({ placeId, placeType, value, onChange, classificationAuto, contextWindowsAuto, contextTagsAuto, momentTagsAuto }: PlaceContextualRelevanceProps) {
   const [allTags, setAllTags] = useState<NowContextTag[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [droppedWindows, setDroppedWindows] = useState<string[]>([]);
   const { locale } = useLocale();
   const lang = locale.split("-")[0] || "en";
   const isPt = lang === "pt";
@@ -146,9 +195,17 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
         ]);
         if (cancelled) return;
         setAllTags(tags);
+        // Sanitise on load. The form round-trips whatever the API returns, so
+        // a value with no button — a legacy 'night', or anything a future seed
+        // script invents — would be invisible here and rejected on save,
+        // locking every other field on the place. Map the known alias, drop
+        // the rest, and tell the editor what we dropped rather than failing
+        // silently at save time.
+        const { windows, dropped } = sanitizeTimeWindows(config.nowTimeWindows);
+        setDroppedWindows(dropped);
         onChange({
           nowTagSlugs: config.nowTagSlugs,
-          nowTimeWindows: config.nowTimeWindows,
+          nowTimeWindows: windows,
         });
         setLoaded(true);
       } catch {
@@ -330,8 +387,12 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
         );
       })()}
 
-      {/* Time windows — only show manual selector if no auto-generated windows */}
-      {!contextWindowsAuto?.length && (
+      {/* Time windows.
+          Always rendered. This used to be hidden whenever the place had
+          auto-generated windows — but the editorial windows were still loaded
+          into form state and still submitted on save, so editors had no way to
+          see or correct a value that was blocking the save. */}
+      {(
         <div>
           <label className="block text-sm font-medium text-text mb-1">
             {isPt ? "Janelas horárias" : "Time windows"}
@@ -341,6 +402,13 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
               ? "Quando é que este espaço é mais relevante durante o dia? Deixe vazio se relevante a todas as horas."
               : "When is this place most relevant during the day? Leave empty if relevant at all times."}
           </p>
+          {droppedWindows.length > 0 && (
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+              {isPt
+                ? `Valores não reconhecidos removidos desta seleção: ${droppedWindows.join(", ")}. Reveja as janelas abaixo antes de guardar.`
+                : `Unrecognised values removed from this selection: ${droppedWindows.join(", ")}. Review the windows below before saving.`}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {TIME_WINDOWS.map((tw) => {
               const selected = value.nowTimeWindows.includes(tw.value);

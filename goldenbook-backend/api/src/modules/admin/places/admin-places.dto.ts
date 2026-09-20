@@ -87,7 +87,69 @@ export const createPlaceSchema = z.object({
   reservationSource:       reservationSourceEnum.optional(),
 })
 
-const nowTimeWindowEnum = z.enum(['morning', 'midday', 'afternoon', 'evening', 'night'])
+// ─── NOW time windows ───────────────────────────────────────────────────────
+//
+// The canonical vocabulary is the one `getNowTimeOfDay()` emits at runtime
+// (modules/shared-scoring/context-tags.ts) and that the NOW candidate query
+// matches rows against (`tw.time_window = $timeWindow`). It has SIX values:
+//
+//   morning 06-11 | midday 11-15 | afternoon 15-18
+//   evening 18-22 | late_evening 22-02 | deep_night 02-06
+//
+// This enum previously listed only five and swapped the last two for a
+// phantom 'night'. Two consequences, both seen in production:
+//
+//   1. Seed scripts write `late_evening` / `deep_night` straight into
+//      place_now_time_windows (the column is plain TEXT, no CHECK). The
+//      dashboard reads those values back, echoes them on save, and the
+//      request was rejected with "nowTimeWindows.4: Invalid enum value …
+//      received 'late_evening'" — making every field on those places
+//      unsaveable, not just the time windows.
+//   2. 'night' is never produced by `getNowTimeOfDay()`, so any row the
+//      dashboard did manage to write with it matched nothing at runtime and
+//      silently excluded the place from NOW between 22:00 and 06:00.
+//
+// 'night' stays accepted so an older dashboard build can't start failing
+// mid-deploy, but it is normalised to `late_evening` before it reaches the
+// database (see `normalizeNowTimeWindows`) so no dead value is ever stored.
+export const NOW_TIME_WINDOWS = [
+  'morning',
+  'midday',
+  'afternoon',
+  'evening',
+  'late_evening',
+  'deep_night',
+] as const
+
+export type NowTimeWindow = typeof NOW_TIME_WINDOWS[number]
+
+/** Legacy alias → canonical value. 22:00-06:00 maps onto `late_evening`. */
+const LEGACY_TIME_WINDOW_ALIASES: Record<string, NowTimeWindow> = {
+  night: 'late_evening',
+}
+
+const nowTimeWindowEnum = z.enum([
+  ...NOW_TIME_WINDOWS,
+  ...(Object.keys(LEGACY_TIME_WINDOW_ALIASES) as [string, ...string[]]),
+] as unknown as [NowTimeWindow, ...NowTimeWindow[]])
+
+/**
+ * Map legacy aliases onto canonical values and drop duplicates, preserving
+ * first-seen order. Applied on every write so `place_now_time_windows` only
+ * ever holds values the NOW query can match.
+ */
+export function normalizeNowTimeWindows(windows: readonly string[]): NowTimeWindow[] {
+  const seen = new Set<string>()
+  const out: NowTimeWindow[] = []
+  for (const w of windows) {
+    const canonical = LEGACY_TIME_WINDOW_ALIASES[w] ?? (w as NowTimeWindow)
+    if (!NOW_TIME_WINDOWS.includes(canonical)) continue
+    if (seen.has(canonical)) continue
+    seen.add(canonical)
+    out.push(canonical)
+  }
+  return out
+}
 
 export const updatePlaceSchema = z.object({
   name:             z.string().min(2).optional(),
