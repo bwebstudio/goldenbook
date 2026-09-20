@@ -359,7 +359,15 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     const { id } = idParamsSchema.parse(request.params)
     const { imageId } = z.object({ imageId: z.string().uuid() }).parse(request.params)
     const result = await deleteImage(id, imageId)
-    return reply.send({ deleted: !!result, asset: result })
+    // Actually remove the bytes. `deleteImage` only clears the DB rows and
+    // returns the asset location; nothing used to act on it, so every deleted
+    // image stayed in the bucket and kept counting against the Storage quota.
+    let storageDeleted = false
+    if (result) {
+      const { deleteStorageObject } = await import('../../../lib/storage/supabase-storage')
+      storageDeleted = await deleteStorageObject(result.bucket, result.path)
+    }
+    return reply.send({ deleted: !!result, storageDeleted, asset: result })
   })
 
   // ── Add image to place ────────────────────────────────────────────────────

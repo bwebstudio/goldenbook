@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { fetchPlaceImages, setCoverImage, reorderGallery, deleteImagePermanent, addImage, type PlaceImageDTO } from "@/lib/api/images";
 import { getStorageUrl } from "@/lib/utils/storage";
+import { prepareImageForUpload, UnsupportedImageError } from "@/lib/utils/image";
 import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
 
 const BASE_GALLERY_LIMIT = 4;
@@ -74,13 +75,19 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
 
     setUploading(true);
     try {
+      // Downscale and re-encode before uploading. Originals used to go into
+      // the bucket untouched, which is how 58 objects came to hold 987 MB and
+      // the project ran past its storage quota.
+      const prepared = await prepareImageForUpload(file);
+      const upload = prepared.file;
+
       const supabase = getSupabaseBrowserClient();
-      const ext = file.name.split('.').pop() ?? 'jpg';
+      const ext = upload.name.split('.').pop() ?? 'jpg';
       const path = `places/${placeId}/${Date.now()}.${ext}`;
       const bucket = 'place-images';
 
-      const { error } = await supabase.storage.from(bucket).upload(path, file, {
-        contentType: file.type,
+      const { error } = await supabase.storage.from(bucket).upload(path, upload, {
+        contentType: upload.type,
         upsert: false,
       });
 
@@ -89,17 +96,25 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
       await addImage(placeId, {
         bucket,
         path: `${bucket}/${path}`,
-        mimeType: file.type,
-        width: null,
-        height: null,
-        sizeBytes: file.size,
+        mimeType: upload.type,
+        // Dimensions are known now that the image has been decoded, so store
+        // them instead of the NULLs this used to write.
+        width: prepared.width,
+        height: prepared.height,
+        sizeBytes: upload.size,
       });
 
       await load();
       router.refresh();
     } catch (err) {
       console.error("Upload failed:", err);
-      alert("Image upload failed. Please try again.");
+      // A format the browser cannot decode deserves its own message: the
+      // editor needs to know to convert the file, not to retry.
+      if (err instanceof UnsupportedImageError) {
+        alert("This image format is not supported. Please upload a JPEG, PNG or WebP.");
+      } else {
+        alert("Image upload failed. Please try again.");
+      }
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -112,7 +127,7 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
       <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center text-muted">
         <p className="text-base font-medium">No images</p>
         <p className="text-sm mt-1 mb-3">Upload the first image for this place.</p>
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" />
         <button onClick={() => fileRef.current?.click()} disabled={uploading} className="px-5 py-2.5 rounded-xl border border-border text-sm font-semibold text-text hover:border-gold/50 transition-colors bg-white cursor-pointer disabled:opacity-50">
           {uploading ? "Uploading..." : "Upload image"}
         </button>
@@ -207,7 +222,7 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
 
       {/* ── Upload ── */}
       <div className="flex items-center gap-3">
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" />
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading || busy || !canUploadMore}
