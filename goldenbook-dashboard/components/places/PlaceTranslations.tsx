@@ -19,6 +19,40 @@ export interface PtSourceFields {
   insiderTip: string;
 }
 
+/** Why the "regenerate translations" action is unavailable, or null if it is. */
+export type RegenerateBlock = "no-pt-name" | "pt-unsaved" | "not-dirty" | null;
+
+/** Used when the i18n bundle predates the `regenerateNeedsSave` key. */
+const REGENERATE_NEEDS_SAVE_FALLBACK =
+  "Save the Portuguese changes first — translations are generated from the stored text.";
+
+/**
+ * Pure helper — exported so it can be unit-tested. Decides whether the
+ * regenerate action may run.
+ *
+ * `pt-unsaved` is the one that matters for correctness rather than ergonomics.
+ * Regenerate persists the EN and ES rows and never PT, because a locale is
+ * never a translation of itself. Running it against unsaved Portuguese
+ * therefore publishes English and Spanish built from text the database does
+ * not have — the app then serves the old Portuguese beside a translation of
+ * the new one, which is exactly what was reported for Palácio da Bolsa and
+ * Quinta do Panascal. The editor must save the place first.
+ *
+ * Order matters: a missing name is reported before unsaved state, and unsaved
+ * state before "nothing to translate", so the editor is told the most
+ * actionable thing first.
+ */
+export function resolveRegenerateBlock(input: {
+  ptHasName: boolean;
+  ptUnsaved: boolean;
+  ptDirty: boolean;
+}): RegenerateBlock {
+  if (!input.ptHasName) return "no-pt-name";
+  if (input.ptUnsaved) return "pt-unsaved";
+  if (!input.ptDirty) return "not-dirty";
+  return null;
+}
+
 /**
  * Pure helper — exported so it can be unit-tested. Returns true when any
  * Portuguese source field has changed relative to the snapshot. The set of
@@ -52,6 +86,18 @@ interface Props {
    * button enables and switches to the "Portuguese content changed" copy.
    */
   ptSource: PtSourceFields;
+  /**
+   * True when the Portuguese editorial fields in the parent form differ from
+   * the values currently stored for the place.
+   *
+   * Regenerating translates whatever PT text it is handed and persists the
+   * EN/ES rows — but it never writes PT, because a locale is never a
+   * translation of itself. Regenerating from unsaved PT therefore produced
+   * exactly the failure reported in production: English and Spanish carrying
+   * the new text while Portuguese still showed the old one. We refuse the
+   * regenerate in that state and ask the editor to save first.
+   */
+  ptUnsaved?: boolean;
 }
 
 interface LocaleFormState {
@@ -101,7 +147,7 @@ function ptSourceToBody(pt: PtSourceFields): TranslationFields {
   };
 }
 
-export default function PlaceTranslations({ placeId, getPtSource, ptSource }: Props) {
+export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUnsaved = false }: Props) {
   const t = useT();
   const pf = t.placeForm;
   const ptName = ptSource.name;
@@ -187,6 +233,18 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource }: Pr
     const pt = getPtSource();
     if (!pt.name?.trim()) {
       setMessage({ kind: "err", text: pf.regenerateNeedsPt });
+      return;
+    }
+    // Guard the per-locale buttons too, not just the bulk one. Regenerate
+    // writes EN/ES and never PT, so running it on unsaved Portuguese ships
+    // translations of text the database does not have.
+    if (ptUnsaved) {
+      setMessage({
+        kind: "err",
+        text:
+          (pf as { regenerateNeedsSave?: string }).regenerateNeedsSave ??
+          REGENERATE_NEEDS_SAVE_FALLBACK,
+      });
       return;
     }
 
@@ -294,11 +352,18 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource }: Pr
   //   3. ptDirty === true   → enabled, "Portuguese content changed — regenerate
   //      translations" copy. The editor has typed PT changes that haven't
   //      been propagated yet.
-  const regenerateBlockedReason = !ptHasName
-    ? pf.regenerateNeedsPt
-    : !ptDirty
-      ? ((pf as { regenerateAllDisabled?: string }).regenerateAllDisabled ?? "No Portuguese changes to translate")
-      : null;
+  //   1b. ptUnsaved === true → disabled, "save the Portuguese first".
+  //      Regenerate persists EN/ES only; running it against unsaved PT
+  //      publishes translations of text that never reached the database.
+  const regenerateBlock = resolveRegenerateBlock({ ptHasName, ptUnsaved, ptDirty });
+  const regenerateBlockedReason =
+    regenerateBlock === "no-pt-name"
+      ? pf.regenerateNeedsPt
+      : regenerateBlock === "pt-unsaved"
+        ? ((pf as { regenerateNeedsSave?: string }).regenerateNeedsSave ?? REGENERATE_NEEDS_SAVE_FALLBACK)
+        : regenerateBlock === "not-dirty"
+          ? ((pf as { regenerateAllDisabled?: string }).regenerateAllDisabled ?? "No Portuguese changes to translate")
+          : null;
   const regenerateLabelDirty =
     (pf as { regenerateAllPending?: string }).regenerateAllPending ??
     "Portuguese content changed — regenerate translations";
@@ -308,8 +373,7 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource }: Pr
       ? regenerateLabelDirty
       : pf.regenerateAll;
   const regenerateDisabled =
-    !ptHasName ||
-    !ptDirty ||
+    regenerateBlock !== null ||
     Boolean(busy.all) ||
     Boolean(busy.en) ||
     Boolean(busy.es);

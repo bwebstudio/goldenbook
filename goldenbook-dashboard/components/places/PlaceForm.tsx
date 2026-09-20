@@ -489,6 +489,19 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
             <PlaceTranslations
               placeId={place.id}
               getPtSource={getPtSource}
+              // True while the Portuguese editorial fields in this form differ
+              // from what is actually stored. Regenerating in that state used
+              // to translate the unsaved text into EN/ES and persist *those*,
+              // while PT itself was never written — leaving the app showing
+              // the old Portuguese next to an English translation of the new
+              // text. PlaceTranslations blocks the regenerate until saved.
+              ptUnsaved={
+                form.name !== place.name ||
+                form.shortDescription !== (place.shortDescription ?? "") ||
+                form.fullDescription !== (place.fullDescription ?? "") ||
+                form.goldenbookNote !== (place.goldenbookNote ?? "") ||
+                form.insiderTip !== (place.insiderTip ?? "")
+              }
               // Reactive PT source — drives the dirty-state regenerate
               // button. When any of these five fields differ from the
               // last-synced snapshot, the button enables.

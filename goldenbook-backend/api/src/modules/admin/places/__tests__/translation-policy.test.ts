@@ -167,3 +167,38 @@ describe('resolveCanonicalPortuguese', () => {
     expect(result.name).toBe('Pastéis de Belém [PT]')
   })
 })
+
+// ─── Override scope: the canonical locale is never blocked ─────────────────
+//
+// Reported as "the Portuguese text does not stay saved, but the English
+// translation of the new text does appear" (Palácio da Bolsa, Quinta do
+// Panascal). One of the two mechanisms behind it: `upsertPlaceTranslation`
+// applied the manual-override guard to every locale including PT, so a PT row
+// flagged as an override made the canonical text read-only — while EN and ES
+// were still regenerated from the new Portuguese the form had submitted.
+//
+// 24 PT rows in production carried that flag, set by a `source='manual_fix'`
+// pass and propagated to the legacy column by the sync trigger.
+
+import { isOverrideEnforceable } from '../translation-policy'
+
+describe('isOverrideEnforceable', () => {
+  it('does not let an override flag block the canonical Portuguese row', () => {
+    // PT is the editorial source, never a translation, so there is no
+    // auto-translation for an override to protect it from.
+    expect(isOverrideEnforceable('pt')).toBe(false)
+  })
+
+  it('still protects a hand-curated English row', () => {
+    expect(isOverrideEnforceable('en')).toBe(true)
+  })
+
+  it('still protects a hand-curated Spanish row', () => {
+    expect(isOverrideEnforceable('es')).toBe(true)
+  })
+
+  it('agrees with CANONICAL_LOCALE rather than hard-coding "pt"', () => {
+    // If the canonical locale ever moves, the guard must move with it.
+    expect(isOverrideEnforceable(CANONICAL_LOCALE)).toBe(false)
+  })
+})

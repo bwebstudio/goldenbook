@@ -7,6 +7,7 @@ import { autoClassifyPlace } from './auto-classify'
 import {
   AUTO_TARGET_LOCALES,
   CANONICAL_LOCALE,
+  isOverrideEnforceable,
   resolveCanonicalPortuguese,
 } from './translation-policy'
 
@@ -74,7 +75,21 @@ async function upsertPlaceTranslation(
   // The new dashboard translations editor sets translation_override=true on
   // EN/ES manual saves; this guard keeps those values stable when an editor
   // later saves canonical fields through the legacy place form.
-  if (await isLocaleOverridden(client, placeId, locale)) return
+  //
+  // The guard must NOT apply to the canonical locale. "Override" means "this
+  // row is human-curated, so auto-translation must not clobber it" — a
+  // statement about translations, which Portuguese never is. Applying it to PT
+  // made the canonical row read-only: the place form silently skipped the PT
+  // write while `upsertAutoTranslationsFromPortuguese` went on to regenerate
+  // EN and ES from the *new* text, so the app served the old Portuguese beside
+  // an English translation of the new one, and the save still returned 200.
+  //
+  // 24 PT rows were flagged this way by a `source='manual_fix'` maintenance
+  // pass, which the is_override/translation_override sync trigger propagated
+  // to the legacy column. Those places could not have their Portuguese edited
+  // at all until this guard was scoped to the translated locales.
+  const overrideApplies = isOverrideEnforceable(locale)
+  if (overrideApplies && await isLocaleOverridden(client, placeId, locale)) return
 
   // `translated_from` is set on auto-translation paths so the dashboard can
   // tell the user "EN was translated from PT". The canonical PT row stores
@@ -95,7 +110,7 @@ async function upsertPlaceTranslation(
       insider_tip = EXCLUDED.insider_tip,
       translated_from = EXCLUDED.translated_from,
       updated_at = now()
-    WHERE COALESCE(place_translations.translation_override, false) = false
+    WHERE $9::boolean OR COALESCE(place_translations.translation_override, false) = false
     `,
     [
       placeId,
@@ -106,6 +121,10 @@ async function upsertPlaceTranslation(
       fields.goldenbook_note,
       fields.insider_tip,
       translatedFrom,
+      // $9 — bypass the override guard for the canonical locale. Mirrors the
+      // early-return above so a row flagged as an override still can't block
+      // an editor's Portuguese edit.
+      !overrideApplies,
     ],
   )
 }

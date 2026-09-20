@@ -25,6 +25,7 @@ import { describe, it, expect, vi } from 'vitest'
 import {
   AUTO_TARGET_LOCALES,
   CANONICAL_LOCALE,
+  isOverrideEnforceable,
   resolveCanonicalPortuguese,
   type EditorialFields,
 } from '../translation-policy'
@@ -108,10 +109,19 @@ async function upsertPlaceTranslation(
   fields: EditorialFields,
   translatedFrom: 'pt' | 'en' | 'es' | null = null,
 ) {
-  if (await (isLocaleOverridden as unknown as (c: typeof client, p: string, l: string) => Promise<boolean>)(client, placeId, locale)) return
+  // The override guard applies only to the translated locales. Portuguese is
+  // the editorial source, so an override flag on the PT row must never make
+  // the canonical text read-only — see isOverrideEnforceable.
+  const overrideApplies = isOverrideEnforceable(locale)
+  if (overrideApplies && await (isLocaleOverridden as unknown as (c: typeof client, p: string, l: string) => Promise<boolean>)(client, placeId, locale)) return
+  // Parameter list mirrors admin-places.query.ts exactly: `translation_override`
+  // is a literal `false` in the VALUES clause, NOT a bound parameter, so
+  // translated_from is $8 and the canonical-bypass flag is $9. The stub used
+  // to bind an extra `false`, which shifted every later index by one and made
+  // the translated_from assertion read the wrong slot.
   await client.query(
-    `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override, translated_from) VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8) ON CONFLICT DO UPDATE`,
-    [placeId, locale, fields.name, fields.short_description, fields.full_description, fields.goldenbook_note, fields.insider_tip, false, translatedFrom],
+    `INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override, translated_from) VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8) ON CONFLICT DO UPDATE WHERE $9::boolean OR COALESCE(place_translations.translation_override, false) = false`,
+    [placeId, locale, fields.name, fields.short_description, fields.full_description, fields.goldenbook_note, fields.insider_tip, translatedFrom, !overrideApplies],
   )
 }
 
@@ -254,5 +264,54 @@ describe('save path: EN-imported (Google) is translated to PT before persist', (
 
     expect(translatorCalls).toBe(1)
     expect(canonical.name).toBe('Pastéis de Belém [PT]')
+  })
+})
+
+// ─── The canonical row must never be locked by an override ─────────────────
+//
+// Reported as "the Portuguese text does not stay saved, but the English
+// translation of the new text does appear" (Palácio da Bolsa, Quinta do
+// Panascal). The override guard was applied to every locale, so a PT row
+// flagged as an override made the canonical text read-only while EN and ES
+// were still regenerated from the new Portuguese the form had submitted. The
+// save returned 200, so nothing surfaced to the editor.
+//
+// 24 PT rows in production carried that flag, set by a `source='manual_fix'`
+// maintenance pass and propagated to the legacy column by the sync trigger.
+
+describe('save path: an override flag on the PT row', () => {
+  const placeId = '00000000-0000-0000-0000-000000000002'
+  const formValues: EditorialFields = {
+    name: 'Palácio da Bolsa',
+    short_description: 'Texto novo em português.',
+    full_description: null,
+    goldenbook_note: null,
+    insider_tip: null,
+  }
+
+  it('still writes the Portuguese row', async () => {
+    const rec = makeRecorder()
+    rec.setOverride(placeId, 'pt', true)
+
+    await upsertPlaceTranslation(rec.client, placeId, 'pt', formValues)
+
+    const pt = rec.inserts().find((i) => i.locale === 'pt')
+    expect(pt).toBeDefined()
+    expect(pt!.name).toBe('Palácio da Bolsa')
+    expect(pt!.translatedFrom).toBeNull()
+  })
+
+  it('still protects a hand-curated EN row on the same place', async () => {
+    // The fix must not widen into the translated locales: an editor who
+    // curated English by hand still expects it left alone. This is the
+    // Alcino case, where ES regenerated and EN correctly did not.
+    const rec = makeRecorder()
+    rec.setOverride(placeId, 'en', true)
+
+    await upsertAutoTranslationsFromPortuguese(rec.client, placeId, formValues, mockTranslator('EN'), ['en', 'es'])
+
+    const locales = rec.inserts().map((i) => i.locale)
+    expect(locales).not.toContain('en')
+    expect(locales).toContain('es')
   })
 })

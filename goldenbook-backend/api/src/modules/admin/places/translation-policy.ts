@@ -86,3 +86,22 @@ export const PT_SOURCE_FIELDS = [
 ] as const
 
 export type PtSourceFieldKey = typeof PT_SOURCE_FIELDS[number]
+
+/**
+ * Whether a manual-override flag on `place_translations` may block a write to
+ * this locale.
+ *
+ * "Override" marks a row as human-curated so automatic translation cannot
+ * clobber it. That only makes sense for a locale that is *derived* from
+ * another. Portuguese is the editorial source, never a translation, so an
+ * override flag on the PT row has no meaning to enforce.
+ *
+ * It was being enforced anyway, and the effect was silent data loss: the place
+ * form skipped the PT write while still regenerating EN and ES from the new
+ * Portuguese, so the app served stale PT beside a fresh English translation of
+ * text the database had never stored — and the save still returned 200.
+ * A `source='manual_fix'` maintenance pass had flagged 24 PT rows this way.
+ */
+export function isOverrideEnforceable(locale: TranslationLocale): boolean {
+  return locale !== CANONICAL_LOCALE
+}

@@ -66,3 +66,63 @@ describe("arePtSourceFieldsDirty", () => {
     expect(arePtSourceFieldsDirty(baseline, { ...baseline, name: baseline.name + " " })).toBe(true);
   });
 });
+
+// ─── Regenerate gating: the PT-not-persisted data loss ─────────────────────
+//
+// Reported for Palácio da Bolsa and Quinta do Panascal: the editor replaced
+// the Portuguese text, the dashboard reported success, and afterwards the app
+// showed the OLD Portuguese next to an English translation of the NEW text.
+//
+// Confirmed in production data at the time of the audit:
+//   palacio-da-bolsa-porto  pt.updated_at 2026-08-05, en/es.updated_at 2026-08-31
+//   quinta-do-panascal      pt.updated_at 2026-08-05, en/es.updated_at 2026-09-09
+//
+// Cause: "Regenerate translations from Portuguese" sent the *unsaved* form
+// values as the source. The endpoint writes the target locales and never the
+// source one (a locale is not a translation of itself), so EN and ES were
+// persisted from text that never reached the database. Worse, on success the
+// component advanced its PT snapshot, which switched the "Portuguese content
+// changed" indicator off — removing the last cue that PT was still unsaved.
+//
+// The fix refuses to regenerate while the Portuguese differs from what is
+// stored. These tests pin that precedence.
+
+import { resolveRegenerateBlock } from "../PlaceTranslations";
+
+describe("resolveRegenerateBlock", () => {
+  it("blocks regeneration while the Portuguese is unsaved", () => {
+    // The whole point: never translate text the database does not have.
+    expect(
+      resolveRegenerateBlock({ ptHasName: true, ptUnsaved: true, ptDirty: true }),
+    ).toBe("pt-unsaved");
+  });
+
+  it("blocks even when the PT snapshot looks clean but the place is unsaved", () => {
+    // After a previous regenerate the snapshot moves forward, so `ptDirty`
+    // goes false while the text is still not persisted. Without this branch
+    // the editor could regenerate twice and lose the PT text both times.
+    expect(
+      resolveRegenerateBlock({ ptHasName: true, ptUnsaved: true, ptDirty: false }),
+    ).toBe("pt-unsaved");
+  });
+
+  it("allows regeneration once the Portuguese is saved and has changed", () => {
+    expect(
+      resolveRegenerateBlock({ ptHasName: true, ptUnsaved: false, ptDirty: true }),
+    ).toBeNull();
+  });
+
+  it("blocks with 'not-dirty' when saved and unchanged", () => {
+    expect(
+      resolveRegenerateBlock({ ptHasName: true, ptUnsaved: false, ptDirty: false }),
+    ).toBe("not-dirty");
+  });
+
+  it("reports the missing name before anything else", () => {
+    // DeepL cannot be called without a source name; that is the most
+    // actionable thing to tell the editor.
+    expect(
+      resolveRegenerateBlock({ ptHasName: false, ptUnsaved: true, ptDirty: true }),
+    ).toBe("no-pt-name");
+  });
+});

@@ -597,7 +597,8 @@ const en = {
     regenerateAll: "Regenerate translations from Portuguese",
     regenerateAllDisabled: "No Portuguese changes to translate",
     regenerateAllPending: "Portuguese content changed — regenerate translations",
-    regenerateNote: "Uses your current Portuguese form values, including unsaved changes. Manual EN/ES overrides are kept untouched.",
+    regenerateNote: "Generates English and Spanish from the stored Portuguese. Save your Portuguese changes before regenerating. Manual EN/ES overrides are kept untouched.",
+    regenerateNeedsSave: "Save the Portuguese changes first — translations are generated from the stored text.",
     regenerateNeedsPt: "Add a Portuguese name first to enable regeneration.",
     regenerateSkippedOverridden: "Skipped: {{locales}} (manual override).",
     // Reported when DeepL (or the database upsert downstream of it)
