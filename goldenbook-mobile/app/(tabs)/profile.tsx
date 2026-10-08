@@ -12,6 +12,7 @@ import { LOCALITY_BY_SLUG } from '@/config/localities';
 import { useTranslation } from '@/i18n';
 import { colors, typography, spacing, radius } from '@/design/tokens';
 import { api } from '@/api/endpoints';
+import { PUSH_SUPPORTED } from '@/features/push';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -241,12 +242,12 @@ export default function ProfileScreen() {
               label={t.profile.language}
               onPress={() => router.push('/language')}
             />
-            <MenuRow
-              label={t.profile.notifications}
-              onPress={() =>
-                router.push('/notifications')
-              }
-            />
+            {PUSH_SUPPORTED && (
+              <MenuRow
+                label={t.profile.notifications}
+                onPress={() => router.push('/notifications')}
+              />
+            )}
             <MenuRow
               label={t.profile.changeDestination}
               onPress={() => router.push('/select-destination')}

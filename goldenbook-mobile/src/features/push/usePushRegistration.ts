@@ -19,6 +19,16 @@ import { useAppStore } from '@/store/appStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
 
+/**
+ * Android entrega las notificaciones a través de Firebase Cloud Messaging, y
+ * Expo necesita el google-services.json del proyecto FCM dentro del binario.
+ * Sin él, pedir el token falla y el ritual no puede llegar, así que en Android
+ * no se ofrece hasta que app.json declare `android.googleServicesFile`. Al
+ * añadirlo y recompilar, se activa solo. iOS usa APNs y no depende de esto.
+ */
+export const PUSH_SUPPORTED: boolean =
+  Platform.OS !== 'android' || !!Constants.expoConfig?.android?.googleServicesFile;
+
 /** Token vivo en memoria, para el acuse de apertura. */
 let currentToken: string | null = null;
 
@@ -73,6 +83,7 @@ export type EnablePushResult = 'enabled' | 'denied' | 'blocked' | 'unavailable';
  * explícito del usuario (el interruptor de Notificaciones o la invitación).
  */
 export async function enablePush(): Promise<EnablePushResult> {
+  if (!PUSH_SUPPORTED) return 'unavailable';
   const existing = await Notifications.getPermissionsAsync();
   let granted = existing.granted;
 
@@ -116,7 +127,7 @@ export function usePushRegistration() {
   // Refresco silencioso: solo si ya hay permiso y sesión, y el usuario no
   // apagó el ritual desde la app. Nunca pide nada.
   useEffect(() => {
-    if (!isAuthenticated || !settingsHydrated || pushOptIn === false || registered.current) return;
+    if (!PUSH_SUPPORTED || !isAuthenticated || !settingsHydrated || pushOptIn === false || registered.current) return;
     let cancelled = false;
 
     (async () => {

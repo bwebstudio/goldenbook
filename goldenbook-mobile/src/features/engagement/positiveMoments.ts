@@ -15,7 +15,7 @@ import { Alert } from 'react-native';
 import * as StoreReview from 'expo-store-review';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
-import { enablePush, hasPushPermission } from '@/features/push';
+import { enablePush, hasPushPermission, PUSH_SUPPORTED } from '@/features/push';
 import { getTranslations } from '@/i18n';
 
 type PositiveMoment = 'save' | 'route_complete';
@@ -41,6 +41,7 @@ export function onPositiveMoment(kind: PositiveMoment): void {
 
 /** Returns true if the invite was shown (so no other dialog follows). */
 async function maybeInviteToRitual(): Promise<boolean> {
+  if (!PUSH_SUPPORTED) return false;
   const settings = useSettingsStore.getState();
   if (settings.pushOptIn !== null || settings.pushPromptedAt) return false;
 
