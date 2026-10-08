@@ -4,6 +4,7 @@ import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from '
 import { normalizeNowTimeWindows } from './admin-places.dto'
 import { translatePlaceFields, type PlaceTranslationFields } from '../../../lib/translation/deepl'
 import { autoClassifyPlace } from './auto-classify'
+import { toStorageObjectKey } from '../../../lib/storage/storage-path'
 import {
   AUTO_TARGET_LOCALES,
   CANONICAL_LOCALE,
@@ -622,7 +623,9 @@ export async function updatePlace(
     await client.query('COMMIT')
 
     // Auto-classify (fire-and-forget — don't block response)
-    autoClassifyPlace(placeId).catch(() => {})
+    autoClassifyPlace(placeId).catch((err) => {
+      console.error(`[auto-classify] Failed for place ${placeId}:`, err)
+    })
 
     // Fetch final state for response
     const { rows: final } = await db.query<{
@@ -662,7 +665,77 @@ export async function updatePlace(
 
 // ─── Delete place ─────────────────────────────────────────────────────────────
 
-export async function deletePlace(placeId: string): Promise<void> {
-  const { rowCount } = await db.query('DELETE FROM places WHERE id = $1', [placeId])
-  if (!rowCount) throw new NotFoundError('Place')
+export interface DeletedStorageObject {
+  bucket: string
+  path: string
+}
+
+/**
+ * Delete a place and the media_assets only it used.
+ *
+ * Deleting `places` cascades to `place_images`, but `media_assets` rows (and
+ * the Storage objects behind them) used to stay behind forever. Within the
+ * same transaction we now drop every asset of this place that nothing else
+ * references (another place's images, a destination hero, a route cover, a
+ * user avatar) and return their locations so the caller can remove the bytes
+ * from Storage once the delete has committed.
+ *
+ * An object is only returned when no remaining media_assets row points at the
+ * same key, comparing paths with the legacy '<bucket>/' prefix stripped — the
+ * same object can be registered under both spellings.
+ */
+export async function deletePlace(placeId: string): Promise<DeletedStorageObject[]> {
+  const client = await db.connect()
+  try {
+    await client.query('BEGIN')
+
+    const { rows: assets } = await client.query<{ asset_id: string }>(
+      `SELECT DISTINCT asset_id FROM place_images WHERE place_id = $1`,
+      [placeId],
+    )
+
+    const { rowCount } = await client.query('DELETE FROM places WHERE id = $1', [placeId])
+    if (!rowCount) throw new NotFoundError('Place')
+
+    let removed: DeletedStorageObject[] = []
+    if (assets.length > 0) {
+      const { rows } = await client.query<DeletedStorageObject>(
+        `
+        DELETE FROM media_assets m
+        WHERE m.id = ANY($1::uuid[])
+          AND NOT EXISTS (SELECT 1 FROM place_images pi WHERE pi.asset_id = m.id)
+          AND NOT EXISTS (SELECT 1 FROM destinations d WHERE d.hero_image_asset_id = m.id)
+          AND NOT EXISTS (SELECT 1 FROM routes r       WHERE r.cover_asset_id = m.id)
+          AND NOT EXISTS (SELECT 1 FROM users u        WHERE u.avatar_asset_id = m.id)
+        RETURNING m.bucket, m.path
+        `,
+        [assets.map((a) => a.asset_id)],
+      )
+
+      // Keep only objects whose normalised key no surviving row still uses.
+      if (rows.length > 0) {
+        const { rows: stillUsed } = await client.query<{ bucket: string; key: string }>(
+          `
+          SELECT DISTINCT m.bucket,
+                 CASE WHEN left(m.path, length(m.bucket) + 1) = m.bucket || '/'
+                      THEN substring(m.path from length(m.bucket) + 2)
+                      ELSE m.path END AS key
+          FROM media_assets m
+          WHERE m.bucket = ANY($1::text[])
+          `,
+          [[...new Set(rows.map((r) => r.bucket))]],
+        )
+        const used = new Set(stillUsed.map((u) => `${u.bucket}\u0000${u.key}`))
+        removed = rows.filter((r) => !used.has(`${r.bucket}\u0000${toStorageObjectKey(r.bucket, r.path)}`))
+      }
+    }
+
+    await client.query('COMMIT')
+    return removed
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    client.release()
+  }
 }

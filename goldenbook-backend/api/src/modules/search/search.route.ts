@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { findPlaces, findRoutes, findCategories } from './search.query'
-import { toSearchPlaceDTO, toSearchRouteDTO, toSearchCategoryDTO } from './search.dto'
+import { findPlaces, findPlacesElsewhere, findRoutes, findCategories } from './search.query'
+import { toSearchPlaceDTO, toSearchRouteDTO, toSearchCategoryDTO, type SearchResponseDTO } from './search.dto'
 import { normalizeLocale } from '../../shared/i18n/locale'
 
 const querySchema = z.object({
@@ -15,17 +15,20 @@ export async function searchRoutes(app: FastifyInstance) {
     const { q, city, locale: rawLocale } = querySchema.parse(request.query)
     const locale = normalizeLocale(rawLocale)
 
-    const [places, routes, categories] = await Promise.all([
+    const [places, routes, categories, elsewhere] = await Promise.all([
       findPlaces(city, locale, q),
       findRoutes(city, locale, q),
       findCategories(city, locale, q),
+      findPlacesElsewhere(city, locale, q, 5),
     ])
 
-    return reply.send({
+    const body: SearchResponseDTO = {
       query: q,
       places:     places.map(toSearchPlaceDTO),
       routes:     routes.map(toSearchRouteDTO),
       categories: categories.map(toSearchCategoryDTO),
-    })
+      elsewhere:  elsewhere.map(toSearchPlaceDTO),
+    }
+    return reply.send(body)
   })
 }

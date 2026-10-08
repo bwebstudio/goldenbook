@@ -460,8 +460,12 @@ async function handleInvoicePaid(
       `UPDATE memberships SET expires_at = $2, status = 'active', updated_at = now()
        WHERE stripe_subscription_id = $1 AND status IN ('active', 'past_due')`,
       [subId, newExpiry.toISOString()],
-    ).catch(() => {})
-    await syncBusinessClientFromSubscription(subId, { status: 'active', paidUntil: newExpiry }).catch(() => {})
+    ).catch((err) => {
+      app.log.error({ err, subId }, '[stripe-webhook] invoice.paid — failed to extend membership')
+    })
+    await syncBusinessClientFromSubscription(subId, { status: 'active', paidUntil: newExpiry }).catch((err) => {
+      app.log.error({ err, subId }, '[stripe-webhook] invoice.paid — failed to sync business client')
+    })
   }
 }
 
@@ -472,7 +476,11 @@ async function handleInvoicePaymentFailed(
   const subId = extractSubscriptionId(invoice)
   app.log.warn(`[stripe-webhook] invoice.payment_failed — id=${invoice.id} sub=${subId}`)
   if (subId) {
-    await updateMembershipStatus(subId, 'past_due').catch(() => {})
-    await syncBusinessClientFromSubscription(subId, { status: 'past_due' }).catch(() => {})
+    await updateMembershipStatus(subId, 'past_due').catch((err) => {
+      app.log.error({ err, subId }, '[stripe-webhook] invoice.payment_failed — failed to mark membership past_due')
+    })
+    await syncBusinessClientFromSubscription(subId, { status: 'past_due' }).catch((err) => {
+      app.log.error({ err, subId }, '[stripe-webhook] invoice.payment_failed — failed to sync business client')
+    })
   }
 }

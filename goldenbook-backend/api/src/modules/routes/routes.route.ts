@@ -33,7 +33,7 @@ function curatedToCard(cr: CuratedRouteWithStops): RouteCardDTO {
       ? { bucket: firstStop.heroImage.bucket, path: firstStop.heroImage.path }
       : { bucket: null, path: null },
     placesCount: cr.stops.length,
-    city: { slug: cr.citySlug, name: cr.citySlug }, // city name comes from stops context
+    city: { slug: cr.citySlug, name: cr.cityName },
   }
 }
 
@@ -51,7 +51,7 @@ function curatedToDetail(cr: CuratedRouteWithStops): RouteDetailDTO {
     heroImage: cr.stops[0]
       ? { bucket: cr.stops[0].heroImage.bucket, path: cr.stops[0].heroImage.path }
       : { bucket: null, path: null },
-    city: { slug: cr.citySlug, name: cr.citySlug },
+    city: { slug: cr.citySlug, name: cr.cityName },
     places: cr.stops.map((s) => ({
       id: s.placeId,
       slug: s.placeSlug,

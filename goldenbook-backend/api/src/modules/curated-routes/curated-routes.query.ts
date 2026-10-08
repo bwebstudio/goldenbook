@@ -66,6 +66,8 @@ async function resolveLocalizedRouteField(args: {
 export interface CuratedRouteWithStops {
   id: string
   citySlug: string
+  // Localized destination display name ("Porto"), falling back to the slug.
+  cityName: string
   routeType: string
   templateType: string | null
   sponsorPlaceId: string | null
@@ -113,6 +115,7 @@ function buildRouteWithStops(
   return {
     id: route.id as string,
     citySlug: route.city_slug as string,
+    cityName: (route.city_name as string) || (route.city_slug as string),
     routeType: route.route_type as string,
     templateType: (route.template_type as string) ?? null,
     sponsorPlaceId: (route.sponsor_place_id as string) ?? null,
@@ -211,6 +214,20 @@ const STOPS_FROM = `
     LIMIT  1
   ) hero_img ON true`
 
+// Localized destination name for curated_routes.city_slug. `$LOCALE$` is
+// replaced with the locale bind parameter, like STOPS_SELECT.
+const CITY_NAME_SELECT = `
+  (SELECT COALESCE(NULLIF(dt.name,''), NULLIF(dt_lang.name,''), NULLIF(dt_fb.name,''), d.name)
+   FROM   destinations d
+   LEFT JOIN destination_translations dt
+          ON dt.destination_id = d.id AND dt.locale = $LOCALE$
+   LEFT JOIN destination_translations dt_lang
+          ON dt_lang.destination_id = d.id AND dt_lang.locale = split_part($LOCALE$, '-', 1) AND $LOCALE$ LIKE '%-%'
+   LEFT JOIN destination_translations dt_fb
+          ON dt_fb.destination_id = d.id AND dt_fb.locale = 'pt'
+   WHERE  d.slug = curated_routes.city_slug
+   LIMIT  1) AS city_name`
+
 // ─── getActiveCuratedRoutes ─────────────────────────────────────────────────
 
 export async function getActiveCuratedRoutes(
@@ -228,7 +245,8 @@ export async function getActiveCuratedRoutes(
             summary,
             title_translations,
             summary_translations,
-            starts_at, expires_at, is_active
+            starts_at, expires_at, is_active,
+            ${CITY_NAME_SELECT.replace(/\$LOCALE\$/g, '$2')}
      FROM   curated_routes
      WHERE  city_slug = $1
        AND  is_active = true
@@ -236,7 +254,7 @@ export async function getActiveCuratedRoutes(
        AND  expires_at > now()
      ORDER  BY route_type = 'sponsored' DESC, created_at DESC
      LIMIT  2`,
-    [citySlug],
+    [citySlug, locale],
   )
 
   if (routeRows.length === 0) return []
@@ -303,11 +321,12 @@ export async function getCuratedRouteById(
             summary,
             title_translations,
             summary_translations,
-            starts_at, expires_at, is_active
+            starts_at, expires_at, is_active,
+            ${CITY_NAME_SELECT.replace(/\$LOCALE\$/g, '$2')}
      FROM   curated_routes
      WHERE  id = $1
      LIMIT  1`,
-    [id],
+    [id, locale],
   )
 
   if (!routeRows[0]) return null

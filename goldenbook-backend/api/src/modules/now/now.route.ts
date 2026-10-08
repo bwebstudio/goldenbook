@@ -4,7 +4,8 @@
 // POST /concierge/now/refresh  — "See another option" (same context, excludes previous).
 // POST /concierge/now/dismiss  — "Not relevant" → returns Concierge-ready context.
 // POST /concierge/now/click    — Track click on a NOW recommendation.
-// GET  /concierge/now/metrics  — Performance metrics (admin).
+// GET  /concierge/now/metrics  — Performance metrics (dashboard auth).
+// POST /concierge/now/optimize — Trigger weight auto-optimization (super admin).
 //
 // Features:
 //   - Configurable weights (DB + segment + experiment overrides)
@@ -56,6 +57,7 @@ import { resolveExperiment } from './now.experiments'
 import { resolveSegment, getSegmentWeightOverrides, type UserSegment } from './now.segments'
 import { getNowPerformanceMetrics, getExperimentMetrics } from './now.metrics'
 import { runAutoOptimization } from './now.optimization'
+import { authenticateDashboardUser, requireSuperAdmin } from '../../shared/auth/dashboardAuth'
 
 // ─── Session history for refresh (anti-repetition) ───────────────────────────
 
@@ -932,9 +934,9 @@ export async function nowRoutes(app: FastifyInstance) {
 
   // ── GET /concierge/now/metrics ─────────────────────────────────────────────
   //
-  // Admin endpoint for NOW performance metrics.
+  // Admin endpoint for NOW performance metrics. Dashboard auth required.
 
-  app.get('/concierge/now/metrics', async (request, reply) => {
+  app.get('/concierge/now/metrics', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const schema = z.object({
       city: z.string().optional(),
       days: z.coerce.number().int().min(1).max(90).default(7),
@@ -953,9 +955,10 @@ export async function nowRoutes(app: FastifyInstance) {
 
   // ── POST /concierge/now/optimize ───────────────────────────────────────────
   //
-  // Manually trigger auto-optimization. In production, run via cron.
+  // Manually trigger auto-optimization. Writes scoring_weight_adjustments, so
+  // it is restricted to super admins.
 
-  app.post('/concierge/now/optimize', async (request, reply) => {
+  app.post('/concierge/now/optimize', { preHandler: [requireSuperAdmin] }, async (request, reply) => {
     const schema = z.object({
       city: z.string().optional(),
       days: z.coerce.number().int().min(1).max(30).default(7),

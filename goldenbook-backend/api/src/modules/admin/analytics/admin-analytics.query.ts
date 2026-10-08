@@ -37,36 +37,36 @@ export interface AnalyticsFilter {
 
 export async function getBookingAnalytics(filter: AnalyticsFilter = {}): Promise<AnalyticsSummary> {
   const days = Math.max(1, Math.min(filter.days ?? 30, 365))
-  const since = `now() - interval '${days} days'`
 
-  // Build optional WHERE fragments for filters
-  const clickFilters: string[] = [`e.created_at >= ${since}`]
-  const impFilters: string[] = [`e.created_at >= ${since}`]
+  // Build optional WHERE fragments for filters. Every value goes through a
+  // bind parameter; impressions and clicks share the same placeholders, so a
+  // single `params` array serves every query below.
+  const params: unknown[] = [days]
+  const filters: string[] = [`e.created_at >= now() - make_interval(days => $1::int)`]
 
   if (filter.provider) {
-    clickFilters.push(`e.provider = '${filter.provider}'::booking_provider`)
-    impFilters.push(`e.provider = '${filter.provider}'::booking_provider`)
+    params.push(filter.provider)
+    filters.push(`e.provider = $${params.length}::booking_provider`)
   }
   if (filter.city) {
-    const city = filter.city.trim().toLowerCase().replace(/\s+/g, '-')
-    clickFilters.push(`e.city = '${city}'`)
-    impFilters.push(`e.city = '${city}'`)
+    params.push(filter.city.trim().toLowerCase().replace(/\s+/g, '-'))
+    filters.push(`e.city = $${params.length}`)
   }
   if (filter.bookingMode) {
-    clickFilters.push(`e.booking_mode = '${filter.bookingMode}'`)
-    impFilters.push(`e.booking_mode = '${filter.bookingMode}'`)
+    params.push(filter.bookingMode)
+    filters.push(`e.booking_mode = $${params.length}`)
   }
 
-  const clickWhere = clickFilters.join(' AND ')
-  const impWhere = impFilters.join(' AND ')
+  const clickWhere = filters.join(' AND ')
+  const impWhere = clickWhere
 
   const [
     totalImpRes, totalClickRes,
     providerRes, modeRes, cityRes, placesRes, categoryRes,
   ] = await Promise.all([
     // Totals
-    db.query<{ count: string }>(`SELECT count(*) FROM booking_impression_events e WHERE ${impWhere}`),
-    db.query<{ count: string }>(`SELECT count(*) FROM booking_click_events e WHERE ${clickWhere}`),
+    db.query<{ count: string }>(`SELECT count(*) FROM booking_impression_events e WHERE ${impWhere}`, params),
+    db.query<{ count: string }>(`SELECT count(*) FROM booking_click_events e WHERE ${clickWhere}`, params),
 
     // By provider — join impressions and clicks
     db.query<{ key: string; impressions: string; clicks: string }>(`
@@ -80,7 +80,7 @@ export async function getBookingAnalytics(filter: AnalyticsFilter = {}): Promise
         (SELECT provider::text, count(*) AS cnt FROM booking_click_events e WHERE ${clickWhere} GROUP BY provider) c
       ON i.provider = c.provider
       ORDER BY COALESCE(c.cnt, 0) DESC
-    `),
+    `, params),
 
     // By mode
     db.query<{ key: string; impressions: string; clicks: string }>(`
@@ -94,7 +94,7 @@ export async function getBookingAnalytics(filter: AnalyticsFilter = {}): Promise
         (SELECT booking_mode, count(*) AS cnt FROM booking_click_events e WHERE ${clickWhere} GROUP BY booking_mode) c
       ON i.booking_mode = c.booking_mode
       ORDER BY COALESCE(c.cnt, 0) DESC
-    `),
+    `, params),
 
     // By city
     db.query<{ key: string; impressions: string; clicks: string }>(`
@@ -108,7 +108,7 @@ export async function getBookingAnalytics(filter: AnalyticsFilter = {}): Promise
         (SELECT COALESCE(city, 'unknown') AS city, count(*) AS cnt FROM booking_click_events e WHERE ${clickWhere} GROUP BY city) c
       ON i.city = c.city
       ORDER BY COALESCE(c.cnt, 0) DESC
-    `),
+    `, params),
 
     // Top places
     db.query<{ place_id: string; place_name: string; place_slug: string; impressions: string; clicks: string }>(`
@@ -126,7 +126,7 @@ export async function getBookingAnalytics(filter: AnalyticsFilter = {}): Promise
       JOIN places p ON p.id = COALESCE(i.place_id, c.place_id)
       ORDER BY COALESCE(c.cnt, 0) DESC
       LIMIT 20
-    `),
+    `, params),
 
     // By category (primary category of the place)
     db.query<{ key: string; impressions: string; clicks: string }>(`
@@ -140,7 +140,7 @@ export async function getBookingAnalytics(filter: AnalyticsFilter = {}): Promise
         (SELECT (SELECT cat.slug FROM place_categories pc JOIN categories cat ON cat.id = pc.category_id WHERE pc.place_id = e.place_id AND pc.is_primary LIMIT 1) AS cat, count(*) AS cnt FROM booking_click_events e WHERE ${clickWhere} GROUP BY cat) c
       ON i.cat = c.cat
       ORDER BY COALESCE(i.cnt, 0) + COALESCE(c.cnt, 0) DESC
-    `),
+    `, params),
   ])
 
   const totalImpressions = parseInt(totalImpRes.rows[0]?.count ?? '0', 10)

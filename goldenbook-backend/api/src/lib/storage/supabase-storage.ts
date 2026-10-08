@@ -16,6 +16,7 @@
 // service-role key is already in the environment.
 
 import { env } from '../../config/env'
+import { toStorageObjectKey } from './storage-path'
 
 /**
  * Delete a single object from a Supabase Storage bucket.
@@ -33,9 +34,15 @@ import { env } from '../../config/env'
 export async function deleteStorageObject(bucket: string, path: string): Promise<boolean> {
   if (!bucket || !path) return false
 
+  // Legacy media_assets rows store `place-images/<key>`; sending that as-is
+  // requested `place-images/place-images/<key>`, got a 404 and was reported
+  // as deleted while the object stayed in the bucket.
+  const key = toStorageObjectKey(bucket, path)
+  if (!key) return false
+
   const base = env.SUPABASE_URL.replace(/\/$/, '')
   // Each path segment is encoded separately so the "/" separators survive.
-  const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+  const encodedPath = key.split('/').map(encodeURIComponent).join('/')
   const url = `${base}/storage/v1/object/${encodeURIComponent(bucket)}/${encodedPath}`
 
   try {
@@ -51,13 +58,13 @@ export async function deleteStorageObject(bucket: string, path: string): Promise
 
     const body = await res.text().catch(() => '')
     console.error(
-      `[storage] failed to delete ${bucket}/${path}: ${res.status} ${body.slice(0, 200)} ` +
+      `[storage] failed to delete ${bucket}/${key}: ${res.status} ${body.slice(0, 200)} ` +
       `— object is now orphaned and still counts against the storage quota`,
     )
     return false
   } catch (err) {
     console.error(
-      `[storage] error deleting ${bucket}/${path}:`, err,
+      `[storage] error deleting ${bucket}/${key}:`, err,
       '— object is now orphaned and still counts against the storage quota',
     )
     return false

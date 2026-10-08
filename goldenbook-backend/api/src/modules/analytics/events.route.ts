@@ -241,7 +241,20 @@ export async function analyticsEventsRoutes(app: FastifyInstance) {
 
     const internal = isInternalTraffic(request)
 
-    fireAndForget(request, `events/${p.event}`, db.query(
+    // analytics_events.session_id references user_sessions. The client sends
+    // sessions/start and the first events in parallel, and sessions/start is
+    // fire-and-forget too, so an event can win the race and fail the FK.
+    // Make sure the session row exists first; a later start fills in the rest.
+    const ensureSession = sessionId
+      ? db.query(
+          `INSERT INTO user_sessions (session_id, user_id, started_at, last_seen_at, is_internal)
+           VALUES ($1, $2, now(), now(), $3)
+           ON CONFLICT (session_id) DO NOTHING`,
+          [sessionId, userId, internal],
+        )
+      : Promise.resolve()
+
+    fireAndForget(request, `events/${p.event}`, ensureSession.then(() => db.query(
       `INSERT INTO analytics_events (
          event_name, user_id, session_id, place_id, route_id,
          category, city, locale, device, app_version, source, metadata,
@@ -255,7 +268,7 @@ export async function analyticsEventsRoutes(app: FastifyInstance) {
         p.metadata ? JSON.stringify(p.metadata) : '{}',
         internal,
       ],
-    ))
+    )))
 
     // Side-effect: search_query events also land in search_queries so
     // the dashboard can answer "zero-result queries" without scanning JSON.
