@@ -7,6 +7,7 @@ import { useTranslation } from '@/i18n';
 import type { MapPlace } from '@/types/api';
 import { colors, typography, spacing, radius, elevation } from '@/design/tokens';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 interface PlacePreviewCardProps {
   place: MapPlace;
@@ -33,7 +34,7 @@ function openInMaps(place: MapPlace, router: ReturnType<typeof useRouter>) {
     });
   } else {
     // No coordinates → open place detail instead
-    openPlace(router, place.slug, { source: 'map', placeId: place.id });
+    openPlace(router, place.slug, { source: 'map', placeId: place.id, category: place.categorySlugs?.[0] });
   }
 }
 
@@ -50,7 +51,7 @@ export function PlacePreviewCard({ place, onClose }: PlacePreviewCardProps) {
       <View style={styles.row}>
         {/* Thumbnail */}
         <TouchableOpacity
-          onPress={() => openPlace(router, place.slug, { source: 'map', placeId: place.id })}
+          onPress={() => openPlace(router, place.slug, { source: 'map', placeId: place.id, category: place.categorySlugs?.[0] })}
           activeOpacity={0.85}
         >
           <ProgressiveImage
@@ -64,12 +65,12 @@ export function PlacePreviewCard({ place, onClose }: PlacePreviewCardProps) {
 
         {/* Name + city — tap opens detail */}
         <TouchableOpacity
-          onPress={() => openPlace(router, place.slug, { source: 'map', placeId: place.id })}
+          onPress={() => openPlace(router, place.slug, { source: 'map', placeId: place.id, category: place.categorySlugs?.[0] })}
           activeOpacity={0.85}
           style={styles.info}
         >
           <Text style={styles.name} numberOfLines={1}>
-            {place.name}
+            {displayPlaceName(place.name)}
           </Text>
           <View style={styles.cityRow}>
             <Ionicons name="location-outline" size={10} color={colors.primary} />
@@ -91,7 +92,14 @@ export function PlacePreviewCard({ place, onClose }: PlacePreviewCardProps) {
       </View>
 
       {/* Close */}
-      <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
+      <TouchableOpacity
+        onPress={onClose}
+        style={styles.closeBtn}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={t.a11y.closePreview}
+      >
         <Ionicons name="close" size={16} color={colors.navy.DEFAULT} />
       </TouchableOpacity>
     </View>

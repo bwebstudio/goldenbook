@@ -16,7 +16,10 @@ import { StorageKeys } from './storage';
 // freshness is decided separately by `staleTime` on each query and by the
 // "stale data" UX surfaced via `dataUpdatedAt`.
 
-export const PERSISTER_VERSION = 'v1';
+// v2: the saved list key gained the user id (['saved', userId, locale]).
+// Bumping drops every blob persisted by older builds, including any
+// ['saved', locale] entry that was not tied to an account.
+export const PERSISTER_VERSION = 'v2';
 const MAX_AGE_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 export const queryPersister = createAsyncStoragePersister({

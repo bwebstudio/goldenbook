@@ -23,6 +23,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Alert, Platform } from 'react-native';
 import { supabase } from '@/auth/supabaseClient';
+import { useTranslation } from '@/i18n';
 
 // Required for WebBrowser to complete auth sessions correctly on iOS.
 WebBrowser.maybeCompleteAuthSession();
@@ -190,6 +191,7 @@ async function handleCallbackUrl(rawUrl: string): Promise<
 }
 
 export function useGoogleSignIn() {
+  const t = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
@@ -356,15 +358,16 @@ export function useGoogleSignIn() {
       throw new Error(outcome.message);
     } catch (e: any) {
       if (__DEV__) console.warn('[useGoogleSignIn] failed:', e);
-      const message =
-        e?.message ??
-        (typeof e === 'string' ? e : 'Google sign-in failed. Please try again.');
+      // The raw error (OAuth codes, callback URLs...) means nothing to the
+      // user and isn't translated, so show our own copy and keep the detail
+      // for the dev log above.
+      const message = t.authErrors.googleSignInFailed;
       setError(message);
       // Also surface the error via a native Alert so it's impossible to miss
       // — the in-screen banner can be obscured by the keyboard or by the
       // user being on a different screen by the time we resolve.
       try {
-        Alert.alert('Google sign-in', message);
+        Alert.alert(t.authErrors.googleSignInTitle, message);
       } catch {
         // ignore
       }
@@ -380,6 +383,7 @@ export function useGoogleSignIn() {
 // ─── Apple ────────────────────────────────────────────────────────────────────
 
 export function useAppleSignIn() {
+  const t = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
@@ -410,7 +414,8 @@ export function useAppleSignIn() {
       // onAuthStateChange fires and updates session automatically.
     } catch (e: any) {
       if (e?.code === 'ERR_CANCELED') return; // User cancelled — silent.
-      setError(e.message ?? 'Apple sign-in failed. Please try again.');
+      if (__DEV__) console.warn('[useAppleSignIn] failed:', e);
+      setError(t.authErrors.appleSignInFailed);
     } finally {
       setLoading(false);
     }

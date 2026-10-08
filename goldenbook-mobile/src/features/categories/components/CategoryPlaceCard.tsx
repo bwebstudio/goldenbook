@@ -4,6 +4,7 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
 import type { CategoryPlaceDTO } from '../types';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 interface CategoryPlaceCardProps {
   place: CategoryPlaceDTO;
@@ -35,7 +36,7 @@ export function CategoryPlaceCard({ place }: CategoryPlaceCardProps) {
           style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
           numberOfLines={2}
         >
-          {place.name}
+          {displayPlaceName(place.name)}
         </Text>
         {place.summary ? (
           <Text className="text-navy/50 text-xs mt-1 leading-relaxed" numberOfLines={2}>

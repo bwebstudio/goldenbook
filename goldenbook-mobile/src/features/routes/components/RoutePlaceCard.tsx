@@ -6,6 +6,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import type { RoutePlaceDTO } from '../types';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 const IMAGE_SIZE = 76;
 
@@ -79,7 +80,7 @@ export const RoutePlaceCard = React.memo(function RoutePlaceCard({ place, index,
                 style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
                 numberOfLines={1}
               >
-                {place.name}
+                {displayPlaceName(place.name)}
               </Text>
               <Ionicons name="chevron-forward" size={14} color="#D2B68A" />
             </View>

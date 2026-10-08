@@ -4,6 +4,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { openRoute } from '@/features/routes/openRoute';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from '@/i18n';
 import { RouteSaveButton } from '@/features/saved/components/RouteSaveButton';
@@ -26,7 +27,7 @@ export const RouteCard = React.memo(function RouteCard({ route }: RouteCardProps
   return (
     <View className="mx-6 mb-4" style={{ height: CARD_HEIGHT }}>
       <TouchableOpacity
-        onPress={() => router.push(`/routes/${route.slug}` as any)}
+        onPress={() => openRoute(router, route.slug, 'discover')}
         activeOpacity={0.9}
         className="rounded-2xl overflow-hidden"
         style={{

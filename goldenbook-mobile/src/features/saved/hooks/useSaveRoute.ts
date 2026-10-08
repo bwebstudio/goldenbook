@@ -1,6 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAuthStore } from '@/store/authStore';
 import { useNetworkStore } from '@/store/networkStore';
 import { useMutationQueueStore } from '@/store/mutationQueueStore';
 import { savedApi } from '../api';
@@ -15,6 +16,7 @@ interface UseSaveRouteOptions {
 export function useSaveRoute(routeId: string, options: UseSaveRouteOptions = {}) {
   const queryClient = useQueryClient();
   const locale = useSettingsStore((s) => s.locale);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const { data: saved, isLoading: savedLoading } = useSaved();
   const prefetchOffline = usePrefetchRouteOffline();
 
@@ -58,7 +60,7 @@ export function useSaveRoute(routeId: string, options: UseSaveRouteOptions = {})
     },
 
     onMutate: async () => {
-      const key = SAVED_QUERY_KEY(locale);
+      const key = SAVED_QUERY_KEY(userId, locale);
       await queryClient.cancelQueries({ queryKey: ['saved'] });
       const prev = queryClient.getQueryData<SavedResponse>(key);
 
@@ -91,7 +93,7 @@ export function useSaveRoute(routeId: string, options: UseSaveRouteOptions = {})
     onError: (err, _vars, ctx) => {
       console.warn('[useSaveRoute] mutation failed:', err);
       if (ctx?.prev) {
-        queryClient.setQueryData(SAVED_QUERY_KEY(locale), ctx.prev);
+        queryClient.setQueryData(SAVED_QUERY_KEY(userId, locale), ctx.prev);
       }
     },
 

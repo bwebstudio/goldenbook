@@ -1,5 +1,6 @@
 import { TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/i18n';
 import { useSaveRoute } from '../hooks/useSaveRoute';
 import { colors } from '@/design/tokens';
 import type { SavedRouteDTO } from '@/types/api';
@@ -20,6 +21,7 @@ export function RouteSaveButton({
   style,
 }: RouteSaveButtonProps) {
   const { isSaved, toggle, isPending } = useSaveRoute(routeId, { snapshot });
+  const t = useTranslation();
 
   return (
     <TouchableOpacity
@@ -27,7 +29,8 @@ export function RouteSaveButton({
       disabled={isPending || !routeId}
       activeOpacity={0.6}
       accessibilityRole="button"
-      accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
+      accessibilityLabel={isSaved ? t.a11y.removeFromSaved : t.a11y.save}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       style={style}
     >
       <Ionicons

@@ -244,6 +244,8 @@ export function GoldenMenu({ visible, onClose }: GoldenMenuProps) {
             onPress={onClose}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
             style={styles.closeBtn}
           >
             <Ionicons name="close" size={18} color={`${NAVY}50`} />

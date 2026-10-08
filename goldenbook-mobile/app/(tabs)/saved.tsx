@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import { useSaved } from '@/features/saved/hooks/useSaved';
 import { SavedPlaceCard, SavedRouteCard } from '@/features/saved/components';
 import { useTranslation } from '@/i18n';
 import { colors, typography, spacing, radius } from '@/design/tokens';
+import type { SavedPlaceDTO, SavedRouteDTO } from '@/types/api';
 
 type Tab = 'places' | 'routes';
 
@@ -122,22 +123,27 @@ export default function SavedScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        >
-          {activeTab === 'places' ? (
-            savedPlaces.length === 0 ? (
-              <PlacesEmptyState />
-            ) : (
-              savedPlaces.map((place) => <SavedPlaceCard key={place.id} place={place} />)
-            )
-          ) : savedRoutes.length === 0 ? (
-            <RoutesEmptyState />
-          ) : (
-            savedRoutes.map((route) => <SavedRouteCard key={route.id} route={route} />)
-          )}
-        </ScrollView>
+        activeTab === 'places' ? (
+          <FlatList<SavedPlaceDTO>
+            key="places"
+            data={savedPlaces}
+            keyExtractor={(place) => place.id}
+            renderItem={({ item }) => <SavedPlaceCard place={item} />}
+            ListEmptyComponent={PlacesEmptyState}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
+        ) : (
+          <FlatList<SavedRouteDTO>
+            key="routes"
+            data={savedRoutes}
+            keyExtractor={(route) => route.id}
+            renderItem={({ item }) => <SavedRouteCard route={item} />}
+            ListEmptyComponent={RoutesEmptyState}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          />
+        )
       )}
     </SafeAreaView>
   );

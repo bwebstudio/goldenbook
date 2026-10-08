@@ -75,6 +75,8 @@ export function RouteHero({
       {/* Back button */}
       <TouchableOpacity
         onPress={() => router.back()}
+        accessibilityRole="button"
+        accessibilityLabel={t.common.goBack}
         className="absolute left-6 items-center justify-center rounded-full"
         style={{
           top: insets.top + 8,

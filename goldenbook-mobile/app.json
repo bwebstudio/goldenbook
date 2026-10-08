@@ -2,7 +2,7 @@
   "expo": {
     "name": "Goldenbook Go",
     "slug": "goldenbook",
-    "version": "1.1.2",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
@@ -20,13 +20,42 @@
       "buildNumber": "77",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Your location is used to show nearby places and local recommendations.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
         "NSPrivacyTrackingDomains": [],
         "NSPrivacyCollectedDataTypes": [],
-        "NSPrivacyAccessedAPITypes": []
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1",
+              "0A2A.1",
+              "3B52.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1",
+              "85F4.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -42,19 +71,26 @@
       ],
       "blockedPermissions": [
         "com.google.android.gms.permission.AD_ID"
-      ]
+      ],
+      "edgeToEdgeEnabled": true
     },
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-asset",
       "expo-apple-authentication",
       [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Your location is used to show nearby places and local recommendations.",
-          "locationWhenInUsePermission": "Your location is used to show nearby places and local recommendations."
+          "locationWhenInUsePermission": "Your location is used to show nearby places and local recommendations.",
+          "locationAlwaysPermission": "Your location is used to show nearby places and local recommendations."
         }
       ],
       "expo-localization",
@@ -71,8 +107,8 @@
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "enableProguardInReleaseBuilds": false,
             "useLegacyPackaging": false
           }
@@ -100,9 +136,16 @@
       }
     },
     "owner": "goldenbook",
-    "runtimeVersion": "1.1.2",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
       "url": "https://u.expo.dev/134f9bf5-71ef-42f0-bef9-789e42476be1"
+    },
+    "locales": {
+      "en": "./native-locales/en.json",
+      "es": "./native-locales/es.json",
+      "pt": "./native-locales/pt.json"
     }
   }
 }

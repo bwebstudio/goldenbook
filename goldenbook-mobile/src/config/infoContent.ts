@@ -36,7 +36,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
       title: 'About Goldenbook Go',
       subtitle: 'The curated city guide for the discerning traveller.',
       body: [
-        'Goldenbook Go is a curated guide to the places that actually matter — the restaurants worth the detour, the viewpoints only locals know, the neighbourhood bars with no sign on the door.',
+        'Goldenbook Go is a curated guide to the places that actually matter: the restaurants worth the detour, the viewpoints only locals know, the neighbourhood bars with no sign on the door.',
         'We believe meaningful travel experiences come from genuine knowledge, not algorithms. Every place in Goldenbook Go is selected by editors with deep roots in their cities.',
         'We started in Lisbon. We are expanding to Porto, the Algarve, and beyond.',
       ],
@@ -46,7 +46,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
       title: 'Sobre o Goldenbook Go',
       subtitle: 'O guia curado da cidade para o viajante exigente.',
       body: [
-        'O Goldenbook Go é um guia curado dos lugares que realmente importam — os restaurantes que valem a deslocação, os miradouros que só os locais conhecem, os bares de bairro sem placa na porta.',
+        'O Goldenbook Go é um guia curado dos lugares que realmente importam: os restaurantes que valem a deslocação, os miradouros que só os locais conhecem, os bares de bairro sem placa na porta.',
         'Acreditamos que as experiências de viagem mais significativas vêm de um conhecimento genuíno, não de algoritmos. Cada lugar no Goldenbook Go é selecionado por editores com raízes profundas nas suas cidades.',
         'Começámos em Lisboa. Estamos a expandir para o Porto, o Algarve e além.',
       ],
@@ -56,7 +56,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
       title: 'Sobre Goldenbook Go',
       subtitle: 'La guía curada de ciudad para el viajero exigente.',
       body: [
-        'Goldenbook Go es una guía curada de los lugares que realmente importan — restaurantes que merecen el desvío, miradores que solo conocen los locales y bares de barrio sin cartel en la puerta.',
+        'Goldenbook Go es una guía curada de los lugares que realmente importan: restaurantes que merecen el desvío, miradores que solo conocen los locales y bares de barrio sin cartel en la puerta.',
         'Creemos que las experiencias de viaje más significativas nacen del conocimiento auténtico, no de algoritmos. Cada lugar en Goldenbook Go está seleccionado por editores con raíces profundas en sus ciudades.',
         'Empezamos en Lisboa. Nos estamos expandiendo a Oporto, Algarve y más allá.',
       ],
@@ -106,7 +106,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
       subtitle: 'Simple rules for using Goldenbook Go.',
       body: [
         'By using Goldenbook Go, you agree to use the app and website for personal, non-commercial purposes only.',
-        'All editorial content — picks, routes, and descriptions — is the property of Goldenbook Go. You may share links, but reproduction without permission is not permitted.',
+        'All editorial content, including picks, routes and descriptions, is the property of Goldenbook Go. You may share links, but reproduction without permission is not permitted.',
         'We reserve the right to update these terms. Continued use of the app constitutes acceptance of any changes.',
       ],
     },
@@ -116,7 +116,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
       subtitle: 'Regras simples para usar o Goldenbook Go.',
       body: [
         'Ao usar o Goldenbook Go, concordas em utilizar a aplicação e o website apenas para fins pessoais e não comerciais.',
-        'Todo o conteúdo editorial — picks, rotas e descrições — é propriedade do Goldenbook Go. Podes partilhar links, mas a reprodução sem autorização não é permitida.',
+        'Todo o conteúdo editorial, incluindo picks, rotas e descrições, é propriedade do Goldenbook Go. Podes partilhar links, mas a reprodução sem autorização não é permitida.',
         'Reservamo-nos o direito de atualizar estes termos. O uso continuado da aplicação constitui aceitação de quaisquer alterações.',
       ],
     },
@@ -126,7 +126,7 @@ export const INFO_CONTENT: Record<string, LocalizedInfoPageContent> = {
       subtitle: 'Reglas simples para usar Goldenbook Go.',
       body: [
         'Al usar Goldenbook Go, aceptas utilizar la app y el sitio web solo para fines personales y no comerciales.',
-        'Todo el contenido editorial — picks, rutas y descripciones — es propiedad de Goldenbook Go. Puedes compartir enlaces, pero la reproducción sin permiso no está permitida.',
+        'Todo el contenido editorial, incluidos picks, rutas y descripciones, es propiedad de Goldenbook Go. Puedes compartir enlaces, pero la reproducción sin permiso no está permitida.',
         'Nos reservamos el derecho de actualizar estos términos. El uso continuado de la app constituye la aceptación de cualquier cambio.',
       ],
     },

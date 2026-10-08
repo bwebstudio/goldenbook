@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import { TabActions } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, DevSettings, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, DevSettings, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/authStore';
 import { useAppStore } from '@/store/appStore';
@@ -178,7 +179,9 @@ export default function ProfileScreen() {
         <TouchableOpacity
           onPress={handleClose}
           activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel={t.common.close}
         >
           <Ionicons name="close" size={24} color={colors.navy.DEFAULT} />
         </TouchableOpacity>
@@ -193,7 +196,7 @@ export default function ProfileScreen() {
         <View style={styles.hero}>
           <View style={styles.avatarWrap}>
             {photoURL ? (
-              <Image source={{ uri: photoURL }} style={styles.avatarImage} resizeMode="cover" />
+              <Image source={{ uri: photoURL }} style={styles.avatarImage} contentFit="cover" transition={200} />
             ) : (
               <Text style={styles.avatarInitials}>{initials}</Text>
             )}
@@ -241,7 +244,7 @@ export default function ProfileScreen() {
             <MenuRow
               label={t.profile.notifications}
               onPress={() =>
-                router.push({ pathname: '/info', params: { contentKey: 'notifications' } })
+                router.push('/notifications')
               }
             />
             <MenuRow

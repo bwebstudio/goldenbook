@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { openRoute } from '@/features/routes/openRoute';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
 import { RouteSaveButton } from './RouteSaveButton';
@@ -17,7 +18,7 @@ export function SavedRouteCard({ route }: SavedRouteCardProps) {
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        onPress={() => router.push(`/routes/${route.slug}` as any)}
+        onPress={() => openRoute(router, route.slug, 'saved')}
         activeOpacity={0.85}
         style={styles.touchRow}
       >

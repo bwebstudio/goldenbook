@@ -227,9 +227,15 @@ export const es: Translations = {
     places: 'Lugares',
     routes: 'Rutas',
     categories: 'Categorías',
+    curatedRoute: 'Ruta curada',
+    viewRoute: 'Ver ruta',
+    explore: 'Explorar',
+    elsewhere: 'En otros destinos',
+    noResultsInCity: 'Aún nada en {city}, pero hemos encontrado esto en otros destinos.',
   },
 
   place: {
+    cannotOpenLink: 'No se ha podido abrir este enlace.',
     couldNotLoad: 'No se pudo cargar este lugar.\nComprueba tu conexión y vuelve a intentarlo.',
     goldenbookPerspective: 'La Perspectiva de Goldenbook Go',
     editorialStaff: 'Equipo Editorial',
@@ -466,6 +472,39 @@ export const es: Translations = {
     checkInboxExpiresIn24h: 'Revisa tu bandeja de entrada. El enlace caduca en 24 horas.',
   },
 
+  // ─── Hoja para compartir ─────────────────────────────────────────────────
+  notificationsScreen: {
+    title: 'Notificaciones',
+    heroTitle: 'Un plan cada tarde',
+    heroBody: 'A las 18:00, hora de tu destino, te enviamos una sola idea para esa noche: un sitio que merece la pena, con el motivo para ir hoy.',
+    ritualLabel: 'Ritual diario de las 18:00',
+    ritualHint: 'Una notificación al día. Puedes desactivarla cuando quieras.',
+    blocked: 'Las notificaciones de Goldenbook Go están desactivadas en los ajustes del teléfono.',
+    openSettings: 'Abrir ajustes',
+    failed: 'No se han podido activar las notificaciones. Inténtalo de nuevo.',
+  },
+
+  pushInvite: {
+    title: '¿Un plan cada tarde?',
+    body: 'A las 18:00 te enviamos una idea para esa noche en tu destino. Una al día, nada más.',
+    notNow: 'Ahora no',
+    accept: 'Avisarme',
+  },
+
+  splash: {
+    subtitle: 'Lugares seleccionados. Experiencias excepcionales.',
+  },
+
+  shareSheet: {
+    failed: 'No se pudo abrir el menú para compartir. Inténtalo de nuevo.',
+    cta: 'Descúbrelo en Goldenbook Go',
+  },
+
+  // ─── Ahora: "Ver otra opción" ─────────────────────────────────────────────
+  nowRefresh: {
+    failed: 'No pudimos cargar otra opción. Inténtalo de nuevo.',
+  },
+
   // ─── Errores relacionados con auth ───────────────────────────────────────
   authErrors: {
     signInFailedGeneric: 'No se pudo iniciar sesión. Revisa tus credenciales.',
@@ -475,9 +514,13 @@ export const es: Translations = {
     passwordPolicy: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números.',
     resetFailed: 'No pudimos enviar el correo de restablecimiento. Inténtalo de nuevo.',
     resetConfirmFailed: 'No se pudo restablecer la contraseña.',
+    googleSignInTitle: 'Iniciar sesión con Google',
+    googleSignInFailed: 'No se ha podido iniciar sesión con Google. Inténtalo de nuevo.',
+    appleSignInFailed: 'No se ha podido iniciar sesión con Apple. Inténtalo de nuevo.',
   },
 
   map: {
+    title: 'Explorar',
     go: 'Ir',
   },
 
@@ -485,5 +528,28 @@ export const es: Translations = {
   errorBoundary: {
     title: 'Algo ha ido mal',
     body: 'Cierra la app y vuelve a abrirla. Si el problema persiste, contacta con soporte.',
+  },
+
+  // ─── Selector de destino (primer arranque + cambio de destino) ───────────
+  destinationPicker: {
+    heading: 'Elige tu\ndestino',
+    subtitle: 'Personalizaremos cada recomendación\nsegún la ciudad que estés explorando.',
+    title: 'Elige tu destino',
+    selectToContinue: 'Selecciona un destino para continuar',
+    choose: 'Elige un destino',
+    continueTo: 'Continuar a {city}',
+  },
+
+  // ─── Etiquetas de lector de pantalla para botones solo con icono ─────────
+  a11y: {
+    openMenu: 'Abrir menú',
+    clearSearch: 'Borrar búsqueda',
+    share: 'Compartir',
+    save: 'Guardar',
+    removeFromSaved: 'Quitar de guardados',
+    openWebsite: 'Abrir sitio web',
+    call: 'Llamar',
+    openPhoto: 'Abrir foto {n} de {total}',
+    closePreview: 'Cerrar vista previa',
   },
 };

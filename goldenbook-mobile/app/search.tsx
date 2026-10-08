@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
+  SectionList,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,40 @@ import {
   SearchRouteRow,
   SearchCategoryRow,
 } from '@/features/search/components';
+import { getLocalityBySlug } from '@/config/localities';
+import type {
+  SearchPlaceDTO,
+  SearchRouteDTO,
+  SearchCategoryDTO,
+  SearchElsewherePlaceDTO,
+} from '@/features/search/types';
+
+type ResultRow =
+  | { kind: 'place'; key: string; place: SearchPlaceDTO }
+  | { kind: 'route'; key: string; route: SearchRouteDTO }
+  | { kind: 'category'; key: string; category: SearchCategoryDTO }
+  | { kind: 'elsewhere'; key: string; place: SearchElsewherePlaceDTO };
+
+interface ResultSection {
+  key: string;
+  title: string;
+  /** Vertical space between rows, matching the old `gap-*` per section. */
+  gap: number;
+  data: ResultRow[];
+}
+
+function renderRow(row: ResultRow) {
+  switch (row.kind) {
+    case 'place':
+      return <SearchPlaceRow place={row.place} />;
+    case 'route':
+      return <SearchRouteRow route={row.route} />;
+    case 'category':
+      return <SearchCategoryRow category={row.category} />;
+    case 'elsewhere':
+      return <SearchPlaceRow place={row.place} city={row.place.city} />;
+  }
+}
 
 // Shortest query worth recording. Below this the search API returns nothing
 // useful, so logging it would only manufacture zero-result rows. Keep in sync
@@ -75,6 +109,7 @@ export default function SearchScreen() {
       (data?.places?.length ?? 0) +
       (data?.routes?.length ?? 0) +
       (data?.categories?.length ?? 0);
+    const elsewhereCount = data?.elsewhere?.length ?? 0;
 
     // A refinement is the same search continued, not a new one.
     const refines =
@@ -87,18 +122,66 @@ export default function SearchScreen() {
         query: query.slice(0, 80),
         result_count: resultCount,
         city,
+        ...(elsewhereCount > 0 ? { elsewhere_count: elsewhereCount } : {}),
         ...(refines ? { supersedes: refines.slice(0, 80) } : {}),
       },
     });
   }, [query, isSuccess, isFetching, data, city]);
 
-  const hasResults =
-    data &&
+  const hasLocalResults =
+    !!data &&
     ((data.places?.length ?? 0) > 0 ||
       (data.routes?.length ?? 0) > 0 ||
       (data.categories?.length ?? 0) > 0);
+  const hasElsewhere = (data?.elsewhere?.length ?? 0) > 0;
+  const hasResults = hasLocalResults || hasElsewhere;
   const isActive = query.length >= 2;
   const isEmpty = isActive && !isLoading && !hasResults;
+  const cityName = getLocalityBySlug(city)?.name ?? city;
+
+  const sections = useMemo<ResultSection[]>(() => {
+    if (!data) return [];
+    const out: ResultSection[] = [];
+    if (data.places?.length) {
+      out.push({
+        key: 'places',
+        title: t.search.places,
+        gap: 20,
+        data: data.places.map((place) => ({ kind: 'place', key: place.id, place })),
+      });
+    }
+    if (data.routes?.length) {
+      out.push({
+        key: 'routes',
+        title: t.search.routes,
+        gap: 12,
+        data: data.routes.map((route) => ({ kind: 'route', key: route.id, route })),
+      });
+    }
+    if (data.categories?.length) {
+      out.push({
+        key: 'categories',
+        title: t.search.categories,
+        gap: 0,
+        data: data.categories.map((category) => ({ kind: 'category', key: category.id, category })),
+      });
+    }
+    // Matches in other destinations always come last, after everything
+    // local. Older backends don't send `elsewhere` at all.
+    if (data.elsewhere?.length) {
+      out.push({
+        key: 'elsewhere',
+        title: t.search.elsewhere,
+        gap: 20,
+        data: data.elsewhere.map((place) => ({
+          kind: 'elsewhere',
+          key: `${place.city.slug}:${place.id}`,
+          place,
+        })),
+      });
+    }
+    return out;
+  }, [data, t]);
 
   return (
     <SafeAreaView className="flex-1 bg-ivory" edges={['top', 'bottom']}>
@@ -107,6 +190,8 @@ export default function SearchScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={t.common.goBack}
         >
           <Ionicons name="arrow-back" size={22} color="#222D52" />
         </TouchableOpacity>
@@ -136,7 +221,9 @@ export default function SearchScreen() {
           {inputValue.length > 0 && (
             <TouchableOpacity
               onPress={() => setInputValue('')}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
+              accessibilityRole="button"
+              accessibilityLabel={t.a11y.clearSearch}
             >
               <Ionicons name="close-circle" size={16} color="rgba(34,45,82,0.28)" />
             </TouchableOpacity>
@@ -194,48 +281,31 @@ export default function SearchScreen() {
 
       {/* ── Results ─────────────────────────────────────────────── */}
       {isActive && !isLoading && hasResults && (
-        <ScrollView
+        <SectionList
+          sections={sections}
+          keyExtractor={(row) => `${row.kind}:${row.key}`}
+          stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 48, paddingTop: 4 }}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-        >
-          {/* Places */}
-          {(data.places?.length ?? 0) > 0 && (
-            <View className="mb-8">
-              <SearchSectionLabel label={t.search.places} count={data.places.length} />
-              <View className="px-6 gap-5">
-                {data.places.map((place) => (
-                  <SearchPlaceRow key={place.id} place={place} />
-                ))}
-              </View>
+          ListHeaderComponent={
+            !hasLocalResults ? (
+              <Text className="text-navy/40 text-sm px-6 mb-6 leading-relaxed">
+                {t.search.noResultsInCity.replace('{city}', cityName)}
+              </Text>
+            ) : null
+          }
+          renderSectionHeader={({ section }) => (
+            <SearchSectionLabel label={section.title} count={section.data.length} />
+          )}
+          renderSectionFooter={() => <View className="mb-8" />}
+          renderItem={({ item, index, section }) => (
+            <View className="px-6" style={index > 0 ? { marginTop: section.gap } : undefined}>
+              {renderRow(item)}
             </View>
           )}
-
-          {/* Routes */}
-          {(data.routes?.length ?? 0) > 0 && (
-            <View className="mb-8">
-              <SearchSectionLabel label={t.search.routes} count={data.routes.length} />
-              <View className="px-6 gap-3">
-                {data.routes.map((route) => (
-                  <SearchRouteRow key={route.id} route={route} />
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* Categories */}
-          {(data.categories?.length ?? 0) > 0 && (
-            <View className="mb-8">
-              <SearchSectionLabel label={t.search.categories} count={data.categories?.length} />
-              <View className="px-6">
-                {data.categories?.map((cat) => (
-                  <SearchCategoryRow key={cat.id} category={cat} />
-                ))}
-              </View>
-            </View>
-          )}
-        </ScrollView>
+        />
       )}
     </SafeAreaView>
   );

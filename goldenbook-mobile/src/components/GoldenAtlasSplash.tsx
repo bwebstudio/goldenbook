@@ -17,10 +17,19 @@
  *   2720–3000ms Step 6 — Subtitle fades in, holds for reading
  *   4000–4300ms Step 7 — Exit: screen fades, onComplete fires
  *
+ * Variants:
+ *   'full'  — the timeline above. Shown on the first launch after install.
+ *   'quick' — starts on the final frame (star + title), holds ~900ms and
+ *             fades out (~1.2s total). Used on every later launch.
+ *
+ * The exit fade never starts before `canExit` is true, so the overlay keeps
+ * covering the app until the stores are ready and the navigation guard has
+ * put the right screen underneath.
+ *
  * Pure React Native Animated API — no extra dependencies required.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -29,6 +38,7 @@ import {
   View,
 } from 'react-native';
 import { colors, typography } from '@/design/tokens';
+import { getTranslations } from '@/i18n';
 
 const { width, height } = Dimensions.get('screen');
 const cx = width / 2;
@@ -50,19 +60,42 @@ const RING_BORDER      = 1.5;
 // Wrapper is slightly larger than the ring so scale animation never clips
 const STAR_WRAPPER     = 96;
 
+export type SplashVariant = 'full' | 'quick';
+
 interface GoldenAtlasSplashProps {
   onComplete: () => void;
+  /** 'full' on first launch, 'quick' afterwards. Read once, at mount. */
+  variant?: SplashVariant;
+  /** Hold the final frame until this is true, then fade out. */
+  canExit?: boolean;
 }
+
+const QUICK_HOLD_MS = 900;
+const FULL_EXIT_AT_MS = 4000;
+const EXIT_FADE_MS = 300;
 
 // Thin static map line — builds the abstract atlas grid
 const MapLine = ({ style }: { style: object }) => (
   <View style={[styles.mapLine, style]} />
 );
 
-const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => {
+const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({
+  onComplete,
+  variant = 'full',
+  canExit = true,
+}) => {
+  // The variant is fixed for the lifetime of the splash.
+  const quick = useRef(variant === 'quick').current;
+
+  // True once the timeline reached its exit point; the fade then waits for
+  // `canExit`.
+  const [timelineDone, setTimelineDone] = useState(false);
+  const exitStarted = useRef(false);
+
+  // In the quick variant every value starts on its final frame.
   // ── STEP 1: Atlas map reveal ──────────────────────────────────────────────
-  const mapOpacity = useRef(new Animated.Value(0)).current;
-  const mapScale   = useRef(new Animated.Value(1.05)).current;
+  const mapOpacity = useRef(new Animated.Value(quick ? 1 : 0)).current;
+  const mapScale   = useRef(new Animated.Value(quick ? 1 : 1.05)).current;
 
   // ── STEP 2: Route line (non-native driver — animates `width`) ────────────
   const routeWidth   = useRef(new Animated.Value(0)).current;
@@ -73,13 +106,13 @@ const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => 
   const dotGlowOpacity = useRef(new Animated.Value(0)).current;
 
   // ── STEP 4: Goldenbook star ───────────────────────────────────────────────
-  const starScale   = useRef(new Animated.Value(0)).current;
-  const starOpacity = useRef(new Animated.Value(0)).current;
+  const starScale   = useRef(new Animated.Value(quick ? 1 : 0)).current;
+  const starOpacity = useRef(new Animated.Value(quick ? 1 : 0)).current;
 
   // ── STEP 5 / 6: Title + subtitle ─────────────────────────────────────────
-  const textOpacity     = useRef(new Animated.Value(0)).current;
-  const textTranslateY  = useRef(new Animated.Value(8)).current;
-  const subtitleOpacity = useRef(new Animated.Value(0)).current;
+  const textOpacity     = useRef(new Animated.Value(quick ? 1 : 0)).current;
+  const textTranslateY  = useRef(new Animated.Value(quick ? 0 : 8)).current;
+  const subtitleOpacity = useRef(new Animated.Value(quick ? 0.7 : 0)).current;
 
   // ── STEP 7: Screen exit ───────────────────────────────────────────────────
   const screenOpacity = useRef(new Animated.Value(1)).current;
@@ -87,7 +120,24 @@ const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => 
   // Route target: left margin (20px) → horizontal center
   const ROUTE_TARGET_WIDTH = cx - 20;
 
+  // ── Exit: fade out once the timeline is done AND the app is ready ───────
   useEffect(() => {
+    if (!timelineDone || !canExit || exitStarted.current) return;
+    exitStarted.current = true;
+    Animated.timing(screenOpacity, {
+      toValue:         0,
+      duration:        EXIT_FADE_MS,
+      useNativeDriver: true,
+    }).start(() => onComplete());
+  }, [timelineDone, canExit, onComplete, screenOpacity]);
+
+  useEffect(() => {
+    if (quick) {
+      // Final frame is already on screen; just hold it briefly.
+      const tq = setTimeout(() => setTimelineDone(true), QUICK_HOLD_MS);
+      return () => clearTimeout(tq);
+    }
+
     // STEP 1 — Atlas reveal (0ms) ─────────────────────────────────────────
     Animated.parallel([
       Animated.timing(mapOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -182,13 +232,8 @@ const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => 
 
     // STEP 7 — Exit fade (4000ms) ─────────────────────────────────────────
     // Subtitle fully visible at ~3000ms; 1000ms hold gives comfortable read time
-    const t7 = setTimeout(() => {
-      Animated.timing(screenOpacity, {
-        toValue:         0,
-        duration:        300,
-        useNativeDriver: true,
-      }).start(() => onComplete());
-    }, 4000);
+    // The fade itself lives in the exit effect above, gated on `canExit`.
+    const t7 = setTimeout(() => setTimelineDone(true), FULL_EXIT_AT_MS);
 
     return () => {
       clearTimeout(t2);
@@ -319,7 +364,7 @@ const GoldenAtlasSplash: React.FC<GoldenAtlasSplashProps> = ({ onComplete }) => 
       >
         <Text style={styles.brandTitle}>GOLDENBOOK GO</Text>
         <Animated.Text style={[styles.brandSubtitle, { opacity: subtitleOpacity }]}>
-          Curated places. Exceptional experiences.
+          {getTranslations().splash.subtitle}
         </Animated.Text>
       </Animated.View>
 

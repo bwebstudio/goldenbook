@@ -43,3 +43,13 @@ export function useTranslation(): Translations {
   const locale = useSettingsStore((s) => s.locale);
   return locales[resolveLocale(locale)] ?? locales.en;
 }
+
+/**
+ * Non-hook variant for plain modules (share helpers, alerts fired from
+ * async callbacks). Reads the locale at call time, so call it when the text
+ * is needed rather than caching the result.
+ */
+export function getTranslations(): Translations {
+  const locale = useSettingsStore.getState().locale;
+  return locales[resolveLocale(locale)] ?? locales.en;
+}

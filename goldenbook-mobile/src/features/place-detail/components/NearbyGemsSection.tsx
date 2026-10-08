@@ -6,6 +6,7 @@ import { PlaceSaveButton } from '@/features/saved/components/PlaceSaveButton';
 import { useTranslation } from '@/i18n';
 import type { PlaceDetailDTO } from '../types';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 type NearbyGem = PlaceDetailDTO['nearbyGems'][number];
 
@@ -40,6 +41,7 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
         placeId={gem.id}
         snapshot={{ id: gem.id, slug: gem.slug, name: gem.name, shortDescription: null, image: gem.heroImage?.bucket && gem.heroImage?.path ? { bucket: gem.heroImage.bucket, path: gem.heroImage.path } : null }}
         size={16}
+        source="nearby"
         style={{
           position: 'absolute',
           top: 8,
@@ -54,7 +56,7 @@ function NearbyGemCard({ gem }: { gem: NearbyGem }) {
       />
 
       <Text className="text-lg text-navy mb-1" style={{ fontFamily: 'PlayfairDisplay_400Regular' }} numberOfLines={1}>
-        {gem.name}
+        {displayPlaceName(gem.name)}
       </Text>
       <Text className="text-[10px] text-navy/40 font-bold uppercase tracking-widest">
         {distanceText}

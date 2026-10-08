@@ -7,6 +7,7 @@ import { getStorageUrl } from '@/utils/storage'
 import { useTranslation } from '@/i18n'
 import type { ConciergeRecommendationDTO } from '../types'
 import { openPlace } from '@/features/place-detail/openPlace'
+import { displayPlaceName } from '@/utils/placeName';
 
 const GOLD = '#D2B68A'
 const NAVY = '#222D52'
@@ -40,7 +41,7 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
           <Text style={styles.compactCity} numberOfLines={1}>
             {[recommendation.city, recommendation.neighborhood].filter(Boolean).join(' · ')}
           </Text>
-          <Text style={styles.compactName} numberOfLines={1}>{recommendation.name}</Text>
+          <Text style={styles.compactName} numberOfLines={1}>{displayPlaceName(recommendation.name)}</Text>
           {recommendation.shortDescription ? (
             <Text style={styles.compactDesc} numberOfLines={2}>{recommendation.shortDescription}</Text>
           ) : null}
@@ -95,7 +96,7 @@ export function ConciergeRecommendationCard({ recommendation, compact = false }:
           {[recommendation.city, recommendation.neighborhood].filter(Boolean).join(' · ')}
         </Text>
 
-        <Text style={styles.nameOverlay}>{recommendation.name}</Text>
+        <Text style={styles.nameOverlay}>{displayPlaceName(recommendation.name)}</Text>
         {recommendation.shortDescription ? (
           <Text style={styles.descriptionOverlay} numberOfLines={2}>
             {recommendation.shortDescription}

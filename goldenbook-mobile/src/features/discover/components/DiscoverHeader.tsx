@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '@/i18n';
 
 interface DiscoverHeaderProps {
   cityName: string;
@@ -9,6 +10,7 @@ interface DiscoverHeaderProps {
 }
 
 export function DiscoverHeader({ cityName, country, onCityPress, onMenuPress }: DiscoverHeaderProps) {
+  const t = useTranslation();
   return (
     <View className="px-6 pt-4 pb-1 flex-row items-start justify-between">
       {/* City + country */}
@@ -28,6 +30,9 @@ export function DiscoverHeader({ cityName, country, onCityPress, onMenuPress }: 
       <TouchableOpacity
         onPress={onMenuPress}
         activeOpacity={0.7}
+        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        accessibilityRole="button"
+        accessibilityLabel={t.a11y.openMenu}
         className="w-10 h-10 items-center justify-center rounded-full bg-navy/5"
       >
         <Ionicons name="menu" size={22} color="#222D52" />

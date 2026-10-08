@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { openRoute } from '@/features/routes/openRoute';
 import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
@@ -35,7 +36,7 @@ export const RouteCard = React.memo(function RouteCard({ route, featured = false
   return (
     <View className="mx-6 mb-6" style={{ height: imageHeight }}>
       <TouchableOpacity
-        onPress={() => router.push(`/routes/${route.slug}` as any)}
+        onPress={() => openRoute(router, route.slug, 'routes')}
         activeOpacity={0.92}
         className="rounded-2xl overflow-hidden"
         style={{ height: imageHeight, shadowColor: '#222D52', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 4 }}

@@ -32,6 +32,13 @@ import type { SavedResponse } from '@/types/api';
 //     surprising than letting the saved list resync on next /me/saved
 //     fetch (which the queryClient invalidates after flush completes).
 //   • 5xx response → leave in queue, try again. Treat the same as network.
+//
+// Ownership:
+//   • Every op is stamped with the id of the user who tapped. flush() only
+//     replays ops owned by the user signed in right now (so they always go
+//     out with that user's token) and drops everything else, including ops
+//     persisted by older builds that had no owner. signOut also clears the
+//     queue outright (see authStore).
 
 export type SaveKind =
   | 'savePlace'
@@ -61,6 +68,9 @@ export interface QueuedSavedSnapshot {
 export interface QueuedMutation {
   /** Stable id so we can find this op in the queue without indexing tricks. */
   id: string;
+  /** Supabase user id of whoever enqueued the op. Ops persisted by older
+   *  builds have none and are never replayed. */
+  userId?: string;
   kind: SaveKind;
   resourceId: string;
   /** ms since epoch — used for ordering on flush. */
@@ -83,7 +93,29 @@ interface MutationQueueState {
     snapshot?: QueuedSavedSnapshot,
   ) => void;
   flush: () => Promise<void>;
+  /** Drops every queued op. Called on sign-out. */
+  clear: () => void;
   _setHydrated: () => void;
+}
+
+/**
+ * The signed-in user's id, read lazily: authStore imports this store to
+ * clear it on sign-out, so a static import here would be a cycle.
+ */
+export function currentUserId(): string | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { useAuthStore } = require('@/store/authStore') as typeof import('@/store/authStore');
+    return useAuthStore.getState().user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ops that belong to `userId`. Anything else must never be applied or sent. */
+export function queueForUser(queue: QueuedMutation[], userId: string | null): QueuedMutation[] {
+  if (!userId) return [];
+  return queue.filter((q) => q.userId === userId);
 }
 
 function newId(): string {
@@ -138,16 +170,23 @@ export const useMutationQueueStore = create<MutationQueueState>()(
       isHydrated: false,
 
       enqueueSave: (kind, resourceId, snapshot) => {
+        const userId = currentUserId();
+        // Without a signed-in user there is no one to replay this for.
+        if (!userId) return;
         const existing = get().queue;
-        // Look for an op on the same resource that we should collapse with.
+        // Look for an op on the same resource (and same user) that we should
+        // collapse with.
         const idx = existing.findIndex(
-          (q) => q.resourceId === resourceId && sameKindFamily(q.kind, kind),
+          (q) =>
+            q.userId === userId &&
+            q.resourceId === resourceId &&
+            sameKindFamily(q.kind, kind),
         );
         if (idx === -1) {
           set({
             queue: [
               ...existing,
-              { id: newId(), kind, resourceId, createdAt: Date.now(), snapshot },
+              { id: newId(), userId, kind, resourceId, createdAt: Date.now(), snapshot },
             ],
           });
           return;
@@ -168,7 +207,7 @@ export const useMutationQueueStore = create<MutationQueueState>()(
         set({
           queue: existing.map((q, i) =>
             i === idx
-              ? { id: newId(), kind, resourceId, createdAt: Date.now(), snapshot }
+              ? { id: newId(), userId, kind, resourceId, createdAt: Date.now(), snapshot }
               : q,
           ),
         });
@@ -178,6 +217,16 @@ export const useMutationQueueStore = create<MutationQueueState>()(
         if (get().isFlushing) return;
         if (get().queue.length === 0) return;
         if (!useNetworkStore.getState().isOnline) return;
+        const owner = currentUserId();
+        // Signed out: nothing can be sent safely. signOut clears the queue,
+        // so this only holds ops until the auth state settles.
+        if (!owner) return;
+        // Ops from any other account (or from builds that didn't record an
+        // owner) are dropped, never replayed with this user's token.
+        if (get().queue.some((q) => q.userId !== owner)) {
+          set({ queue: get().queue.filter((q) => q.userId === owner) });
+          if (get().queue.length === 0) return;
+        }
         // Pull ops OUT of the queue before awaiting the network. Two
         // reasons:
         //   1. If the user taps the opposite action mid-flush (offline
@@ -204,12 +253,17 @@ export const useMutationQueueStore = create<MutationQueueState>()(
               requeue.push(op);
               continue;
             }
+            // The user signed out (or switched account) mid-flush: stop
+            // sending. The op is dropped, never sent with another token.
+            if (currentUserId() !== op.userId) continue;
             const result = await executeOp(op);
             if (result === 'retry') requeue.push(op);
             // 'ok' / 'drop' → forget this op.
           }
         } finally {
-          if (requeue.length > 0) {
+          // Only requeue if the same user is still signed in; a sign-out
+          // during flush must leave the queue empty.
+          if (requeue.length > 0 && currentUserId() === owner) {
             // Put retry-eligible ops back at the front (preserves causal
             // order against any new ops appended during flush).
             set({ queue: [...requeue, ...get().queue] });
@@ -217,6 +271,8 @@ export const useMutationQueueStore = create<MutationQueueState>()(
           set({ isFlushing: false });
         }
       },
+
+      clear: () => set({ queue: [] }),
 
       _setHydrated: () => set({ isHydrated: true }),
     }),
@@ -236,7 +292,7 @@ export const useMutationQueueStore = create<MutationQueueState>()(
 // Pure, idempotent projection of the persisted queue onto a SavedResponse.
 // Used at cold start to close the gap between (a) the user toggling save
 // while offline and (b) the React Query persister flushing the optimistic
-// `['saved', locale]` cache to disk before they force-quit. The mutation
+// `['saved', userId, locale]` cache to disk before they force-quit. The mutation
 // queue is persisted within ~10ms of the tap; the RQ cache is persisted
 // within ~200ms (see `throttleTime` in lib/persister.ts). On the unlucky
 // force-quit between those two windows the queue still has the op but the

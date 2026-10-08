@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/appStore';
 import { LocationCard } from '@/components/LocationCard';
+import { useTranslation } from '@/i18n';
 
 const GOLD  = '#D2B68A';
 const NAVY  = '#222D52';
@@ -32,6 +33,7 @@ export default function SelectDestinationScreen() {
   const availableLocalities       = useAppStore((s) => s.availableLocalities);
   const completeLocalitySelection = useAppStore((s) => s.completeLocalitySelection);
   const router                    = useRouter();
+  const t                         = useTranslation();
 
   // No pre-selection — user must make an explicit tap.
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -64,10 +66,8 @@ export default function SelectDestinationScreen() {
         </View>
 
         {/* ── Heading ───────────────────────────────────────────────────────── */}
-        <Text style={styles.title}>Choose your{'\n'}destination</Text>
-        <Text style={styles.subtitle}>
-          We'll personalise every recommendation{'\n'}around the city you're exploring.
-        </Text>
+        <Text style={styles.title}>{t.destinationPicker.heading}</Text>
+        <Text style={styles.subtitle}>{t.destinationPicker.subtitle}</Text>
 
         {/* ── Gold rule ─────────────────────────────────────────────────────── */}
         <View style={styles.divider} />
@@ -91,7 +91,7 @@ export default function SelectDestinationScreen() {
       {/* ── Sticky CTA ────────────────────────────────────────────────────────── */}
       <View style={styles.ctaContainer}>
         {!selectedSlug && (
-          <Text style={styles.ctaHint}>Select a destination to continue</Text>
+          <Text style={styles.ctaHint}>{t.destinationPicker.selectToContinue}</Text>
         )}
 
         <TouchableOpacity
@@ -101,7 +101,9 @@ export default function SelectDestinationScreen() {
           activeOpacity={0.82}
         >
           <Text style={[styles.ctaText, !selectedSlug && styles.ctaTextDisabled]}>
-            {selectedName ? `Continue to ${selectedName}` : 'Choose a destination'}
+            {selectedName
+              ? t.destinationPicker.continueTo.replace('{city}', selectedName)
+              : t.destinationPicker.choose}
           </Text>
         </TouchableOpacity>
       </View>
