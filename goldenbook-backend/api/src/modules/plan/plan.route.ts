@@ -11,14 +11,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { getPlanCandidates, getNearestCoveredCity } from './plan.query'
 import { buildPlan } from './plan.service'
-
-const CITY_TIMEZONES: Record<string, string> = {
-  lisbon:    'Europe/Lisbon',
-  lisboa:    'Europe/Lisbon',
-  porto:     'Europe/Lisbon',
-  algarve:   'Europe/Lisbon',
-  madeira:   'Atlantic/Madeira',
-}
+import { CITY_TIMEZONES } from '../../shared/opening-hours'
 
 /**
  * Hasta dónde buscamos otro destino cubierto cuando el seleccionado no da

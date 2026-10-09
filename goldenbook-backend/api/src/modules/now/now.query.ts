@@ -7,6 +7,9 @@
 
 import { db } from '../../db/postgres'
 import { EXCLUDE_NON_VISITABLE_SQL } from '../shared-scoring/place-types'
+import {
+  DEFAULT_TIMEZONE, closingTimeSql, localNowSql, placeOpenOrUnknownSql,
+} from '../../shared/opening-hours'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -89,7 +92,7 @@ export async function getNowCandidates(
   emergencyFallback = false,
 ): Promise<NowScoredPlace[]> {
   const hasCoords = userLat != null && userLon != null
-  const tz = cityTimezone ?? 'Europe/Lisbon'
+  const tz = cityTimezone ?? DEFAULT_TIMEZONE
 
   // Build distance expression
   const distanceExpr = hasCoords
@@ -200,15 +203,8 @@ export async function getNowCandidates(
       (${distanceExpr}) AS distance_meters,
       -- Closing time of the slot the place is open in right now. Drives the
       -- "open until" line on the Now card.
-      (SELECT to_char(oh.closes_at, 'HH24:MI')
-         FROM opening_hours oh
-        WHERE oh.place_id = p.id
-          AND oh.is_closed = false
-          AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE '${tz}')::int
-          AND oh.opens_at  <= (now() AT TIME ZONE '${tz}')::time
-          AND oh.closes_at >  (now() AT TIME ZONE '${tz}')::time
-        ORDER BY oh.closes_at DESC
-        LIMIT 1) AS closes_at_today,
+      -- Overnight slots report their early-morning close (02:00).
+      ${closingTimeSql('p.id', localNowSql(tz))} AS closes_at_today,
       pe.last_viewed_at,
       (${categorySlugsExpr}) AS category_slugs,
       -- Place detail fields for eyebrow display
@@ -278,17 +274,9 @@ export async function getNowCandidates(
       -- If no opening_hours exist, don't exclude (we don't know their schedule).
       -- emergencyFallback=true skips this too — we'd rather suggest a closed-now place
       -- than leave the slot empty.
-      ${emergencyFallback ? '' : `AND (
-        NOT EXISTS (SELECT 1 FROM opening_hours oh WHERE oh.place_id = p.id)
-        OR EXISTS (
-          SELECT 1 FROM opening_hours oh
-          WHERE oh.place_id = p.id
-            AND oh.is_closed = false
-            AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE '${tz}')::int
-            AND oh.opens_at <= (now() AT TIME ZONE '${tz}')::time
-            AND oh.closes_at > (now() AT TIME ZONE '${tz}')::time
-        )
-      )`}
+      -- Overnight slots (22:00-02:00, "until midnight") count, including
+      -- the after-midnight half that lives on yesterday's row.
+      ${emergencyFallback ? '' : `AND ${placeOpenOrUnknownSql('p.id', localNowSql(tz))}`}
       -- Exclude service businesses (misclassified as activity/other)
       AND ${EXCLUDE_NON_VISITABLE_SQL}
       AND COALESCE(p.short_description, '') NOT ILIKE '%real estate%'
@@ -328,7 +316,7 @@ export async function getNowPlaceById(
   cityTimezone?: string,
 ): Promise<NowScoredPlace | null> {
   const hasCoords = userLat != null && userLon != null
-  const tz = cityTimezone ?? 'Europe/Lisbon'
+  const tz = cityTimezone ?? DEFAULT_TIMEZONE
 
   const distanceExpr = hasCoords
     ? `
@@ -376,15 +364,8 @@ export async function getNowPlaceById(
       (${distanceExpr}) AS distance_meters,
       -- Closing time of the slot the place is open in right now. Drives the
       -- "open until" line on the Now card.
-      (SELECT to_char(oh.closes_at, 'HH24:MI')
-         FROM opening_hours oh
-        WHERE oh.place_id = p.id
-          AND oh.is_closed = false
-          AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE '${tz}')::int
-          AND oh.opens_at  <= (now() AT TIME ZONE '${tz}')::time
-          AND oh.closes_at >  (now() AT TIME ZONE '${tz}')::time
-        ORDER BY oh.closes_at DESC
-        LIMIT 1) AS closes_at_today,
+      -- Overnight slots report their early-morning close (02:00).
+      ${closingTimeSql('p.id', localNowSql(tz))} AS closes_at_today,
       pe.last_viewed_at,
       (${categorySlugsExpr}) AS category_slugs,
       COALESCE(p.now_enabled, false) AS now_enabled,

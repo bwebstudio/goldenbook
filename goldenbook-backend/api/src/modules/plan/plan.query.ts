@@ -20,6 +20,10 @@
 
 import { db } from '../../db/postgres'
 import { EXCLUDE_NON_VISITABLE_SQL } from '../shared-scoring/place-types'
+import { closingTimeSql, localClock, minutesUntil, placeOpenSql } from '../../shared/opening-hours'
+
+// The city's wall clock, from the tz bound as $6.
+const LOCAL_NOW = '(now() AT TIME ZONE $6::text)'
 
 export interface PlanCandidate {
   id: string
@@ -86,15 +90,7 @@ export async function getPlanCandidates(
           COS(RADIANS($3)) * COS(RADIANS(p.latitude)) *
           POWER(SIN(RADIANS((p.longitude - $4) / 2)), 2)
         )) AS distance_meters,
-        (SELECT to_char(oh.closes_at, 'HH24:MI')
-           FROM opening_hours oh
-          WHERE oh.place_id = p.id
-            AND oh.is_closed = false
-            AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE $6)::int
-            AND oh.opens_at  <= (now() AT TIME ZONE $6)::time
-            AND oh.closes_at >  (now() AT TIME ZONE $6)::time
-          ORDER BY oh.closes_at DESC
-          LIMIT 1) AS closes_at_today,
+        ${closingTimeSql('p.id', LOCAL_NOW)} AS closes_at_today,
         ps.popularity_score,
         COALESCE(p.now_priority, 0) AS now_priority,
         pe.last_viewed_at
@@ -121,14 +117,8 @@ export async function getPlanCandidates(
         -- Service businesses are never a stop on an evening out.
         AND ${EXCLUDE_NON_VISITABLE_SQL}
         -- Must hold hours, and must be open right now.
-        AND EXISTS (
-          SELECT 1 FROM opening_hours oh
-           WHERE oh.place_id = p.id
-             AND oh.is_closed = false
-             AND oh.day_of_week = EXTRACT(DOW FROM now() AT TIME ZONE $6)::int
-             AND oh.opens_at  <= (now() AT TIME ZONE $6)::time
-             AND oh.closes_at >  (now() AT TIME ZONE $6)::time
-        )
+        -- Overnight slots count, including the after-midnight half.
+        AND ${placeOpenSql('p.id', LOCAL_NOW)}
     )
     SELECT * FROM candidates
      WHERE distance_meters <= $5
@@ -145,22 +135,11 @@ export async function getPlanCandidates(
  * Null when the time has already passed or cannot be parsed, which callers
  * treat as "cannot promise this stop".
  */
-export function minutesUntilClose(hhmm: string | null, tz: string): number | null {
-  if (!hhmm) return null
-  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10))
-  if (Number.isNaN(h) || Number.isNaN(m)) return null
-
+export function minutesUntilClose(hhmm: string | null, tz: string, at: Date = new Date()): number | null {
   // Read the current wall-clock time in the destination's timezone rather than
-  // the server's. Railway runs in UTC; Madeira is an hour behind Lisbon.
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz,
-  }).formatToParts(new Date())
-  const nowH = parseInt(parts.find((p) => p.type === 'hour')?.value ?? 'x', 10)
-  const nowM = parseInt(parts.find((p) => p.type === 'minute')?.value ?? 'x', 10)
-  if (Number.isNaN(nowH) || Number.isNaN(nowM)) return null
-
-  const diff = (h * 60 + m) - (nowH * 60 + nowM)
-  return diff > 0 ? diff : null
+  // the server's (Railway runs in UTC). Wraps past midnight, so a bar open
+  // until 02:00 at 23:30 has 150 minutes left instead of "already closed".
+  return minutesUntil(hhmm, localClock(tz, at).minutes)
 }
 
 /** Straight-line metres between two points. */

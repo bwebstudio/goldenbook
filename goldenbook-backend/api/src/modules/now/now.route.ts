@@ -58,6 +58,7 @@ import { resolveSegment, getSegmentWeightOverrides, type UserSegment } from './n
 import { getNowPerformanceMetrics, getExperimentMetrics } from './now.metrics'
 import { runAutoOptimization } from './now.optimization'
 import { authenticateDashboardUser, requireSuperAdmin } from '../../shared/auth/dashboardAuth'
+import { CITY_TIMEZONES } from '../../shared/opening-hours'
 
 // ─── Session history for refresh (anti-repetition) ───────────────────────────
 
@@ -288,23 +289,6 @@ function weatherToIcon(weather: WeatherCondition | null | undefined): string | n
     case 'rainy': return 'rain'
     default:      return null
   }
-}
-
-/** City slug → IANA timezone */
-const CITY_TIMEZONES: Record<string, string> = {
-  lisbon:    'Europe/Lisbon',
-  lisboa:    'Europe/Lisbon',
-  porto:     'Europe/Lisbon',
-  algarve:   'Europe/Lisbon',
-  madeira:   'Atlantic/Madeira',
-  barcelona: 'Europe/Madrid',
-  madrid:    'Europe/Madrid',
-  paris:     'Europe/Paris',
-  london:    'Europe/London',
-  rome:      'Europe/Rome',
-  milan:     'Europe/Rome',
-  amsterdam: 'Europe/Amsterdam',
-  berlin:    'Europe/Berlin',
 }
 
 /** Format current time as HH:MM in the city's local timezone */
