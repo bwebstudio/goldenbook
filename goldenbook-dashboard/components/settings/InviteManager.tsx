@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { apiGet, apiPost } from "@/lib/api/client";
+import { apiGet, apiPost, ApiError } from "@/lib/api/client";
 
 interface Invite {
   id: string;
@@ -10,6 +10,13 @@ interface Invite {
   expires_at: string;
   accepted_at: string | null;
   created_at: string;
+}
+
+/** Prefer the server's message (ApiError.data.message), then the Error message. */
+function errorMessage(err: unknown, fallback: string): string {
+  const serverMsg = err instanceof ApiError ? err.data.message : undefined;
+  if (typeof serverMsg === "string") return serverMsg;
+  return err instanceof Error ? err.message : fallback;
 }
 
 export default function InviteManager() {
@@ -47,11 +54,8 @@ export default function InviteManager() {
       setMessage({ type: "success", text: `Invitation sent to ${email}` });
       setEmail("");
       await loadInvites();
-    } catch (err: any) {
-      // ApiError has .data with the server response; plain Error has .message
-      const serverMsg = err?.data?.message;
-      const msg = typeof serverMsg === "string" ? serverMsg : (err?.message ?? "Failed to send invitation.");
-      setMessage({ type: "error", text: msg });
+    } catch (err) {
+      setMessage({ type: "error", text: errorMessage(err, "Failed to send invitation.") });
     } finally {
       setSending(false);
     }
@@ -68,10 +72,8 @@ export default function InviteManager() {
       });
       setMessage({ type: "success", text: `Invitation resent to ${invite.email}` });
       await loadInvites();
-    } catch (err: any) {
-      const serverMsg = err?.data?.message;
-      const msg = typeof serverMsg === "string" ? serverMsg : (err?.message ?? "Failed to resend invitation.");
-      setMessage({ type: "error", text: msg });
+    } catch (err) {
+      setMessage({ type: "error", text: errorMessage(err, "Failed to resend invitation.") });
     } finally {
       setSending(false);
     }

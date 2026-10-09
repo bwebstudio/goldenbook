@@ -17,6 +17,9 @@ export interface ChangeRequest {
   submitter_name: string | null;
   submitter_email: string | null;
   reviewer_name: string | null;
+  /** Image change requests from the business portal (new_image / image_removal). */
+  image_bucket?: string | null;
+  image_path?: string | null;
 }
 
 export async function fetchReviewQueue(status = "pending"): Promise<ChangeRequest[]> {

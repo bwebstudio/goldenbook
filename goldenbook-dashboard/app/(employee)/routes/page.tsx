@@ -4,7 +4,6 @@ import RoutesClient from "./RoutesClient";
 import { fetchCuratedRoutes } from "@/lib/api/curated-routes";
 import type { CuratedRouteDTO } from "@/lib/api/curated-routes";
 import { requireDashboardUser } from "@/lib/auth/server";
-import type { DashboardRole } from "@/types/auth";
 
 export default async function RoutesPage() {
   const currentUser = await requireDashboardUser();

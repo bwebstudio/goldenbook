@@ -25,9 +25,22 @@
 //   npx tsx api/src/scripts/flag-internal-traffic.ts --confirm
 
 import { db } from '../db/postgres'
+import { DIGITS_ONLY_QUERY } from '../modules/admin/analytics/internal-traffic'
+
+// RETIRED (9 Oct 2026). The premise below was wrong: digits-only searches are
+// not staff tests. 1,200 distinct users ran one between April and October,
+// with the same retention, install hours and locale mix as everyone else, so
+// flagging their sessions hid real users from every metric. The analytics
+// readers no longer use this marker (see internal-traffic.ts). The script is
+// kept for the record and refuses to run.
+if (!process.argv.includes('--i-understand-this-hides-real-users')) {
+  console.error('flag-internal-traffic is retired: digits-only searches are real users. See the note at the top.')
+  process.exit(1)
+}
 
 const CONFIRM = process.argv.includes('--confirm')
-const DIGITS_ONLY = String.raw`^[0-9[:space:]]+$`
+// Shared with the dashboard readers, which exclude the same sessions at query time.
+const DIGITS_ONLY = DIGITS_ONLY_QUERY
 
 async function count(sql: string, params: unknown[] = []): Promise<number> {
   const { rows: [r] } = await db.query<{ n: string }>(sql, params)

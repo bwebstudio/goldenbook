@@ -20,86 +20,68 @@ export interface AdminPlaceListRow {
   hero_path: string | null
 }
 
-// Core query — works even if booking/suggestion columns don't exist.
-// Includes has_booking_link by checking booking_url and active candidates.
-const CORE_QUERY = `
+// One set-based query for the whole list. The dashboard filters and searches
+// client-side across every place, so this returns all rows and has to be cheap
+// rather than paginated.
+//
+// The primary category and the hero image are resolved once for all places
+// with DISTINCT ON + hash joins, instead of a correlated subquery and a
+// LATERAL per row (two extra index probes x every place). EXPLAIN ANALYZE on
+// production (363 places, warm cache): ~7 ms / ~4.1k buffer hits before,
+// ~3.4 ms / ~1k after.
+//
+// There used to be a "full" variant selecting booking_mode / suggestion_*
+// first and falling back to this one on error. Those columns were never
+// created (only booking_enabled exists, see migration 20260629120000), so
+// every list load paid for a failed query before running this. The fallback's
+// output is what the dashboard has always shown, so it is now the only query
+// and the derived booking/suggestion values below keep that exact behaviour.
+const LIST_QUERY = `
+  WITH primary_cat AS (
+    SELECT DISTINCT ON (pc.place_id) pc.place_id, c.slug
+    FROM place_categories pc
+    JOIN categories c ON c.id = pc.category_id
+    WHERE pc.is_primary = true
+    ORDER BY pc.place_id, pc.sort_order ASC, pc.created_at ASC
+  ),
+  hero_img AS (
+    SELECT DISTINCT ON (pi.place_id) pi.place_id, ma.bucket, ma.path
+    FROM place_images pi
+    JOIN media_assets ma ON ma.id = pi.asset_id
+    WHERE pi.image_role IN ('hero','cover')
+    ORDER BY pi.place_id, (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
+  )
   SELECT
     p.id, p.slug, p.name, d.name AS city_name,
-    (SELECT c.slug FROM place_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.place_id = p.id AND pc.is_primary = true LIMIT 1) AS category_slug,
+    primary_cat.slug AS category_slug,
     p.status,
     (p.booking_url IS NOT NULL AND p.booking_url LIKE 'http%') AS has_booking_link,
     hero_img.bucket AS hero_bucket,
     hero_img.path AS hero_path
   FROM places p
   JOIN destinations d ON d.id = p.destination_id
-  LEFT JOIN LATERAL (
-    SELECT ma.bucket, ma.path
-    FROM place_images pi
-    JOIN media_assets ma ON ma.id = pi.asset_id
-    WHERE pi.place_id = p.id AND pi.image_role IN ('hero','cover')
-    ORDER BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
-    LIMIT 1
-  ) hero_img ON true
+  LEFT JOIN primary_cat ON primary_cat.place_id = p.id
+  LEFT JOIN hero_img    ON hero_img.place_id = p.id
   ORDER BY p.name ASC
 `
 
-// Full query — includes booking + suggestion columns (may fail if migrations not applied)
-const FULL_QUERY = `
-  SELECT
-    p.id, p.slug, p.name, d.name AS city_name,
-    (SELECT c.slug FROM place_categories pc JOIN categories c ON c.id = pc.category_id WHERE pc.place_id = p.id AND pc.is_primary = true LIMIT 1) AS category_slug,
-    p.status,
-    p.booking_enabled,
-    p.booking_mode::text AS booking_mode,
-    p.reservation_relevant,
-    (p.booking_url IS NOT NULL AND p.booking_url LIKE 'http%' OR EXISTS (
-      SELECT 1 FROM place_booking_candidates bc
-      WHERE bc.place_id = p.id AND bc.is_active = true AND bc.candidate_url IS NOT NULL
-    )) AS has_booking_link,
-    (p.suggestion_generated_at IS NOT NULL) AS has_suggestion,
-    p.suggestion_relevant,
-    p.suggestion_mode,
-    p.suggestion_confidence,
-    p.suggestion_dismissed,
-    hero_img.bucket AS hero_bucket,
-    hero_img.path AS hero_path
-  FROM places p
-  JOIN destinations d ON d.id = p.destination_id
-  LEFT JOIN LATERAL (
-    SELECT ma.bucket, ma.path
-    FROM place_images pi
-    JOIN media_assets ma ON ma.id = pi.asset_id
-    WHERE pi.place_id = p.id AND pi.image_role IN ('hero','cover')
-    ORDER BY (pi.image_role = 'hero') DESC, pi.is_primary DESC, pi.sort_order ASC
-    LIMIT 1
-  ) hero_img ON true
-  ORDER BY p.name ASC
-`
+type ListQueryRow = Pick<
+  AdminPlaceListRow,
+  'id' | 'slug' | 'name' | 'city_name' | 'category_slug' | 'status' | 'has_booking_link' | 'hero_bucket' | 'hero_path'
+>
 
 export async function getAdminPlacesList(): Promise<AdminPlaceListRow[]> {
-  try {
-    const { rows } = await db.query<AdminPlaceListRow>(FULL_QUERY)
-    return rows
-  } catch {
-    // Booking/suggestion columns don't exist yet — use core query
-    // Core query already computes has_booking_link from booking_url
-    try {
-      const { rows } = await db.query<any>(CORE_QUERY)
-      return rows.map((r: any) => ({
-        ...r,
-        booking_enabled: r.has_booking_link ?? false,
-        booking_mode: r.has_booking_link ? 'direct_website' : 'none',
-        reservation_relevant: r.has_booking_link ?? false,
-        has_booking_link: r.has_booking_link ?? false,
-        has_suggestion: false,
-        suggestion_relevant: null,
-        suggestion_mode: null,
-        suggestion_confidence: null,
-        suggestion_dismissed: false,
-      }))
-    } catch {
-      // Even core query failed — return empty
-      return []
-    }
-  }
+  const { rows } = await db.query<ListQueryRow>(LIST_QUERY)
+  return rows.map((r) => ({
+    ...r,
+    booking_enabled: r.has_booking_link ?? false,
+    booking_mode: r.has_booking_link ? 'direct_website' : 'none',
+    reservation_relevant: r.has_booking_link ?? false,
+    has_booking_link: r.has_booking_link ?? false,
+    has_suggestion: false,
+    suggestion_relevant: null,
+    suggestion_mode: null,
+    suggestion_confidence: null,
+    suggestion_dismissed: false,
+  }))
 }

@@ -10,6 +10,11 @@
 //     in opening_hours. Hotels are excluded by user requirement: a hotel's
 //     general entry doesn't need hours. Bars/restaurants/spas inside hotels
 //     are separate place_type='bar'/'restaurant'/etc rows and DO get covered.
+//   - Hours edited in the dashboard (PUT /admin/places/:id `openingHours`)
+//     are safe by construction: any place with at least one row is skipped,
+//     and the editor always writes a full week. Keep the NOT EXISTS filter in
+//     loadCandidates() if this script ever grows a "refresh" mode, or it
+//     will overwrite editors' corrections with Google's data.
 //
 // Strategy:
 //   1. If the place already has google_place_id → fetch details directly.

@@ -1,10 +1,11 @@
 import { db } from '../../../db/postgres'
 import { AppError, NotFoundError, ValidationError } from '../../../shared/errors/AppError'
-import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO } from './admin-places.dto'
+import type { CreatePlaceInput, UpdatePlaceInput, AdminPlaceResponseDTO, AutoTranslationOutcome } from './admin-places.dto'
 import { normalizeNowTimeWindows } from './admin-places.dto'
 import { translatePlaceFields, type PlaceTranslationFields } from '../../../lib/translation/deepl'
 import { autoClassifyPlace } from './auto-classify'
-import { toStorageObjectKey } from '../../../lib/storage/storage-path'
+import { replaceOpeningHours } from './opening-hours'
+import { deleteAssetsIfUnreferenced, type StorageObjectRef } from './admin-images.query'
 import {
   AUTO_TARGET_LOCALES,
   CANONICAL_LOCALE,
@@ -137,17 +138,22 @@ async function upsertPlaceTranslation(
  * by `upsertPlaceTranslation`.
  *
  * Per-locale failures are logged and swallowed so a flaky DeepL call for one
- * target never blocks the other.
+ * target never blocks the other. The outcome per locale is returned so the
+ * save response can tell the editor which languages did NOT follow the PT
+ * edit (locked as manual translations, or DeepL failed) instead of letting
+ * them find out from the app.
  */
 async function upsertAutoTranslationsFromPortuguese(
   client: { query: typeof db.query },
   placeId: string,
   portugueseFields: PlaceTranslationFields,
   targets: ReadonlyArray<Exclude<TranslationLocale, 'pt'>> = AUTO_TARGET_LOCALES,
-): Promise<void> {
+): Promise<AutoTranslationOutcome> {
+  const outcome: AutoTranslationOutcome = { updated: [], skippedLocked: [], failed: [] }
   for (const targetLocale of targets) {
     if (await isLocaleOverridden(client, placeId, targetLocale)) {
       // Editor curated this locale by hand — leave it alone.
+      outcome.skippedLocked.push(targetLocale)
       continue
     }
     try {
@@ -155,11 +161,14 @@ async function upsertAutoTranslationsFromPortuguese(
       await upsertPlaceTranslation(client, placeId, targetLocale, translated, {
         translatedFrom: CANONICAL_LOCALE,
       })
+      outcome.updated.push(targetLocale)
     } catch (err) {
       // Per-locale failure must not block remaining locales
       console.error(`[translation] DeepL failed for ${targetLocale} on place ${placeId}:`, err)
+      outcome.failed.push(targetLocale)
     }
   }
+  return outcome
 }
 
 /** Resolve multiple city slugs to destination IDs. */
@@ -346,6 +355,12 @@ export async function createPlace(
     if (!allDestIds.includes(destinationId)) allDestIds.push(destinationId)
     await syncPlaceDestinations(client, place.id, allDestIds)
 
+    // Opening hours previewed by the Place Generator (or typed in the form)
+    // used to be dropped here; persist them with the rest of the place.
+    if (input.openingHours !== undefined) {
+      await replaceOpeningHours(client, place.id, input.openingHours)
+    }
+
     await client.query('COMMIT')
 
     // Auto-classify (fire-and-forget — don't block response)
@@ -512,7 +527,10 @@ export async function updatePlace(
     // Always bump updated_at
     setClauses.push(`updated_at = now()`)
 
-    if (setClauses.length > 1) { // more than just updated_at
+    // more than just updated_at, or an hours-only edit: opening_hours has no
+    // content_version trigger, so touching places is what tells the app to
+    // drop its cached place detail.
+    if (setClauses.length > 1 || input.openingHours !== undefined) {
       params.push(placeId)
       await client.query(
         `UPDATE places SET ${setClauses.join(', ')} WHERE id = $${i}`,
@@ -528,6 +546,7 @@ export async function updatePlace(
       input.goldenbookNote   !== undefined ||
       input.insiderTip       !== undefined
 
+    let autoTranslation: AutoTranslationOutcome | undefined
     if (hasTranslationUpdate) {
       // Portuguese is the canonical editorial source. The dashboard place
       // form always submits PT — these fields are merged on top of the
@@ -553,7 +572,7 @@ export async function updatePlace(
       }
 
       await upsertPlaceTranslation(client, placeId, 'pt', portugueseFields)
-      await upsertAutoTranslationsFromPortuguese(client, placeId, portugueseFields)
+      autoTranslation = await upsertAutoTranslationsFromPortuguese(client, placeId, portugueseFields)
     }
 
     // Replace primary category if categorySlug is being changed
@@ -620,6 +639,13 @@ export async function updatePlace(
       }
     }
 
+    // Replace the weekly opening hours if provided. Same transaction, so the
+    // week is never half-written; auto-classify below re-derives the context
+    // windows from the new hours once this commits.
+    if (input.openingHours !== undefined) {
+      await replaceOpeningHours(client, placeId, input.openingHours)
+    }
+
     await client.query('COMMIT')
 
     // Auto-classify (fire-and-forget — don't block response)
@@ -654,6 +680,7 @@ export async function updatePlace(
       featured:  final[0].featured,
       citySlug:  final[0].city_slug,
       citySlugs,
+      ...(autoTranslation ? { autoTranslation } : {}),
     }
   } catch (err) {
     await client.query('ROLLBACK')
@@ -665,10 +692,7 @@ export async function updatePlace(
 
 // ─── Delete place ─────────────────────────────────────────────────────────────
 
-export interface DeletedStorageObject {
-  bucket: string
-  path: string
-}
+export type DeletedStorageObject = StorageObjectRef
 
 /**
  * Delete a place and the media_assets only it used.
@@ -681,8 +705,9 @@ export interface DeletedStorageObject {
  * from Storage once the delete has committed.
  *
  * An object is only returned when no remaining media_assets row points at the
- * same key, comparing paths with the legacy '<bucket>/' prefix stripped — the
- * same object can be registered under both spellings.
+ * same key, comparing paths with the legacy '<bucket>/' prefix stripped (the
+ * same object can be registered under both spellings). The reference check
+ * lives in `deleteAssetsIfUnreferenced`, shared with the single-image delete.
  */
 export async function deletePlace(placeId: string): Promise<DeletedStorageObject[]> {
   const client = await db.connect()
@@ -697,38 +722,7 @@ export async function deletePlace(placeId: string): Promise<DeletedStorageObject
     const { rowCount } = await client.query('DELETE FROM places WHERE id = $1', [placeId])
     if (!rowCount) throw new NotFoundError('Place')
 
-    let removed: DeletedStorageObject[] = []
-    if (assets.length > 0) {
-      const { rows } = await client.query<DeletedStorageObject>(
-        `
-        DELETE FROM media_assets m
-        WHERE m.id = ANY($1::uuid[])
-          AND NOT EXISTS (SELECT 1 FROM place_images pi WHERE pi.asset_id = m.id)
-          AND NOT EXISTS (SELECT 1 FROM destinations d WHERE d.hero_image_asset_id = m.id)
-          AND NOT EXISTS (SELECT 1 FROM routes r       WHERE r.cover_asset_id = m.id)
-          AND NOT EXISTS (SELECT 1 FROM users u        WHERE u.avatar_asset_id = m.id)
-        RETURNING m.bucket, m.path
-        `,
-        [assets.map((a) => a.asset_id)],
-      )
-
-      // Keep only objects whose normalised key no surviving row still uses.
-      if (rows.length > 0) {
-        const { rows: stillUsed } = await client.query<{ bucket: string; key: string }>(
-          `
-          SELECT DISTINCT m.bucket,
-                 CASE WHEN left(m.path, length(m.bucket) + 1) = m.bucket || '/'
-                      THEN substring(m.path from length(m.bucket) + 2)
-                      ELSE m.path END AS key
-          FROM media_assets m
-          WHERE m.bucket = ANY($1::text[])
-          `,
-          [[...new Set(rows.map((r) => r.bucket))]],
-        )
-        const used = new Set(stillUsed.map((u) => `${u.bucket}\u0000${u.key}`))
-        removed = rows.filter((r) => !used.has(`${r.bucket}\u0000${toStorageObjectKey(r.bucket, r.path)}`))
-      }
-    }
+    const removed = await deleteAssetsIfUnreferenced(client, assets.map((a) => a.asset_id))
 
     await client.query('COMMIT')
     return removed

@@ -20,8 +20,11 @@ export interface EstablishmentPerformance {
   totalPurchases: number;
   totalRevenue: number;
   activeCount: number;
+  // Same window as the purchases, from analytics_events.
   views: number;
-  clicks: number;
+  websiteClicks: number;
+  bookingClicks: number;
+  mapOpens: number;
 }
 
 export interface TimeBucketPerformance {
@@ -41,13 +44,13 @@ export async function fetchAnalyticsOverview(period = "30"): Promise<AnalyticsOv
   return apiGet("/api/v1/admin/analytics/overview", { period });
 }
 
-export async function fetchCampaignPerformance(): Promise<CampaignPerformance[]> {
-  const data = await apiGet<{ campaigns: CampaignPerformance[] }>("/api/v1/admin/analytics/campaigns");
+export async function fetchCampaignPerformance(period = "30"): Promise<CampaignPerformance[]> {
+  const data = await apiGet<{ campaigns: CampaignPerformance[] }>("/api/v1/admin/analytics/campaigns", { period });
   return data.campaigns;
 }
 
-export async function fetchEstablishmentPerformance(): Promise<EstablishmentPerformance[]> {
-  const data = await apiGet<{ establishments: EstablishmentPerformance[] }>("/api/v1/admin/analytics/establishments");
+export async function fetchEstablishmentPerformance(period = "30"): Promise<EstablishmentPerformance[]> {
+  const data = await apiGet<{ establishments: EstablishmentPerformance[] }>("/api/v1/admin/analytics/establishments", { period });
   return data.establishments;
 }
 
@@ -56,32 +59,4 @@ export async function fetchTimePerformance(): Promise<{
   dayOfWeek: DayOfWeekPerformance[];
 }> {
   return apiGet("/api/v1/admin/analytics/time");
-}
-
-// ─── Booking / TheFork Analytics ────────────────────────────────────────────
-
-export interface BookingProvider {
-  provider: string;
-  total: number;
-  active: number;
-  valid: number;
-}
-
-export interface DailyClicks {
-  date: string;
-  count: number;
-}
-
-export interface TopBookingPlace {
-  placeName: string;
-  clicks: number;
-  views: number;
-}
-
-export async function fetchBookingProviderAnalytics(): Promise<{
-  providers: BookingProvider[];
-  dailyClicks: DailyClicks[];
-  topPlaces: TopBookingPlace[];
-}> {
-  return apiGet("/api/v1/admin/analytics/booking");
 }

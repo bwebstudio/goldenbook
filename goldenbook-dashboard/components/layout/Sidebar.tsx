@@ -2,7 +2,7 @@
 
 import LogoutButton from "@/components/auth/LogoutButton";
 import { canAccessPath, isBusinessClient } from "@/lib/auth/permissions";
-import { useT, useLocale, type Locale } from "@/lib/i18n";
+import { useT, useLocale } from "@/lib/i18n";
 import { fetchReviewCount } from "@/lib/api/review-queue";
 import type { DashboardUser } from "@/types/auth";
 import Link from "next/link";
@@ -93,7 +93,13 @@ export default function Sidebar({ currentUser }: { currentUser: DashboardUser })
   const [reviewCount, setReviewCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  // Close the mobile drawer on navigation (adjusted during render rather than
+  // in an effect, so the open drawer never paints over the new page).
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setMobileOpen(false);
+  }
 
   useEffect(() => {
     if (isBusinessClient(currentUser.role)) return;

@@ -65,24 +65,35 @@ export default function PricingClient({ readOnly = false }: { readOnly?: boolean
   const [previewMonth, setPreviewMonth] = useState(new Date().getMonth() + 1);
   const [previewResult, setPreviewResult] = useState<PriceComputation | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setLoadError(false);
-    try {
-      const [data, configs] = await Promise.all([
+  // Fetches and stores the config. State is only set in the promise
+  // callbacks, so it is safe to start from the mount effect (initial state is
+  // already "loading").
+  const fetchConfig = useCallback(
+    () =>
+      Promise.all([
         fetchAdminPricingConfig(),
         fetchAllPricingConfigs().catch(() => []),
-      ]);
-      setPlans(data.plans);
-      setSeasons(data.seasons);
-      setCities(data.cities);
-      setPromotions(data.promotions);
-      setPricingConfigs(configs);
-    } catch { setLoadError(true); }
-    setLoading(false);
-  }, []);
+      ])
+        .then(([data, configs]) => {
+          setPlans(data.plans);
+          setSeasons(data.seasons);
+          setCities(data.cities);
+          setPromotions(data.promotions);
+          setPricingConfigs(configs);
+        })
+        .catch(() => { setLoadError(true); })
+        .then(() => { setLoading(false); }),
+    [],
+  );
 
-  useEffect(() => { load(); }, [load]);
+  // Retry: reset to the loading state, then refetch.
+  const load = () => {
+    setLoading(true);
+    setLoadError(false);
+    return fetchConfig();
+  };
+
+  useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 

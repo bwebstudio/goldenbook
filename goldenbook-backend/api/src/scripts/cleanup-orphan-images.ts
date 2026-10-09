@@ -44,6 +44,12 @@ async function findOrphans(): Promise<Orphan[]> {
       UNION SELECT hero_image_asset_id FROM destinations  WHERE hero_image_asset_id IS NOT NULL
       UNION SELECT cover_asset_id      FROM routes        WHERE cover_asset_id      IS NOT NULL
       UNION SELECT avatar_asset_id     FROM users         WHERE avatar_asset_id     IS NOT NULL
+      -- Business-portal uploads awaiting editorial review: the asset exists
+      -- but is only linked to place_images once approved. Without this the
+      -- sweeper would delete every image still in the review queue.
+      UNION SELECT ma.id FROM place_change_requests cr
+            JOIN media_assets ma ON ma.id::text = cr.new_value
+            WHERE cr.field_name = 'new_image' AND cr.status = 'pending'
     ),
     used_paths AS (
       -- media_assets.path is stored inconsistently: 79 of 555 rows carry a

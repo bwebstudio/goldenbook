@@ -79,7 +79,10 @@ import {
   updateRequestStatus,
   approveAndCreateVisibility,
 } from './placement-requests.query'
-import { getPlaceImages } from '../admin/places/admin-images.query'
+import { businessImagesRoutes } from './business-images.route'
+import { approveImageChange, getChangeRequestField, rejectImageChange } from './business-images.query'
+import { isImageChangeField, IMAGE_ADD_FIELD, IMAGE_REMOVE_FIELD } from './business-images.policy'
+import { deleteStorageObject } from '../../lib/storage/supabase-storage'
 import {
   notifyChangeApproved,
   notifyChangeRejected,
@@ -314,12 +317,10 @@ export async function businessPortalRoutes(app: FastifyInstance) {
     })
   })
 
-  // ── GET /business/images ─────────────────────────────────────────────────
-  // Returns the client's place images (cover + gallery)
-  app.get('/business/images', { preHandler: [authenticateBusinessClient] }, async (request, reply) => {
-    const images = await getPlaceImages(request.businessClient!.placeId)
-    return reply.send({ items: images })
-  })
+  // ── /business/images ─────────────────────────────────────────────────────
+  // Image endpoints live in their own encapsulated plugin because they parse
+  // raw image bodies (see business-images.route.ts).
+  app.register(businessImagesRoutes)
 
   // ── PUT /business/place ─────────────────────────────────────────────────
   // Instant fields update directly. Approval-required fields create change requests.
@@ -817,6 +818,7 @@ export async function businessPortalRoutes(app: FastifyInstance) {
         review_note: string | null; reviewed_by: string | null; reviewed_at: string | null
         submitter_name: string | null; submitter_email: string | null
         reviewer_name: string | null
+        image_bucket: string | null; image_path: string | null
       }>(`
         SELECT cr.id, cr.place_id, p.name AS place_name, p.slug AS place_slug,
                cr.field_name, cr.old_value, cr.new_value,
@@ -824,16 +826,25 @@ export async function businessPortalRoutes(app: FastifyInstance) {
                cr.review_note, cr.reviewed_by, cr.reviewed_at,
                COALESCE(bc.contact_name, u.display_name, au_sub.email) AS submitter_name,
                COALESCE(bc.contact_email, au_sub.email) AS submitter_email,
-               au_rev.full_name AS reviewer_name
+               au_rev.full_name AS reviewer_name,
+               img_ma.bucket AS image_bucket, img_ma.path AS image_path
         FROM place_change_requests cr
         JOIN places p ON p.id = cr.place_id
         LEFT JOIN business_clients bc ON bc.user_id = cr.created_by AND bc.is_active = true
         LEFT JOIN users u ON u.id = cr.created_by
         LEFT JOIN auth.users au_sub ON au_sub.id = cr.created_by
         LEFT JOIN admin_users au_rev ON au_rev.email = cr.reviewed_by
+        -- Image requests: preview of the uploaded asset (new_image) or of the
+        -- image the client wants removed (image_removal). Text comparison so
+        -- non-uuid values in text requests can never break the cast.
+        LEFT JOIN place_images img_pi
+               ON cr.field_name = $3 AND img_pi.id::text = cr.old_value
+        LEFT JOIN media_assets img_ma
+               ON cr.field_name IN ($2, $3)
+              AND img_ma.id::text = CASE WHEN cr.field_name = $2 THEN cr.new_value ELSE img_pi.asset_id::text END
         WHERE cr.status = $1
         ORDER BY cr.created_at DESC
-      `, [filterStatus])
+      `, [filterStatus, IMAGE_ADD_FIELD, IMAGE_REMOVE_FIELD])
       return reply.send({ items: rows })
     } catch {
       return reply.send({ items: [] })
@@ -856,6 +867,22 @@ export async function businessPortalRoutes(app: FastifyInstance) {
   app.post('/admin/review-queue/:id/approve', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
     const body = z.object({ reviewNote: z.string().nullable().default(null) }).parse(request.body)
+
+    // Image changes from the business portal: link the uploaded asset or
+    // remove the image, instead of writing a column on places.
+    const field = await getChangeRequestField(id)
+    if (field && isImageChangeField(field)) {
+      const result = await approveImageChange(id, request.adminUser?.email ?? 'unknown', body.reviewNote)
+      if (result.storageToDelete) {
+        await deleteStorageObject(result.storageToDelete.bucket, result.storageToDelete.path)
+      }
+      if (result.createdBy) {
+        notifyChangeApproved(result.createdBy, result.fieldName).catch((err) => {
+          request.log.error({ err, changeRequestId: id }, '[review-queue] failed to notify submitter of approval')
+        })
+      }
+      return reply.send({ approved: true })
+    }
 
     // Get the change request
     const { rows } = await db.query<{
@@ -901,6 +928,17 @@ export async function businessPortalRoutes(app: FastifyInstance) {
   app.post('/admin/review-queue/:id/reject', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = z.object({ id: z.string().uuid() }).parse(request.params)
     const body = z.object({ reviewNote: z.string().nullable().default(null) }).parse(request.body)
+
+    // Rejected uploads are never shown, so their asset row and object go now.
+    const field = await getChangeRequestField(id)
+    if (field && isImageChangeField(field)) {
+      const result = await rejectImageChange(id, request.adminUser?.email ?? 'unknown', body.reviewNote)
+      if (result.storageToDelete) {
+        await deleteStorageObject(result.storageToDelete.bucket, result.storageToDelete.path)
+      }
+      if (result.createdBy) notifyChangeRejected(result.createdBy, result.fieldName, body.reviewNote).catch(() => {})
+      return reply.send({ rejected: true })
+    }
 
     // Notify the submitter before updating
     const { rows: crInfo } = await db.query<{ created_by: string | null; field_name: string }>('SELECT created_by, field_name FROM place_change_requests WHERE id = $1', [id]).catch(() => ({ rows: [] as { created_by: string | null; field_name: string }[] }))

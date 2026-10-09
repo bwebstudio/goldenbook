@@ -20,10 +20,18 @@ export default function CategoryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  // Reset to the loading state whenever the fetch inputs change. Done while
+  // rendering (instead of inside the effect) so the stale view never paints.
+  const fetchKey = `${locale}|${ct.couldNotLoadDetail}`;
+  const [prevFetchKey, setPrevFetchKey] = useState(fetchKey);
+  if (fetchKey !== prevFetchKey) {
+    setPrevFetchKey(fetchKey);
     setLoading(true);
     setErrorMessage(null);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
 
     fetchCategories(locale)
       .then((dtos) => {

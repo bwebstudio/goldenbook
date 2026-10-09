@@ -13,6 +13,7 @@ import {
   type PlaceCardRow,
   type NowCandidateRow,
 } from './discover.query'
+import { cityTimezone, localClock } from '../../shared/opening-hours'
 import { toDiscoverDTO, getTimeSegment, pickNowRecommendation, type TimeSegment } from './discover.dto'
 import {
   type OnboardingProfile,
@@ -53,7 +54,9 @@ export async function discoverRoutes(app: FastifyInstance) {
     const cityHeader = await getCityHeader(city, locale)
     if (!cityHeader) throw new NotFoundError('City')
 
-    const nowSegment = getTimeSegment(new Date().getHours())
+    // The city's hour, not the server's: Railway runs in UTC, an hour behind
+    // Portugal all summer.
+    const nowSegment = getTimeSegment(localClock(cityTimezone(city)).hour)
 
     const profile: OnboardingProfile = {
       interests: parseInterests(rawInterests),

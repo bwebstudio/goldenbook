@@ -34,7 +34,9 @@ function SectionCard({ title, description, href, cta, icon }: { title: string; d
 }
 
 interface DashboardContentProps {
-  totalPlaces: number;
+  /** null when the count could not be loaded (shown as such, never as 0). */
+  publishedPlaces: number | null;
+  draftPlaces: number;
   totalCities: number;
   totalRoutes: number;
   publishedRoutes: number;
@@ -42,14 +44,23 @@ interface DashboardContentProps {
   totalSubcategories: number;
 }
 
-export default function DashboardContent({ totalPlaces, totalCities, totalRoutes, publishedRoutes, totalCategories, totalSubcategories }: DashboardContentProps) {
+export default function DashboardContent({ publishedPlaces, draftPlaces, totalCities, totalRoutes, publishedRoutes, totalCategories, totalSubcategories }: DashboardContentProps) {
   const t = useT();
   const d = t.empDashboard;
 
   return (
     <div className="max-w-5xl flex flex-col gap-6 sm:gap-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatTile label={d.places} value={totalPlaces} sub={`${d.across} ${totalCities} ${totalCities === 1 ? d.city : d.citiesPlural}`} href="/places" />
+        <StatTile
+          label={d.places}
+          value={publishedPlaces ?? "-"}
+          sub={
+            publishedPlaces === null
+              ? d.placesLoadError
+              : `${d.placesPublished}${draftPlaces > 0 ? ` · ${draftPlaces} ${d.drafts}` : ""} · ${d.across} ${totalCities} ${totalCities === 1 ? d.city : d.citiesPlural}`
+          }
+          href="/places"
+        />
         <StatTile label={d.routes} value={totalRoutes} sub={publishedRoutes > 0 ? `${publishedRoutes} ${d.editorialActive}` : d.noActiveRoutes} href="/routes" />
         <StatTile label={d.categories} value={totalCategories} sub={totalSubcategories > 0 ? `${totalSubcategories} ${d.subcategories}` : undefined} href="/categories" />
         <StatTile label={d.cities} value={totalCities} sub={d.activeDestinations} href="/places" />

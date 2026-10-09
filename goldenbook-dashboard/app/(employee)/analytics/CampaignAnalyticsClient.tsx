@@ -27,17 +27,39 @@ function fmtCurrency(n: number): string {
   return n >= 1000 ? `€${(n / 1000).toFixed(1)}k` : `€${Math.round(n)}`;
 }
 
+/** Which fetches failed. A failed section says "couldn't load", never "no data". */
+export interface CampaignAnalyticsFailures {
+  overview: boolean;
+  campaigns: boolean;
+  establishments: boolean;
+  time: boolean;
+}
+
+function SectionError({ message }: { message: string }) {
+  return (
+    <Card className="!py-6 text-center">
+      <p className="text-sm text-muted">{message}</p>
+    </Card>
+  );
+}
+
 export default function CampaignAnalyticsClient({
-  overview, campaigns, establishments, timeBuckets, dayOfWeek,
+  overview, campaigns, establishments, timeBuckets, dayOfWeek, failed,
 }: {
   overview: AnalyticsOverview | null;
   campaigns: CampaignPerformance[];
   establishments: EstablishmentPerformance[];
   timeBuckets: TimeBucketPerformance[];
   dayOfWeek: DayOfWeekPerformance[];
+  failed: CampaignAnalyticsFailures;
 }) {
   const t = useT();
   const ca = t.campAnalytics as Record<string, string>;
+  // Placeholder for an empty KPI: "couldn't load" when the fetch failed,
+  // "no data yet" only when it succeeded and there was nothing.
+  const emptyKpi = (
+    <span className="text-sm font-normal text-muted">{failed.overview ? ca.sectionLoadError : ca.noDataYet}</span>
+  );
 
   const hasRevenue = overview && overview.revenue.total > 0;
   const hasCampaigns = campaigns.length > 0;
@@ -58,13 +80,13 @@ export default function CampaignAnalyticsClient({
         <Card className="!p-5">
           <p className="text-sm text-muted">{ca.revenue}</p>
           <p className="text-2xl font-bold text-text mt-1">
-            {hasRevenue ? fmtCurrency(overview!.revenue.total) : <span className="text-sm font-normal text-muted">{ca.noDataYet}</span>}
+            {hasRevenue ? fmtCurrency(overview!.revenue.total) : emptyKpi}
           </p>
         </Card>
         <Card className="!p-5">
           <p className="text-sm text-muted">{ca.purchases}</p>
           <p className="text-2xl font-bold text-text mt-1">
-            {overview && overview.revenue.purchases > 0 ? overview.revenue.purchases : <span className="text-sm font-normal text-muted">{ca.noDataYet}</span>}
+            {overview && overview.revenue.purchases > 0 ? overview.revenue.purchases : emptyKpi}
           </p>
         </Card>
         <Card className="!p-5">
@@ -72,7 +94,7 @@ export default function CampaignAnalyticsClient({
           <p className="text-2xl font-bold text-text mt-1">
             {overview?.conversion.rate !== null && overview?.conversion.rate !== undefined
               ? `${overview.conversion.rate}%`
-              : <span className="text-sm font-normal text-muted">{ca.noDataYet}</span>}
+              : emptyKpi}
           </p>
           {overview && overview.conversion.started > 0 && (
             <p className="text-[10px] text-muted mt-0.5">
@@ -83,7 +105,7 @@ export default function CampaignAnalyticsClient({
         <Card className="!p-5">
           <p className="text-sm text-muted">{ca.activePlacements}</p>
           <p className="text-2xl font-bold text-text mt-1">
-            {overview ? overview.activePlacements : <span className="text-sm font-normal text-muted">{ca.noDataYet}</span>}
+            {overview ? overview.activePlacements : emptyKpi}
           </p>
         </Card>
       </div>
@@ -123,6 +145,12 @@ export default function CampaignAnalyticsClient({
       })()}
 
       {/* Revenue by Section */}
+      {failed.campaigns && (
+        <>
+          <h3 className="text-base font-bold text-text">{ca.revenueBySection}</h3>
+          <SectionError message={ca.sectionLoadError} />
+        </>
+      )}
       {hasCampaigns && (
         <>
           <h3 className="text-base font-bold text-text">{ca.revenueBySection}</h3>
@@ -156,6 +184,12 @@ export default function CampaignAnalyticsClient({
       )}
 
       {/* Top Establishments */}
+      {failed.establishments && (
+        <>
+          <h3 className="text-base font-bold text-text">{ca.topEstablishments}</h3>
+          <SectionError message={ca.sectionLoadError} />
+        </>
+      )}
       {establishments.length > 0 && (
         <>
           <h3 className="text-base font-bold text-text">{ca.topEstablishments}</h3>
@@ -166,8 +200,9 @@ export default function CampaignAnalyticsClient({
                   <th className="px-5 py-3 font-semibold text-muted">{ca.place}</th>
                   <th className="px-5 py-3 font-semibold text-muted text-right">{ca.revenue}</th>
                   <th className="px-5 py-3 font-semibold text-muted text-right">{ca.purchases}</th>
-                  <th className="px-5 py-3 font-semibold text-muted text-right">{ca.selections}</th>
-                  <th className="px-5 py-3 font-semibold text-muted text-right">{ca.checkouts}</th>
+                  <th className="px-5 py-3 font-semibold text-muted text-right">{ca.views}</th>
+                  <th className="px-5 py-3 font-semibold text-muted text-right">{ca.clicks}</th>
+                  <th className="px-5 py-3 font-semibold text-muted text-right">{ca.directions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,7 +212,8 @@ export default function CampaignAnalyticsClient({
                     <td className="px-5 py-3 text-right font-semibold text-text">{fmtCurrency(e.totalRevenue)}</td>
                     <td className="px-5 py-3 text-right text-muted">{e.totalPurchases}</td>
                     <td className="px-5 py-3 text-right text-muted">{e.views}</td>
-                    <td className="px-5 py-3 text-right text-muted">{e.clicks}</td>
+                    <td className="px-5 py-3 text-right text-muted">{e.websiteClicks + e.bookingClicks}</td>
+                    <td className="px-5 py-3 text-right text-muted">{e.mapOpens}</td>
                   </tr>
                 ))}
               </tbody>
@@ -187,6 +223,12 @@ export default function CampaignAnalyticsClient({
       )}
 
       {/* Time Performance */}
+      {failed.time && (
+        <>
+          <h3 className="text-base font-bold text-text">{ca.timeSlotPerf}</h3>
+          <SectionError message={ca.sectionLoadError} />
+        </>
+      )}
       <div className="flex flex-col lg:flex-row gap-6">
         {timeBuckets.length > 0 && (
           <div className="flex-1 min-w-0">
@@ -252,7 +294,7 @@ export default function CampaignAnalyticsClient({
       </div>
 
       {/* No data */}
-      {!overview && !hasCampaigns && establishments.length === 0 && (
+      {!overview && !hasCampaigns && establishments.length === 0 && !Object.values(failed).some(Boolean) && (
         <Card className="text-center !py-12">
           <p className="text-base font-semibold text-text">{ca.noDataYet}</p>
           <p className="text-sm text-muted mt-1">{ca.analyticsWillAppear}</p>

@@ -1,10 +1,10 @@
 "use client";
 
-import { fetchCurrentUser } from "@/lib/api/auth";
-import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
+import { getSupabaseBrowserClient, purgePersistedSupabaseSessions } from "@/lib/auth/supabaseClient";
+import { CSRF_HEADER } from "@/lib/auth/session-policy";
 import PasswordInput from "@/components/auth/PasswordInput";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -12,6 +12,12 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Older builds persisted the Supabase session (refresh token included) in
+  // localStorage. Drop it: the session now lives only in httpOnly cookies.
+  useEffect(() => {
+    purgePersistedSupabaseSessions();
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,16 +41,14 @@ export default function LoginForm() {
         throw new Error("Could not retrieve the Supabase session.");
       }
 
-      const currentUser = await fetchCurrentUser(accessToken);
-      if (!currentUser) {
-        await supabase.auth.signOut();
-        throw new Error("Your account is valid, but it does not have dashboard access.");
-      }
-
+      // /api/auth/session checks dashboard access (403 otherwise) and stores
+      // the tokens in httpOnly cookies. The client keeps no copy
+      // (persistSession: false), so they leave JS memory with this function.
       const response = await fetch("/api/auth/session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          [CSRF_HEADER]: "1",
         },
         body: JSON.stringify({
           accessToken,
@@ -55,7 +59,8 @@ export default function LoginForm() {
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-        await supabase.auth.signOut();
+        // Revoke only this just-created session, not the user's others.
+        await supabase.auth.signOut({ scope: "local" }).catch(() => {});
         throw new Error(payload?.message ?? "Could not save the session.");
       }
 

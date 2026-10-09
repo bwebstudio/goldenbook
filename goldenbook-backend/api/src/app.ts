@@ -18,10 +18,10 @@ import { meRoutes } from './modules/me/me.route'
 import { journeysRoutes } from './modules/journeys/journeys.route'
 import { conciergeRoutes } from './modules/concierge/concierge.route'
 import { adminPlacesRoutes } from './modules/admin/places/admin-places.route'
+import { adminImageUploadRoutes } from './modules/admin/places/admin-image-upload.route'
 import { adminCategoriesRoutes } from './modules/admin/categories/admin-categories.route'
 import { adminRoutesRoutes } from './modules/admin/routes/admin-routes.route'
 import { adminSuggestionsRoutes } from './modules/admin/suggestions/admin-suggestions.route'
-import { adminAnalyticsRoutes } from './modules/admin/analytics/admin-analytics.route'
 import { campaignAnalyticsRoutes } from './modules/admin/analytics/campaign-analytics.route'
 import { bookingTrackingRoutes } from './modules/booking-tracking/booking-tracking.route'
 import { candidatesRoutes } from './modules/booking-candidates/candidates.route'
@@ -36,9 +36,9 @@ import { pricingRoutes } from './modules/pricing/pricing.route'
 import { campaignsRoutes } from './modules/campaigns/campaigns.route'
 import { campaignsTrackingRoutes } from './modules/campaigns/campaigns-tracking.route'
 import { trackingRoutes } from './modules/analytics/tracking.route'
-import { behaviorAnalyticsRoutes } from './modules/analytics/behavior-analytics.route'
 import { analyticsEventsRoutes, closeStaleSessions } from './modules/analytics/events.route'
 import { adminAnalyticsV2Routes } from './modules/admin/analytics/admin-analytics-v2.route'
+import { adminAnalyticsKpisRoutes } from './modules/admin/analytics/admin-analytics-kpis.route'
 import { refreshPlaceExposure } from './modules/shared-scoring/exposure'
 import { contentVersionRoutes } from './modules/content/content-version.route'
 import { mobileVersionCheckRoutes } from './modules/mobile/version-check.route'
@@ -93,10 +93,10 @@ export function buildApp() {
   app.register(journeysRoutes,     { prefix: env.API_PREFIX })
   app.register(conciergeRoutes,        { prefix: env.API_PREFIX })
   app.register(adminPlacesRoutes,      { prefix: env.API_PREFIX })
+  app.register(adminImageUploadRoutes, { prefix: env.API_PREFIX })
   app.register(adminCategoriesRoutes,  { prefix: env.API_PREFIX })
   app.register(adminRoutesRoutes,      { prefix: env.API_PREFIX })
   app.register(adminSuggestionsRoutes, { prefix: env.API_PREFIX })
-  app.register(adminAnalyticsRoutes,   { prefix: env.API_PREFIX })
   app.register(campaignAnalyticsRoutes, { prefix: env.API_PREFIX })
   app.register(bookingTrackingRoutes,  { prefix: env.API_PREFIX })
   app.register(candidatesRoutes,       { prefix: env.API_PREFIX })
@@ -111,9 +111,9 @@ export function buildApp() {
   app.register(campaignsRoutes,        { prefix: env.API_PREFIX })
   app.register(campaignsTrackingRoutes, { prefix: env.API_PREFIX })
   app.register(trackingRoutes,         { prefix: env.API_PREFIX })
-  app.register(behaviorAnalyticsRoutes, { prefix: env.API_PREFIX })
   app.register(analyticsEventsRoutes,  { prefix: env.API_PREFIX })
   app.register(adminAnalyticsV2Routes, { prefix: env.API_PREFIX })
+  app.register(adminAnalyticsKpisRoutes, { prefix: env.API_PREFIX })
   app.register(contentVersionRoutes,   { prefix: env.API_PREFIX })
   app.register(mobileVersionCheckRoutes, { prefix: env.API_PREFIX })
   app.register(recommendationsRoutes,  { prefix: env.API_PREFIX })

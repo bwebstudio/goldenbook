@@ -70,6 +70,7 @@ export function mapPlaceDetailToUI(dto: PlaceDetailDTO): UIPlaceDetail {
     bookingUrl: dto.actions.bookingUrl,
     categories: dto.categories,
     subcategories: dto.subcategories,
+    openingHours: dto.openingHours ?? [],
     // Editor cover preview (w-48 = 192px) → card variant covers 2× retina.
     mainImage: getStorageUrl(dto.heroImage.bucket, dto.heroImage.path, 'card'),
     // Gallery grid items render at ~180px → card variant.

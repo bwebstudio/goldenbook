@@ -1,8 +1,8 @@
 "use client";
 
 import type { DashboardUser } from "@/types/auth";
-import { useT, useLocale, type Locale } from "@/lib/i18n";
-import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
+import { useT, useLocale } from "@/lib/i18n";
+import { logoutSession } from "@/lib/auth/logout";
 import PlaceSelector from "@/components/ui/PlaceSelector";
 import NotificationBell from "@/components/ui/NotificationBell";
 import SubscriptionBanner from "@/components/business/SubscriptionBanner";
@@ -24,20 +24,6 @@ function Initials({ name }: { name: string }) {
   );
 }
 
-function LanguageSwitch() {
-  const { locale, setLocale } = useLocale();
-  const toggle = () => setLocale(locale === "en" ? "pt" : "en");
-  return (
-    <button
-      onClick={toggle}
-      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider text-[#6B6B7B] hover:text-[#222D52] hover:bg-[#F9F7F2] transition-colors cursor-pointer"
-      title={locale === "en" ? "Mudar para Português" : "Switch to English"}
-    >
-      {locale === "en" ? "PT" : "EN"}
-    </button>
-  );
-}
-
 function UserMenu({ name, t }: { name: string; t: ReturnType<typeof useT> }) {
   const router = useRouter();
   const { locale, setLocale } = useLocale();
@@ -47,9 +33,7 @@ function UserMenu({ name, t }: { name: string; t: ReturnType<typeof useT> }) {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
-      await fetch("/api/auth/logout", { method: "POST" });
+      await logoutSession();
     } finally {
       router.replace("/login");
       router.refresh();

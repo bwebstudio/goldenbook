@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { openingHoursSchema } from './opening-hours'
 
 // ─── Zod schemas ──────────────────────────────────────────────────────────────
 
@@ -85,6 +86,8 @@ export const createPlaceSchema = z.object({
   bookingNotes:            z.string().optional(),
   reservationRelevant:     z.boolean().default(false),
   reservationSource:       reservationSourceEnum.optional(),
+  // Weekly opening hours (see opening-hours.ts). Omitted = no rows written.
+  openingHours:            openingHoursSchema.optional(),
 })
 
 // ─── NOW time windows ───────────────────────────────────────────────────────
@@ -185,12 +188,27 @@ export const updatePlaceSchema = z.object({
   nowEndAt:                z.string().datetime({ offset: true }).nullable().optional(),
   nowTagSlugs:             z.array(z.string().min(1)).optional(),
   nowTimeWindows:          z.array(nowTimeWindowEnum).optional(),
+  // Weekly opening hours. Omitted = leave the stored hours untouched;
+  // an array replaces the whole week; [] clears it (hours unknown).
+  openingHours:            openingHoursSchema.optional(),
 })
 
 export type CreatePlaceInput = z.infer<typeof createPlaceSchema>
 export type UpdatePlaceInput = z.infer<typeof updatePlaceSchema>
 
 // ─── Response DTO ─────────────────────────────────────────────────────────────
+
+/**
+ * What happened to EN/ES after a save that changed the Portuguese editorial
+ * fields. `skippedLocked` are locales flagged translation_override = true
+ * (manual translations), which auto-translation never touches; `failed` are
+ * locales DeepL could not translate this time.
+ */
+export interface AutoTranslationOutcome {
+  updated:       Array<'en' | 'es'>
+  skippedLocked: Array<'en' | 'es'>
+  failed:        Array<'en' | 'es'>
+}
 
 export interface AdminPlaceResponseDTO {
   id:        string
@@ -200,4 +218,6 @@ export interface AdminPlaceResponseDTO {
   featured:  boolean
   citySlug:  string
   citySlugs: string[]
+  /** Present on PUT when a PT editorial field was part of the save. */
+  autoTranslation?: AutoTranslationOutcome
 }

@@ -4,16 +4,22 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useT, useLocale } from "@/lib/i18n";
-import { fetchBusinessPlace, updateBusinessPlace, fetchBusinessImages, type BusinessPlaceProfile, type BusinessImageDTO, type ChangeRequestInfo } from "@/lib/api/business-portal";
+import {
+  fetchBusinessPlace, updateBusinessPlace, fetchBusinessImageState,
+  uploadBusinessImage, requestBusinessImageRemoval, cancelBusinessImageRequest,
+  type BusinessPlaceProfile, type BusinessImageState, type ChangeRequestInfo,
+} from "@/lib/api/business-portal";
+import { ApiError } from "@/lib/api/client";
 import { getStorageUrl } from "@/lib/utils/storage";
-import { addImage, deleteImagePermanent } from "@/lib/api/images";
-import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
+import { preparePortalImage, PortalImageError, PORTAL_IMAGE_ACCEPT } from "@/lib/utils/portal-image";
+
+const EMPTY_IMAGE_STATE: BusinessImageState = { items: [], pending: [], slotsLeft: 0 };
 
 export default function PortalListing() {
   const t = useT();
   const { locale } = useLocale();
   const [place, setPlace] = useState<BusinessPlaceProfile | null>(null);
-  const [images, setImages] = useState<BusinessImageDTO[]>([]);
+  const [imageState, setImageState] = useState<BusinessImageState>(EMPTY_IMAGE_STATE);
   const [changeRequests, setChangeRequests] = useState<ChangeRequestInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,10 +41,10 @@ export default function PortalListing() {
     try {
       const [data, imgs] = await Promise.all([
         fetchBusinessPlace(locale),
-        fetchBusinessImages().catch(() => []),
+        fetchBusinessImageState().catch(() => EMPTY_IMAGE_STATE),
       ]);
       setPlace(data);
-      setImages(imgs);
+      setImageState(imgs);
       setChangeRequests(data.changeRequests ?? []);
       setName(data.name ?? "");
       setShortDescription(data.short_description ?? "");
@@ -83,30 +89,52 @@ export default function PortalListing() {
     } finally { setSaving(false); }
   };
 
+  const reloadImages = async () => {
+    setImageState(await fetchBusinessImageState().catch(() => EMPTY_IMAGE_STATE));
+  };
+
+  // Images go to the API, not to the bucket: the API checks the place is
+  // ours, stores the file and files it for editorial review, and removes the
+  // stored file again if anything after the upload fails.
   const handleImgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !place) return;
-    if (visibleImages.length >= 4) return;
+    if (imageState.slotsLeft <= 0) { showToast("error", t.listing.uploadLimit); return; }
     setUploading(true);
     try {
-      const supabase = getSupabaseBrowserClient();
-      const ext = file.name.split('.').pop() ?? 'jpg';
-      const path = `places/${place.id}/${Date.now()}.${ext}`;
-      const bucket = 'place-images';
-      const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
-      if (error) throw error;
-      await addImage(place.id, { bucket, path: `${bucket}/${path}`, mimeType: file.type, sizeBytes: file.size });
-      setImages(await fetchBusinessImages().catch(() => []));
-    } catch { showToast("error", t.listing.uploadFailed); }
-    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
+      // Same resize/recompression as the employee editor (2560px, JPEG).
+      const prepared = await preparePortalImage(file);
+      await uploadBusinessImage(prepared.file, { width: prepared.width, height: prepared.height });
+      showToast("success", t.listing.uploadSent);
+      await reloadImages();
+    } catch (err) {
+      showToast("error", uploadErrorMessage(err, t));
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
-  const handleImgDelete = async (imgId: string) => {
-    if (!place || !confirm(t.listing.deleteImageConfirm)) return;
+  const handleImgRemove = async (imgId: string) => {
+    if (!place || !confirm(t.listing.removeImageConfirm)) return;
     setImgBusy(true);
     try {
-      await deleteImagePermanent(place.id, imgId);
-      setImages(await fetchBusinessImages().catch(() => []));
+      await requestBusinessImageRemoval(imgId);
+      showToast("success", t.listing.removalRequested);
+      await reloadImages();
+    } catch {
+      showToast("error", t.listing.removeFailed);
+    } finally { setImgBusy(false); }
+  };
+
+  const handleWithdraw = async (requestId: string) => {
+    if (!confirm(t.listing.withdrawConfirm)) return;
+    setImgBusy(true);
+    try {
+      await cancelBusinessImageRequest(requestId);
+      await reloadImages();
+    } catch {
+      showToast("error", t.listing.withdrawFailed);
     } finally { setImgBusy(false); }
   };
 
@@ -114,7 +142,12 @@ export default function PortalListing() {
   if (!place) return <p className="text-muted py-10 text-center">{t.common.loading}</p>;
 
   const inputCls = "w-full rounded-xl border border-border px-3.5 py-3 text-sm text-text placeholder:text-[#B0AAA3] focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/10 transition";
-  const visibleImages = images.filter(i => i.image_role === 'hero' || i.image_role === 'cover' || i.image_role === 'gallery');
+  const visibleImages = imageState.items.filter(i => i.image_role === 'hero' || i.image_role === 'cover' || i.image_role === 'gallery');
+  const pendingAdds = imageState.pending.filter(p => p.kind === 'add');
+  const pendingRemovalByImage = new Map(
+    imageState.pending.filter(p => p.kind === 'remove' && p.image_id).map(p => [p.image_id as string, p.id]),
+  );
+  const usedSlots = visibleImages.length + pendingAdds.length;
 
   // Per-field status from change requests
   const fieldStatus = (f: string): "pending" | "rejected" | null => {
@@ -188,16 +221,15 @@ export default function PortalListing() {
       <Section title={t.listing.images} desc={t.listing.imagesDesc}>
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs font-medium text-muted">{t.listing.gallery}</p>
-          <p className="text-[10px] text-muted">{Math.min(visibleImages.length, 4)} / 4 {t.listing.imagesIncluded}</p>
+          <p className="text-[10px] text-muted">{Math.min(usedSlots, 4)} / 4 {t.listing.imagesIncluded}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          {visibleImages.slice(0, 4).map((img) => {
-            // Card variant for the 4-up gallery — each cell is ~180-240px
-            // visual width depending on the breakpoint. Using Next/Image
-            // (instead of the previous <img> tag) routes through the Next
-            // optimizer and lets the CDN-cacheable Supabase derivative
-            // do the heavy lifting.
+          {visibleImages.map((img) => {
+            // Card variant for the 4-up gallery. Next/Image routes through the
+            // optimizer and lets the CDN-cacheable Supabase derivative do the
+            // heavy lifting.
             const url = getStorageUrl(img.bucket, img.path, 'card');
+            const removalRequestId = pendingRemovalByImage.get(img.id);
             return (
               <div key={img.id} className="aspect-[4/3] rounded-lg overflow-hidden border border-border bg-surface relative group">
                 {url ? (
@@ -206,7 +238,7 @@ export default function PortalListing() {
                     alt={img.caption ?? ""}
                     fill
                     sizes="(max-width: 768px) 50vw, 25vw"
-                    className="object-cover"
+                    className={`object-cover ${removalRequestId ? "opacity-50" : ""}`}
                   />
                 ) : (
                   <EmptySlot />
@@ -214,24 +246,42 @@ export default function PortalListing() {
                 {(img.image_role === 'hero' || img.image_role === 'cover') && (
                   <span className="absolute top-1 left-1 bg-black/50 text-white text-[8px] font-semibold uppercase px-1.5 py-0.5 rounded">{t.listing.cover}</span>
                 )}
-                <button onClick={() => handleImgDelete(img.id)} disabled={imgBusy} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer disabled:opacity-50">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
+                {removalRequestId ? (
+                  <PendingOverlay label={t.listing.removalPending} action={t.listing.withdraw} disabled={imgBusy} onAction={() => handleWithdraw(removalRequestId)} />
+                ) : (
+                  <button onClick={() => handleImgRemove(img.id)} disabled={imgBusy} aria-label={t.common.delete} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer disabled:opacity-50">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                )}
               </div>
             );
           })}
-          {Array.from({ length: Math.max(0, 4 - visibleImages.length) }).map((_, i) => (
+          {pendingAdds.map((p) => {
+            const url = getStorageUrl(p.bucket, p.path, 'card');
+            return (
+              <div key={p.id} className="aspect-[4/3] rounded-lg overflow-hidden border border-amber-200 bg-surface relative">
+                {url ? (
+                  <Image src={url} alt="" fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover opacity-70" />
+                ) : (
+                  <EmptySlot />
+                )}
+                <PendingOverlay label={t.listing.imagePending} action={t.listing.withdraw} disabled={imgBusy} onAction={() => handleWithdraw(p.id)} />
+              </div>
+            );
+          })}
+          {Array.from({ length: Math.max(0, 4 - usedSlots) }).map((_, i) => (
             <div key={`e-${i}`} className="aspect-[4/3] rounded-lg border-2 border-dashed border-border flex items-center justify-center bg-white"><EmptySlot /></div>
           ))}
         </div>
-        <div className="flex items-center gap-3 mt-2">
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleImgUpload} className="hidden" />
-          {visibleImages.length < 4 && (
+        <div className="flex flex-wrap items-center gap-3 mt-2">
+          <input ref={fileRef} type="file" accept={PORTAL_IMAGE_ACCEPT} onChange={handleImgUpload} className="hidden" />
+          {imageState.slotsLeft > 0 && (
             <button onClick={() => fileRef.current?.click()} disabled={uploading || imgBusy} className="px-4 py-1.5 rounded-lg border border-border text-xs font-semibold text-text hover:border-gold/50 transition-colors bg-white cursor-pointer disabled:opacity-50">
-              {uploading ? "..." : t.listing.addImages}
+              {uploading ? t.common.saving : t.listing.addImages}
             </button>
           )}
           <p className="text-[10px] text-muted leading-relaxed">
+            {t.listing.imageFormatsHint}{" "}
             {t.listing.upgradeAvailable}{" "}
             <Link href="/portal/promote" className="text-gold font-medium hover:underline">{t.overview.promoteSpace} →</Link>
           </p>
@@ -249,7 +299,33 @@ export default function PortalListing() {
   );
 }
 
+/* ── Helpers ── */
+
+function uploadErrorMessage(err: unknown, t: ReturnType<typeof import("@/lib/i18n").useT>): string {
+  if (err instanceof PortalImageError) {
+    if (err.reason === "heic") return t.listing.uploadHeic;
+    if (err.reason === "tooLarge") return t.listing.uploadTooLarge;
+    return t.listing.uploadUnsupported;
+  }
+  if (err instanceof ApiError) {
+    if (err.status === 409) return t.listing.uploadLimit;
+    if (err.status === 413) return t.listing.uploadTooLarge;
+    if (err.status === 415) return t.listing.uploadUnsupported;
+  }
+  return t.listing.uploadFailed;
+}
+
 /* ── Sub-components ── */
+
+function PendingOverlay({ label, action, disabled, onAction }: { label: string; action: string; disabled: boolean; onAction: () => void }) {
+  return (
+    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-white/90 px-1.5 py-1">
+      <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 truncate">{label}</span>
+      <button onClick={onAction} disabled={disabled} className="text-[10px] font-semibold text-muted hover:text-text cursor-pointer disabled:opacity-50 shrink-0">{action}</button>
+    </div>
+  );
+}
+
 
 function EmptySlot() {
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D2B68A" strokeWidth="1.5" className="opacity-25"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>;

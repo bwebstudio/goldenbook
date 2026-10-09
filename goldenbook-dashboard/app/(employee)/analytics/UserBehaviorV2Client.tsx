@@ -3,9 +3,11 @@
 /**
  * UserBehaviorV2Client
  *
- * Consumes the 4 admin analytics V2 endpoints in parallel and renders a
- * stacked view: Users → Content → Features → Search. A single period
- * selector (7/30/90 d) at the top re-fetches everything.
+ * Consumes the admin analytics V2 endpoints in parallel and renders a
+ * stacked view: Users, Retention, Content, Attribution, Features, Search,
+ * Push. A single period selector (7/30/90 d) at the top re-fetches
+ * everything (retention and the search trend use fixed 12-week windows).
+ * A section whose endpoint failed says so instead of disappearing.
  *
  * Shows a clear empty state when the pipeline has no data yet — this is the
  * normal state just after the mobile OTA update reaches users but before
@@ -13,25 +15,39 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useT } from "@/lib/i18n";
+import { useT, type TranslationKeys } from "@/lib/i18n";
 import Card from "@/components/ui/Card";
 import {
   fetchUsersAnalytics,
   fetchContentAnalytics,
   fetchFeaturesAnalytics,
   fetchSearchAnalytics,
+  fetchRetentionAnalytics,
+  fetchPushAnalytics,
+  fetchAttributionAnalytics,
   type AnalyticsPeriod,
   type UsersAnalytics,
   type ContentAnalytics,
   type FeaturesAnalytics,
   type SearchAnalytics,
+  type RetentionAnalytics,
+  type PushAnalytics,
+  type AttributionAnalytics,
 } from "@/lib/api/analytics-v2";
+import { BlockError, KpiCard, LegendDot, TopList } from "@/components/analytics/atoms";
+import { fill, formatPct, formatSec, shortDate } from "@/components/analytics/format";
+import RetentionBlock from "@/components/analytics/RetentionBlock";
+import PushBlock from "@/components/analytics/PushBlock";
+import AttributionBlock from "@/components/analytics/AttributionBlock";
 
 type Bundle = {
   users: UsersAnalytics | null;
   content: ContentAnalytics | null;
   features: FeaturesAnalytics | null;
   search: SearchAnalytics | null;
+  retention: RetentionAnalytics | null;
+  push: PushAnalytics | null;
+  attribution: AttributionAnalytics | null;
 };
 
 export default function UserBehaviorV2Client() {
@@ -57,19 +73,19 @@ export default function UserBehaviorV2Client() {
       fetchContentAnalytics(period),
       fetchFeaturesAnalytics(period),
       fetchSearchAnalytics(period),
+      fetchRetentionAnalytics(),
+      fetchPushAnalytics(period),
+      fetchAttributionAnalytics(period),
     ]).then((results) => {
       if (cancelled) return;
-      const [u, c, f, s] = results;
-      if (results.every((r) => r.status === "rejected")) {
-        // Log each rejection so the underlying cause (auth, 500, CORS, etc.)
-        // is visible in the browser console — previously all four errors were
-        // swallowed and the user only saw "Could not load" with no signal.
-        const names = ["users", "content", "features", "search"];
-        results.forEach((r, i) => {
-          if (r.status === "rejected") {
-            console.error(`[UserBehaviorV2] ${names[i]} analytics failed:`, r.reason);
-          }
-        });
+      const [u, c, f, s, r, p, at] = results;
+      const names = ["users", "content", "features", "search", "retention", "push", "attribution"];
+      results.forEach((res, i) => {
+        if (res.status === "rejected") {
+          console.error(`[UserBehaviorV2] ${names[i]} analytics failed:`, res.reason);
+        }
+      });
+      if (results.every((res) => res.status === "rejected")) {
         setFetchState({ phase: "error", key });
         return;
       }
@@ -81,6 +97,9 @@ export default function UserBehaviorV2Client() {
           content:  c.status === "fulfilled" ? c.value : null,
           features: f.status === "fulfilled" ? f.value : null,
           search:   s.status === "fulfilled" ? s.value : null,
+          retention:   r.status === "fulfilled" ? r.value : null,
+          push:        p.status === "fulfilled" ? p.value : null,
+          attribution: at.status === "fulfilled" ? at.value : null,
         },
       });
     });
@@ -137,10 +156,13 @@ export default function UserBehaviorV2Client() {
 
       {!loading && !error && data && hasAnyData && (
         <>
-          {data.users    && <UsersBlock    d={data.users}    t={a} />}
-          {data.content  && <ContentBlock  d={data.content}  t={a} />}
-          {data.features && <FeaturesBlock d={data.features} t={a} />}
-          {data.search   && <SearchBlock   d={data.search}   t={a} />}
+          {data.users       ? <UsersBlock    d={data.users}    t={a} /> : <BlockError title={a.usersTitle} message={a.blockError} />}
+          {data.retention   ? <RetentionBlock d={data.retention} t={a} /> : <BlockError title={a.retentionTitle} message={a.blockError} />}
+          {data.content     ? <ContentBlock  d={data.content}  t={a} /> : <BlockError title={a.contentTitle} message={a.blockError} />}
+          {data.attribution ? <AttributionBlock d={data.attribution} t={a} /> : <BlockError title={a.attributionTitle} message={a.blockError} />}
+          {data.features    ? <FeaturesBlock d={data.features} t={a} /> : <BlockError title={a.featuresTitle} message={a.blockError} />}
+          {data.search      ? <SearchBlock   d={data.search}   t={a} /> : <BlockError title={a.searchTitle} message={a.blockError} />}
+          {data.push        ? <PushBlock     d={data.push}     t={a} /> : <BlockError title={a.pushTitle} message={a.blockError} />}
         </>
       )}
     </section>
@@ -196,12 +218,17 @@ function UsersBlock({ d, t: a }: { d: UsersAnalytics; t: BehaviorTxt }) {
         <KpiCard label={a.visitsPerUser} hint={a.visitsPerUserHint} value={d.kpis.sessionsPerUser.toFixed(1)} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label={a.avgTime}         hint={a.avgTimeHint}         value={formatSec(d.kpis.avgSessionSec)} />
+      {/* Session length: the median is the headline, p75/p90 the spread. The
+          mean is not shown, background time inflates it by an order of
+          magnitude. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KpiCard label={a.typicalSession}  hint={a.typicalSessionHint}  value={formatSec(d.kpis.sessionP50Sec)} />
         <KpiCard label={a.longSession}     hint={a.longSessionHint}     value={formatSec(d.kpis.sessionP75Sec)} />
-        <KpiCard label={a.veryLongSession} hint={a.veryLongSessionHint} value={formatSec(d.kpis.sessionP95Sec)} />
+        <KpiCard label={a.veryLongSession} hint={a.veryLongSessionHint} value={formatSec(d.kpis.sessionP90Sec)} />
       </div>
+      <p className="text-[11px] text-muted -mt-2">
+        {fill(a.durationNote, { n: d.kpis.sessionsMeasured.toLocaleString(), date: d.kpis.durationSince })}
+      </p>
 
       {/* Chart always renders as long as the backend returned a date series — its
           own empty-state handles "all zero" visually, so the user never sees a
@@ -358,9 +385,9 @@ function ContentBlock({ d, t: a }: { d: ContentAnalytics; t: BehaviorTxt }) {
       <h3 className="text-base font-bold text-text">{a.contentTitle}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {d.mostViewed.length  > 0 && <TopList title={a.mostViewed}  items={d.mostViewed.map((r) => ({ label: r.name, count: r.count }))} />}
-        {d.mostSaved.length   > 0 && <TopList title={a.mostSaved}   items={d.mostSaved.map((r) => ({ label: r.name, count: r.count }))} />}
-        {d.mostBooked.length  > 0 && <TopList title={a.mostBooked}  items={d.mostBooked.map((r) => ({ label: r.name, count: r.count }))} />}
+        {d.mostViewed.length  > 0 && <TopList title={a.mostViewed}  items={d.mostViewed.map((r) => ({ key: r.placeId, label: r.name, count: r.count }))} />}
+        {d.mostSaved.length   > 0 && <TopList title={a.mostSaved}   items={d.mostSaved.map((r) => ({ key: r.placeId, label: r.name, count: r.count }))} />}
+        {d.mostBooked.length  > 0 && <TopList title={a.mostBooked}  items={d.mostBooked.map((r) => ({ key: r.placeId, label: r.name, count: r.count }))} />}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -434,10 +461,17 @@ function SearchBlock({ d, t: a }: { d: SearchAnalytics; t: BehaviorTxt }) {
     <div className="flex flex-col gap-4">
       <h3 className="text-base font-bold text-text">{a.searchTitle}</h3>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KpiCard label={a.totalQueries} value={d.totals.count.toLocaleString()} />
+        <KpiCard
+          label={a.zeroResultRate}
+          value={formatPct(d.totals.zeroResultRatePct, "-")}
+          hint={fill(a.zeroResultRateHint, { zero: d.totals.zeroResults.toLocaleString(), total: d.totals.count.toLocaleString() })}
+        />
         <KpiCard label={a.avgResults} value={d.totals.avgResults.toFixed(1)} />
       </div>
+
+      {d.zeroResultTrend.length > 0 && <ZeroResultTrend data={d.zeroResultTrend} t={a} />}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {d.topQueries.length > 0 && (
@@ -486,110 +520,34 @@ function SearchBlock({ d, t: a }: { d: SearchAnalytics; t: BehaviorTxt }) {
   );
 }
 
-// ─── Shared atoms ───────────────────────────────────────────────────────────
-
-function KpiCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function ZeroResultTrend({ data, t: a }: { data: SearchAnalytics["zeroResultTrend"]; t: BehaviorTxt }) {
+  const BAR_H = 90;
   return (
-    <Card className="!p-5">
-      <p className="text-sm font-semibold text-text">{label}</p>
-      <p className="text-2xl font-bold text-text mt-1">{value}</p>
-      {hint && <p className="text-xs text-muted mt-1 leading-snug">{hint}</p>}
-    </Card>
-  );
-}
-
-function TopList({ title, items }: { title: string; items: { label: string; count: number }[] }) {
-  return (
-    <Card className="!p-0 overflow-hidden">
-      <div className="px-4 py-3 border-b border-border bg-surface">
-        <p className="text-xs font-bold text-text">{title}</p>
-      </div>
-      <div className="divide-y divide-border/50">
-        {items.slice(0, 5).map((item, i) => (
-          <div key={item.label} className="px-4 py-2.5 flex items-center justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-[10px] font-bold text-muted w-4 shrink-0">{i + 1}.</span>
-              <span className="text-sm text-text truncate">{item.label}</span>
+    <Card>
+      <p className="text-sm font-bold text-text">{a.zeroResultTrend}</p>
+      <p className="text-xs text-muted mt-0.5 mb-4">{a.zeroResultTrendSub}</p>
+      <div className="flex items-end gap-2" style={{ height: `${BAR_H + 34}px` }}>
+        {data.map((w) => {
+          const h = w.ratePct !== null ? Math.max(3, Math.round((w.ratePct / 100) * BAR_H)) : 0;
+          return (
+            <div
+              key={w.week}
+              className="flex-1 flex flex-col items-center justify-end"
+              title={w.ratePct !== null ? `${w.week}: ${w.zero}/${w.total}` : `${w.week}: ${a.noSearches}`}
+            >
+              <span className="text-[9px] font-semibold text-text mb-1">{formatPct(w.ratePct, "")}</span>
+              {h > 0 ? (
+                <div className="w-full rounded-t" style={{ height: `${h}px`, backgroundColor: "#D2B68A" }} />
+              ) : (
+                <div className="w-full rounded-t" style={{ height: "2px", backgroundColor: "#E8E1D5" }} />
+              )}
+              <span className="text-[8px] text-muted mt-1">{shortDate(w.week)}</span>
             </div>
-            <span className="text-sm font-semibold text-text shrink-0 ml-2">{item.count.toLocaleString()}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1">
-      <span className="w-2.5 h-2.5 rounded" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  );
-}
-
-function formatSec(s: number): string {
-  if (!Number.isFinite(s) || s <= 0) return "—";
-  const total = Math.round(s);
-  const m = Math.floor(total / 60);
-  const sec = total % 60;
-  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-}
-
-type BehaviorTxt = {
-  title: string;
-  subtitle: string;
-  usersTitle: string;
-  contentTitle: string;
-  featuresTitle: string;
-  searchTitle: string;
-  // Headline KPIs (human-friendly replacements for DAU / WAU / MAU / sessions-per-user)
-  activeToday: string;
-  activeTodayHint: string;
-  active7d: string;
-  active7dHint: string;
-  active30d: string;
-  active30dHint: string;
-  visitsPerUser: string;
-  visitsPerUserHint: string;
-  // Session duration (human-friendly replacements for avg / P50 / P75 / P95)
-  avgTime: string;
-  avgTimeHint: string;
-  typicalSession: string;
-  typicalSessionHint: string;
-  longSession: string;
-  longSessionHint: string;
-  veryLongSession: string;
-  veryLongSessionHint: string;
-  dauChart: string;
-  dauChartSub: string;
-  dauChartEmpty: string;
-  sessionsChart: string;
-  mostViewed: string;
-  mostSaved: string;
-  mostBooked: string;
-  topCategories: string;
-  topCities: string;
-  topBookingCtr: string;
-  topBookingCtrSub: string;
-  now: string;
-  concierge: string;
-  searches: string;
-  routes: string;
-  completes: string;
-  completion: string;
-  totalQueries: string;
-  avgResults: string;
-  topQueries: string;
-  zeroResultQueries: string;
-  zeroResultQueriesSub: string;
-  results: string;
-  views: string;
-  clicks: string;
-  users: string;
-  loadError: string;
-  retry: string;
-  emptyTitle: string;
-  emptyBody: string;
-  period: { d7: string; d30: string; d90: string };
-};
+type BehaviorTxt = TranslationKeys["behaviorV2"];

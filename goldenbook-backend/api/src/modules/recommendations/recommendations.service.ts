@@ -155,6 +155,13 @@ export async function getPlaceRecommendations(placeId: string): Promise<Recommen
   }).slice(0, 3)
 }
 
+// Read-only. Errors propagate so the dashboard can show "couldn't load"
+// instead of an empty insights panel that reads as "no sales".
+//
+// This used to write campaigns.demand_score on every GET, swallowing any
+// error. Nothing reads that column: the score is derived from
+// campaign_inventory on demand below, so the write was dropped rather than
+// moved.
 export async function getAdminInsights(): Promise<{
   topSections: { section: string; revenue: number; count: number }[]
   topCities: { city: string; revenue: number; count: number }[]
@@ -166,13 +173,13 @@ export async function getAdminInsights(): Promise<{
       SELECT placement_type AS section, COALESCE(SUM(final_price::numeric), 0)::text AS revenue, COUNT(*)::text AS count
       FROM purchases WHERE status IN ('paid', 'activated', 'expired') AND placement_type IS NOT NULL
       GROUP BY placement_type ORDER BY SUM(final_price::numeric) DESC
-    `).catch(() => ({ rows: [] as { section: string; revenue: string; count: string }[] })),
+    `),
 
     db.query<{ city: string; revenue: string; count: string }>(`
       SELECT COALESCE(city, 'unknown') AS city, COALESCE(SUM(final_price::numeric), 0)::text AS revenue, COUNT(*)::text AS count
       FROM purchases WHERE status IN ('paid', 'activated', 'expired')
       GROUP BY city ORDER BY SUM(final_price::numeric) DESC
-    `).catch(() => ({ rows: [] as { city: string; revenue: string; count: string }[] })),
+    `),
 
     db.query<{ section: string; demand_score: string }>(`
       SELECT c.section::text,
@@ -182,18 +189,14 @@ export async function getAdminInsights(): Promise<{
              END::text AS demand_score
       FROM campaigns c LEFT JOIN campaign_inventory ci ON ci.campaign_id = c.id
       WHERE c.status = 'active' GROUP BY c.section ORDER BY demand_score DESC
-    `).catch(() => ({ rows: [] as { section: string; demand_score: string }[] })),
+    `),
 
     db.query<{ time_bucket: string; sold: string; total: string }>(`
       SELECT time_bucket, COUNT(*) FILTER (WHERE status = 'sold')::text AS sold, COUNT(*)::text AS total
       FROM campaign_inventory GROUP BY time_bucket HAVING COUNT(*) FILTER (WHERE status = 'sold') > 0
       ORDER BY COUNT(*) FILTER (WHERE status = 'sold') DESC LIMIT 1
-    `).catch(() => ({ rows: [] as { time_bucket: string; sold: string; total: string }[] })),
+    `),
   ])
-
-  for (const d of demandResult.rows) {
-    await db.query(`UPDATE campaigns SET demand_score = $2 WHERE section = $1 AND status = 'active'`, [d.section, parseFloat(d.demand_score)]).catch(() => {})
-  }
 
   return {
     topSections: sectionsResult.rows.map((r) => ({ section: r.section, revenue: parseFloat(r.revenue), count: parseInt(r.count) })),

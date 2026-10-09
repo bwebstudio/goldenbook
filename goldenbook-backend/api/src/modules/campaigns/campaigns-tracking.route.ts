@@ -24,13 +24,15 @@ export async function campaignsTrackingRoutes(app: FastifyInstance) {
 
     const { event, campaign_id, place_id, position, date, time_bucket } = body.data
 
-    // Insert into place_analytics_events (existing table) for unified analytics
+    // Insert into place_analytics_events (existing table) for unified analytics.
+    // user_id lets the dashboard funnel drop staff checkouts made while testing.
     await db.query(
-      `INSERT INTO place_analytics_events (place_id, event_type, metadata, created_at)
-       VALUES ($1, $2, $3, now())`,
+      `INSERT INTO place_analytics_events (place_id, event_type, user_id, metadata, created_at)
+       VALUES ($1, $2, $3, $4, now())`,
       [
         place_id,
         `campaign_${event}`,
+        request.user?.sub ?? null,
         JSON.stringify({
           campaign_id,
           position: position ?? null,

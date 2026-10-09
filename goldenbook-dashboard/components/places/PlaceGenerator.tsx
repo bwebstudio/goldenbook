@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { searchGooglePlaces, previewPlaceFromGoogle, createPlace, ingestGooglePhotos, fetchAdminCategories, type PlacePreview } from "@/lib/api/places";
+import { googlePeriodsToWeek, weekHasProblems, weekToPayload } from "@/lib/utils/opening-hours";
 import type { AdminCategoryDTO } from "@/types/api/place";
 import { ApiError } from "@/lib/api/client";
 import { useLocale } from "@/lib/i18n";
@@ -149,6 +150,16 @@ export default function PlaceGenerator() {
         ? (preview.websiteUrl ?? preview.googleMapsUrl ?? undefined)
         : undefined;
 
+      // The previewed Google hours used to be dropped on save, leaving every
+      // generated place without hours. Persist them with the place, unless
+      // Google returned something our validation rejects (overlapping
+      // periods): then create the place without hours rather than failing.
+      const week = googlePeriodsToWeek(preview.openingHours);
+      const openingHours =
+        preview.openingHours.length > 0 && !weekHasProblems(week)
+          ? weekToPayload(week)
+          : undefined;
+
       const result = await createPlace({
         name: preview.name,
         slug: preview.slug,
@@ -182,6 +193,7 @@ export default function PlaceGenerator() {
         bookingEnabled: isReservable && !!bookingUrl,
         bookingMode: isReservable && bookingUrl ? "direct_website" : "none",
         reservationRelevant: isReservable,
+        openingHours,
       });
 
       // Ingest Google photos BEFORE redirect (otherwise navigation cancels the request)
@@ -288,6 +300,9 @@ export default function PlaceGenerator() {
               <div className="grid grid-cols-3 gap-2">
                 {preview.photoUrls.map((url, i) => (
                   <div key={i} className="relative aspect-[4/3] rounded-lg overflow-hidden bg-gray-100">
+                    {/* Transient Google Places preview URLs: not in images.remotePatterns
+                        and not worth optimizing (shown once before import). */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={url}
                       alt={`${preview.name} photo ${i + 1}`}
@@ -366,12 +381,18 @@ export default function PlaceGenerator() {
             <div className="rounded-xl border border-border bg-white px-5 py-4">
               <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{isPt ? "Horário" : "Opening hours"}</p>
               <div className="grid grid-cols-2 gap-1 text-sm">
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, i) => {
-                  const slots = preview.openingHours.filter(h => h.dayOfWeek === i);
+                {/* Rendered from the same week that is saved, so the preview
+                    matches what the place gets (e.g. Google's "open 24h"). */}
+                {googlePeriodsToWeek(preview.openingHours).map((d, i) => {
+                  const day = (isPt
+                    ? ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+                    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])[i];
                   return (
                     <div key={i} className="flex justify-between py-0.5">
                       <span className="text-muted">{day}</span>
-                      <span className="text-text">{slots.length > 0 ? slots.map(s => `${s.opensAt}–${s.closesAt}`).join(', ') : 'Fechado'}</span>
+                      <span className="text-text">
+                        {d.closed ? (isPt ? 'Fechado' : 'Closed') : d.intervals.map(s => `${s.opens}–${s.closes}`).join(', ')}
+                      </span>
                     </div>
                   );
                 })}
@@ -548,7 +569,9 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
 
   const [name, setName] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slug, setSlug] = useState("");
+  const [manualSlug, setManualSlug] = useState("");
+  // Auto-fill slug from name until the editor edits it explicitly.
+  const slug = slugTouched ? manualSlug : slugify(name);
   const [citySlug, setCitySlug] = useState<string>("lisboa");
   const [placeType, setPlaceType] = useState<string>("restaurant");
   const [categorySlug, setCategorySlug] = useState<string>("");
@@ -570,20 +593,12 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
       .finally(() => setCatsLoading(false));
   }, []);
 
-  // Auto-fill slug from name until the editor edits it explicitly.
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugify(name));
-  }, [name, slugTouched]);
-
   const selectedCategory = useMemo(
     () => categories.find((c) => c.slug === categorySlug) ?? null,
     [categories, categorySlug],
   );
 
   const subcategories = selectedCategory?.subcategories ?? [];
-
-  // Reset subcategory whenever the parent category changes.
-  useEffect(() => { setSubcategorySlug(""); }, [categorySlug]);
 
   const canSubmit =
     name.trim().length >= 2 &&
@@ -682,7 +697,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
           <input
             type="text"
             value={slug}
-            onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true); }}
+            onChange={(e) => { setManualSlug(slugify(e.target.value)); setSlugTouched(true); }}
             placeholder="tasca-do-manuel"
             className={`${INPUT_CLS} font-mono`}
           />
@@ -707,7 +722,11 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
           <Field label={isPt ? "Categoria" : "Category"} required>
             <select
               value={categorySlug}
-              onChange={(e) => setCategorySlug(e.target.value)}
+              onChange={(e) => {
+                setCategorySlug(e.target.value);
+                // Reset subcategory whenever the parent category changes.
+                setSubcategorySlug("");
+              }}
               disabled={catsLoading}
               className={INPUT_CLS}
             >

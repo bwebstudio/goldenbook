@@ -4,7 +4,7 @@ import { requireDashboardUser } from "@/lib/auth/server";
 import { fetchDestinations } from "@/lib/api/destinations";
 import { fetchCuratedRoutes, type CuratedRouteDTO } from "@/lib/api/curated-routes";
 import { fetchCategories } from "@/lib/api/categories";
-import { fetchPlacesForCity } from "@/lib/api/places";
+import { fetchPlaceCounts } from "@/lib/api/analytics-v2";
 import DashboardContent from "./DashboardContent";
 import LoadError from "@/components/ui/LoadError";
 
@@ -26,10 +26,11 @@ export default async function DashboardPage() {
     redirect("/portal");
   }
 
-  const [destinationsR, routesR, categoriesR] = await Promise.allSettled([
+  const [destinationsR, routesR, categoriesR, placeCountsR] = await Promise.allSettled([
     fetchDestinations(),
     fetchCuratedRoutes(),
     fetchCategories(),
+    fetchPlaceCounts(),
   ]);
 
   // If every primary fetch failed the backend is effectively unreachable —
@@ -39,7 +40,8 @@ export default async function DashboardPage() {
   if (
     destinationsR.status === "rejected" &&
     routesR.status === "rejected" &&
-    categoriesR.status === "rejected"
+    categoriesR.status === "rejected" &&
+    placeCountsR.status === "rejected"
   ) {
     return <LoadError />;
   }
@@ -48,12 +50,13 @@ export default async function DashboardPage() {
   const routes = routesR.status === "fulfilled" ? routesR.value : ([] as CuratedRouteDTO[]);
   const categoryDTOs = categoriesR.status === "fulfilled" ? categoriesR.value : [];
 
-  const placesPerCity = await Promise.all(
-    destinations.map((d) =>
-      fetchPlacesForCity(d.slug).then((items) => items.length).catch(() => 0)
-    )
-  );
-  const totalPlaces = placesPerCity.reduce((a, b) => a + b, 0);
+  // One count query for every status. The tile used to sum /map/places per
+  // city, which only returns published places with coordinates, capped at
+  // 200 a city, and turned any failure into 0. A failure is now shown as one.
+  if (placeCountsR.status === "rejected") {
+    console.error("[DashboardPage] place counts fetch failed:", placeCountsR.reason);
+  }
+  const placeCounts = placeCountsR.status === "fulfilled" ? placeCountsR.value.totals : null;
 
   const activeRoutes = routes.filter(isActiveRoute).length;
   const editorialActive = routes.filter(
@@ -67,7 +70,8 @@ export default async function DashboardPage() {
 
   return (
     <DashboardContent
-      totalPlaces={totalPlaces}
+      publishedPlaces={placeCounts?.published ?? null}
+      draftPlaces={placeCounts?.draft ?? 0}
       totalCities={destinations.length}
       totalRoutes={activeRoutes}
       publishedRoutes={editorialActive}

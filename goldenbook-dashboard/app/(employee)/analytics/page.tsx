@@ -6,6 +6,7 @@ import {
 } from "@/lib/api/campaign-analytics";
 import { fetchAdminInsights } from "@/lib/api/recommendations";
 import CampaignAnalyticsClient from "./CampaignAnalyticsClient";
+import InsightsLoadError from "./InsightsLoadError";
 import AdminInsightsClient from "./AdminInsightsClient";
 import ContentOverviewClient from "./ContentOverviewClient";
 import UserBehaviorV2Client from "./UserBehaviorV2Client";
@@ -47,10 +48,18 @@ export default async function AnalyticsPage() {
   const establishments = establishmentsResult.status === "fulfilled" ? establishmentsResult.value : [];
   const time = timeResult.status === "fulfilled" ? timeResult.value : null;
   const insights = insightsResult.status === "fulfilled" ? insightsResult.value : null;
+  // The revenue endpoints no longer turn errors into zeros, so a failed fetch
+  // must be shown as one: "couldn't load" and "0 sales" are different facts.
+  const failed = {
+    overview: overviewResult.status === "rejected",
+    campaigns: campaignsResult.status === "rejected",
+    establishments: establishmentsResult.status === "rejected",
+    time: timeResult.status === "rejected",
+  };
 
   return (
     <div className="flex flex-col gap-10">
-      {insights && <AdminInsightsClient insights={insights} />}
+      {insights ? <AdminInsightsClient insights={insights} /> : <InsightsLoadError />}
 
       <UserBehaviorV2Client />
 
@@ -62,6 +71,7 @@ export default async function AnalyticsPage() {
         establishments={establishments}
         timeBuckets={time?.timeBuckets ?? []}
         dayOfWeek={time?.dayOfWeek ?? []}
+        failed={failed}
       />
     </div>
   );

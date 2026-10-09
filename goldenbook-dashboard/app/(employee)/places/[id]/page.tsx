@@ -44,25 +44,28 @@ export default async function EditPlacePage({
       .catch(() => [] as { slug: string; name: string; subcategories: { slug: string; name: string }[] }[]),
   ]);
 
+  // Only the fetch + mapping live inside try/catch; the JSX is built outside
+  // so render errors in PlaceForm are not swallowed as load errors.
+  let place: ReturnType<typeof mapPlaceDetailToUI>;
   try {
     // Use the admin endpoint so drafts (status !== 'published') open in the
     // editor — the public endpoint is published-only and 404s on drafts.
     const placeDetail = await fetchAdminPlaceBySlug(slug);
-    const place = mapPlaceDetailToUI(placeDetail);
-
-    return (
-      <PlaceForm
-        place={place}
-        cities={cities}
-        categories={categories}
-        userRole={currentUser.role}
-      />
-    );
+    place = mapPlaceDetailToUI(placeDetail);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
       notFound();
     }
 
-    return <PlaceLoadError slug={slug} />;
+    return <PlaceLoadError />;
   }
+
+  return (
+    <PlaceForm
+      place={place}
+      cities={cities}
+      categories={categories}
+      userRole={currentUser.role}
+    />
+  );
 }

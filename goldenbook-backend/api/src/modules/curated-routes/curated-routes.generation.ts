@@ -1,4 +1,5 @@
 import { db } from '../../db/postgres'
+import { cityTimezone, localClock } from '../../shared/opening-hours'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,9 @@ async function queryCandidates(
   endHour: number,
   excludePlaceIds: string[],
 ): Promise<PlaceCandidate[]> {
-  const dayOfWeek = new Date().getDay()
+  // The destination's weekday, not the server's (UTC): between 00:00 and
+  // 01:00 Lisbon summer time the server is still on the previous day.
+  const dayOfWeek = localClock(cityTimezone(citySlug)).dow
   const typeParams = placeTypes.map((_, i) => `$${i + 4}`)
   const excludeClause = excludePlaceIds.length > 0
     ? `AND p.id NOT IN (${excludePlaceIds.map((_, i) => `$${i + 4 + placeTypes.length}`).join(', ')})`
@@ -159,7 +162,11 @@ async function queryCandidates(
           SELECT 1 FROM opening_hours oh
           WHERE oh.place_id = p.id AND oh.day_of_week = ${dayOfWeek}
             AND oh.is_closed = false
-            AND oh.opens_at <= $2::time AND oh.closes_at >= $3::time
+            AND oh.opens_at <= $2::time
+            -- Open through the end of the window. An overnight slot
+            -- (closes_at <= opens_at, e.g. 18:00-02:00 or "until midnight")
+            -- runs past any same-day window end.
+            AND (oh.closes_at >= $3::time OR oh.closes_at <= oh.opens_at OR oh.closes_at = TIME '23:59')
         )
       )
     ORDER BY

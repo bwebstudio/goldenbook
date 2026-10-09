@@ -12,18 +12,27 @@ import {
 } from "@/types/forms/place";
 import { createPlace, updatePlace, deletePlaceById } from "@/lib/api/places";
 import { fetchPlaceTranslations } from "@/lib/api/translations";
-import { applySuggestion, dismissSuggestion, generateSuggestionForPlace } from "@/lib/api/suggestions";
 import { ApiError } from "@/lib/api/client";
 import { useT, useLocale } from "@/lib/i18n";
 import FormSection from "@/components/ui/FormSection";
 import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
-import Toggle from "@/components/ui/Toggle";
 import PlaceCandidates from "@/components/places/PlaceCandidates";
 import PlaceVisibility from "@/components/places/PlaceVisibility";
 import PlaceNowVisibility, { type NowFormValues, EMPTY_NOW_FORM } from "@/components/places/PlaceNowVisibility";
 import PlaceMedia from "@/components/places/PlaceMedia";
 import PlaceTranslations from "@/components/places/PlaceTranslations";
+import PlaceOpeningHours from "@/components/places/PlaceOpeningHours";
+import {
+  type OpeningDay,
+  rowsToWeek,
+  emptyWeek,
+  isWeekEmpty,
+  weekHasProblems,
+  weekToPayload,
+  weeksEqual,
+} from "@/lib/utils/opening-hours";
+import { isPlaceTypeCategoryMismatch } from "@/lib/utils/category-check";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 // Auto-generate slug from name
@@ -119,6 +128,12 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
   });
 
   const [nowForm, setNowForm] = useState<NowFormValues>({ ...EMPTY_NOW_FORM });
+  // Weekly opening hours, one entry per weekday. Prefilled from the stored
+  // rows; only sent on save when they differ from what is stored, so opening
+  // and saving a place never rewrites its Google-imported hours.
+  const [hours, setHours] = useState<OpeningDay[]>(() =>
+    place ? rowsToWeek(place.openingHours) : emptyWeek(),
+  );
   const [errors,            setErrors]           = useState<PlaceFormErrors>({});
   const [isDirty,           setIsDirty]          = useState(false);
   const [saveError,         setSaveError]        = useState<string | null>(null);
@@ -126,9 +141,13 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [saveStatus,        setSaveStatus]       = useState<"idle" | "saving" | "success">("idle");
   const [showToast,         setShowToast]        = useState(false);
-  // Set after a save when EN/ES are manual overrides, so the editor understands
-  // why their Portuguese edit did not propagate to the other languages.
-  const [manualTranslationNotice, setManualTranslationNotice] = useState(false);
+  // Set after a save when EN/ES did not follow the Portuguese edit (locked as
+  // manual translations, or DeepL failed), naming the languages, so the editor
+  // knows which ones to unlock or regenerate in the Translations section.
+  const [manualTranslationNotice, setManualTranslationNotice] = useState<string | null>(null);
+  // Bumped after each successful save so the Translations panel reloads the
+  // EN/ES rows the save just regenerated (and their lock status).
+  const [translationsReloadKey, setTranslationsReloadKey] = useState(0);
 
   // Read on every regenerate so PlaceTranslations sees unsaved PT edits.
   const formRef = useRef(form);
@@ -168,7 +187,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
     // Once the user edits again, drop the "saved" state so the sticky bar
     // returns to "unsaved changes" and the Save button re-enables.
     if (saveStatus === "success") setSaveStatus("idle");
-    if (manualTranslationNotice) setManualTranslationNotice(false);
+    if (manualTranslationNotice) setManualTranslationNotice(null);
   }
 
   function setField<K extends keyof PlaceFormValues>(key: K, value: PlaceFormValues[K]) {
@@ -222,6 +241,20 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       return;
     }
 
+    const hoursChanged = isEditing
+      ? !weeksEqual(rowsToWeek(place.openingHours), hours)
+      : !isWeekEmpty(hours);
+
+    // Each day's problem is already shown inline; refuse the save rather than
+    // round-tripping to an API validation error. Only when the hours are being
+    // saved: some imported hours overlap (HERDADE 1980, THE ROYAL COCKTAIL
+    // CLUB), and that must not block editing the rest of the place.
+    if (hoursChanged && weekHasProblems(hours)) {
+      setSaveError(pf.hoursInvalidSave);
+      document.getElementById("opening-hours")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     setSaveStatus("saving");
     setSaveError(null);
 
@@ -261,6 +294,8 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
         bookingNotes:        clearable(form.bookingNotes),
         reservationRelevant: form.reservationRelevant,
         reservationSource:   form.reservationSource || undefined,
+        // Omitted when untouched: the API then leaves the stored hours alone.
+        ...(hoursChanged ? { openingHours: weekToPayload(hours) } : {}),
       };
 
       if (isEditing) {
@@ -281,23 +316,34 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           form.goldenbookNote !== (place.goldenbookNote ?? "") ||
           form.insiderTip !== (place.insiderTip ?? "");
 
-        await updatePlace(place.id, fullPayload);
+        const saved = await updatePlace(place.id, fullPayload);
         setIsDirty(false);
         setSaveStatus("success");
         setShowToast(true);
-        setManualTranslationNotice(false);
+        setManualTranslationNotice(null);
+        setTranslationsReloadKey((k) => k + 1);
 
-        // Best-effort, non-blocking: if EN/ES are manual overrides they were
-        // NOT auto-translated from the PT edit (by design). Surface that so the
-        // editor knows to regenerate them in the Translations section rather
-        // than assuming the translation silently failed.
+        // EN/ES locked as manual translations are NOT auto-translated from a
+        // PT edit (by design), and a DeepL failure is swallowed so the save
+        // still succeeds. The API reports both per locale; name them so the
+        // editor knows exactly which language to unlock or regenerate instead
+        // of finding the stale text in the app.
         if (editorialChanged) {
-          try {
-            const translations = await fetchPlaceTranslations(place.id);
-            if ((translations.en?.translation_override ?? false) || (translations.es?.translation_override ?? false)) {
-              setManualTranslationNotice(true);
-            }
-          } catch { /* ignore — notice is advisory */ }
+          const fmt = (locales: string[]) => locales.map((l) => l.toUpperCase()).join(", ");
+          let locked = saved.autoTranslation?.skippedLocked;
+          const failed = saved.autoTranslation?.failed ?? [];
+          if (!saved.autoTranslation) {
+            // Older API build without the per-locale report: infer the locks.
+            try {
+              const translations = await fetchPlaceTranslations(place.id);
+              locked = (["en", "es"] as const).filter((l) => translations[l]?.translation_override ?? false);
+            } catch { /* ignore, the notice is advisory */ }
+          }
+          const notes = [
+            locked && locked.length > 0 ? pf.savedSkippedLocked.replace("{{locales}}", fmt(locked)) : null,
+            failed.length > 0 ? pf.savedTranslationFailed.replace("{{locales}}", fmt(failed)) : null,
+          ].filter(Boolean);
+          if (notes.length > 0) setManualTranslationNotice(notes.join(" "));
         }
 
         router.refresh();
@@ -319,13 +365,14 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
 
   // ── Cancel ────────────────────────────────────────────────────────────────
 
-  const handleCancelClick = useCallback(() => {
+  // Plain function: the React Compiler memoizes it automatically.
+  function handleCancelClick() {
     if (isDirty) {
       setShowCancelConfirm(true);
     } else {
       router.push("/places");
     }
-  }, [isDirty, router]);
+  }
 
   function confirmCancel() {
     setShowCancelConfirm(false);
@@ -357,6 +404,19 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
     label: s.name,
   }));
 
+  const placeTypeOptions = [
+    { value: "restaurant", label: isPt ? "Restaurante" : "Restaurant" },
+    { value: "bar",        label: "Bar" },
+    { value: "cafe",       label: "Café" },
+    { value: "hotel",      label: "Hotel" },
+    { value: "shop",       label: isPt ? "Loja" : "Shop" },
+    { value: "museum",     label: isPt ? "Museu" : "Museum" },
+    { value: "landmark",   label: isPt ? "Monumento / Local de interesse" : "Landmark" },
+    { value: "activity",   label: isPt ? "Atividade" : "Activity" },
+    { value: "beach",      label: isPt ? "Praia" : "Beach" },
+    { value: "venue",      label: isPt ? "Espaço / Sala" : "Venue" },
+  ];
+
   return (
     <>
       <div className="max-w-3xl flex flex-col gap-6 pb-32">
@@ -387,13 +447,10 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
             the editor understands the translation did not propagate by design. */}
         {manualTranslationNotice && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start justify-between gap-4">
-            <p className="text-sm text-amber-800">
-              {(pf as { manualTranslationNotice?: string }).manualTranslationNotice ??
-                "Saved. EN/ES are manual translations and were not auto-translated. Use the Translations section to update them."}
-            </p>
+            <p className="text-sm text-amber-800">{manualTranslationNotice}</p>
             <button
               type="button"
-              onClick={() => setManualTranslationNotice(false)}
+              onClick={() => setManualTranslationNotice(null)}
               className="shrink-0 text-amber-500 hover:text-amber-700 transition-colors"
               aria-label={pf.dismiss}
             >
@@ -488,6 +545,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           >
             <PlaceTranslations
               placeId={place.id}
+              reloadKey={translationsReloadKey}
               getPtSource={getPtSource}
               // True while the Portuguese editorial fields in this form differ
               // from what is actually stored. Regenerating in that state used
@@ -572,6 +630,23 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           title={pf.classification}
           description={pf.classificationDesc}
         >
+          {/* Non-blocking checks. Auto-classification derives tags from the
+              place type, independently of the editorial category, so a
+              missing or contradictory category goes unnoticed otherwise. */}
+          {isEditing && !form.categorySlug && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-sm text-amber-800">{pf.noPrimaryCategoryWarning}</p>
+            </div>
+          )}
+          {isPlaceTypeCategoryMismatch(form.placeType, form.categorySlug) && (
+            <div className="rounded-lg border border-border bg-surface px-4 py-3">
+              <p className="text-xs text-muted">
+                {pf.categoryMismatchHint
+                  .replace("{{type}}", placeTypeOptions.find((o) => o.value === form.placeType)?.label ?? form.placeType)
+                  .replace("{{category}}", selectedCategory?.name ?? form.categorySlug)}
+              </p>
+            </div>
+          )}
           {userRole === "super_admin" && (
             <SelectField
               id="placeType"
@@ -579,18 +654,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
               hint={isPt ? "Determina como este espaço aparece nas recomendações" : "Determines how this place appears in recommendations"}
               value={form.placeType}
               onChange={(v) => setField("placeType", v)}
-              options={[
-                { value: "restaurant", label: isPt ? "Restaurante" : "Restaurant" },
-                { value: "bar",        label: "Bar" },
-                { value: "cafe",       label: "Café" },
-                { value: "hotel",      label: "Hotel" },
-                { value: "shop",       label: isPt ? "Loja" : "Shop" },
-                { value: "museum",     label: isPt ? "Museu" : "Museum" },
-                { value: "landmark",   label: isPt ? "Monumento / Local de interesse" : "Landmark" },
-                { value: "activity",   label: isPt ? "Atividade" : "Activity" },
-                { value: "beach",      label: isPt ? "Praia" : "Beach" },
-                { value: "venue",      label: isPt ? "Espaço / Sala" : "Venue" },
-              ]}
+              options={placeTypeOptions}
             />
           )}
           <div className="grid grid-cols-2 gap-6">
@@ -666,6 +730,19 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
             error={errors.email}
           />
         </FormSection>
+
+        {/* ── E2. Opening hours ── */}
+        <div id="opening-hours">
+          <FormSection
+            title={pf.openingHoursTitle}
+            description={pf.openingHoursDesc}
+          >
+            <PlaceOpeningHours
+              value={hours}
+              onChange={(next) => { setHours(next); markDirty(); }}
+            />
+          </FormSection>
+        </div>
 
         {/* ── F. Reservation ── */}
         {isEditing && place && (
@@ -832,7 +909,7 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       <ConfirmDialog
         open={showDeleteConfirm}
         title={pf.deleteTitle}
-        description={`"${form.name}" — ${pf.dangerZoneDesc}`}
+        description={`"${form.name}": ${pf.dangerZoneDesc}`}
         confirmLabel={pf.deleteConfirm}
         cancelLabel={t.common.cancel}
         variant="danger"

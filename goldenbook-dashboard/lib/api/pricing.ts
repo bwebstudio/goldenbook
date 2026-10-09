@@ -206,7 +206,21 @@ export interface SectionAvailability {
   group: string;
 }
 
-export async function fetchPricingAvailability(): Promise<{ sections: Record<string, SectionAvailability> }> {
+export interface SectionInventory {
+  max: number;
+  active: number;
+  remaining: number;
+}
+
+export interface PricingAvailabilityResponse {
+  sections: Record<string, SectionAvailability>;
+  /** Global slot caps per surface, for scarcity display. */
+  inventory?: Record<string, SectionInventory>;
+  /** City slug the inventory was resolved for. */
+  city?: string;
+}
+
+export async function fetchPricingAvailability(): Promise<PricingAvailabilityResponse> {
   return apiGet("/api/v1/pricing/availability");
 }
 

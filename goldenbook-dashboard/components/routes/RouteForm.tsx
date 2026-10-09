@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { UIRouteDetail } from "@/types/ui/route";
 import type { UIPlace } from "@/types/ui/place";
@@ -397,13 +397,14 @@ export default function RouteForm({
 
   // ── Cancel ─────────────────────────────────────────────────────────────────
 
-  const handleCancelClick = useCallback(() => {
+  // Plain function: the React Compiler memoizes it automatically.
+  function handleCancelClick() {
     if (isDirty) {
       setShowCancelConfirm(true);
     } else {
       router.push("/routes");
     }
-  }, [isDirty, router]);
+  }
 
   // ── Archive ────────────────────────────────────────────────────────────────
 

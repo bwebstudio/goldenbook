@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useT, useLocale } from "@/lib/i18n";
-import { fetchBusinessPlace, fetchBusinessRequests, type ChangeRequestInfo, type PlacementRequestDTO } from "@/lib/api/business-portal";
-import { fetchNotifications, markNotificationRead, markAllNotificationsRead, type NotificationDTO } from "@/lib/api/notifications";
+import { fetchBusinessPlace, fetchBusinessRequests, type ChangeRequestInfo } from "@/lib/api/business-portal";
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/api/notifications";
 
 interface Notification {
   id: string;
@@ -24,14 +24,18 @@ export default function PortalNotifications() {
   const [loading, setLoading] = useState(true);
 
   const nt = t.notifications;
-  const products = t.promote.products as Record<string, { label: string }>;
-  const fieldLabels: Record<string, string> = {
-    name: t.pendingChanges.fieldName,
-    short_description: t.pendingChanges.fieldShortDescription,
-    full_description: t.pendingChanges.fieldFullDescription,
-  };
 
   useEffect(() => {
+    // `t` is a stable per-locale dictionary, so deriving these here keeps the
+    // effect keyed on the locale only.
+    const nt = t.notifications;
+    const products = t.promote.products as Record<string, { label: string }>;
+    const fieldLabels: Record<string, string> = {
+      name: t.pendingChanges.fieldName,
+      short_description: t.pendingChanges.fieldShortDescription,
+      full_description: t.pendingChanges.fieldFullDescription,
+    };
+
     async function load() {
       try {
         const [placeData, promotions, systemNotifs] = await Promise.all([
@@ -108,7 +112,7 @@ export default function PortalNotifications() {
       } finally { setLoading(false); }
     }
     load();
-  }, [locale]);
+  }, [locale, t]);
 
   const handleMarkRead = async (id: string) => {
     await markNotificationRead(id).catch(() => {});

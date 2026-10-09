@@ -29,9 +29,16 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   'https://goldenbook-production.up.railway.app/api/v1'
 
-const STORAGE_BASE =
-  process.env.NEXT_PUBLIC_STORAGE_URL ??
-  'https://ltdhyshuxcnrjnbxkgzp.supabase.co/storage/v1/object/public'
+// Accepts either the project URL or the full public-object prefix in
+// NEXT_PUBLIC_STORAGE_URL. Production had the bare project URL set, which
+// produced https://<ref>.supabase.co/<bucket>/... and a 404 for every photo.
+const PUBLIC_OBJECT_PATH = '/storage/v1/object/public'
+const STORAGE_BASE = (() => {
+  const base = (
+    process.env.NEXT_PUBLIC_STORAGE_URL ?? 'https://ltdhyshuhkvicsvtssjm.supabase.co'
+  ).replace(/\/+$/, '')
+  return base.endsWith(PUBLIC_OBJECT_PATH) ? base : `${base}${PUBLIC_OBJECT_PATH}`
+})()
 
 interface PlaceDTO {
   id: string
@@ -104,7 +111,10 @@ function imageUrl(place: PlaceDTO): string | null {
   const bucket = place.heroImage?.bucket
   const path = place.heroImage?.path
   if (!bucket || !path) return null
-  return `${STORAGE_BASE}/${bucket}/${path}`
+  // Some media paths are stored with the bucket as a prefix; the object key
+  // never carries it.
+  const key = path.replace(/^\/+/, '').replace(new RegExp(`^${bucket}/`), '')
+  return `${STORAGE_BASE}/${bucket}/${key}`
 }
 
 export async function generateMetadata({

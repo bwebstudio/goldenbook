@@ -24,6 +24,17 @@ declare module 'fastify' {
   }
 }
 
+// admin_users.role allows five values (CHECK constraint): super_admin, editor,
+// curator, translator, ops. The dashboard only distinguishes two access
+// levels, so every non-super_admin staff role gets the editor experience.
+// Before this mapping covered the last three, anyone invited as curator,
+// translator or ops was authenticated but resolved to `null` here, got a 403
+// on every dashboard call and was bounced back to the login screen.
+// If one of these roles ever needs narrower access, give it its own
+// DashboardRole (and a matching branch in the dashboard's permissions.ts)
+// instead of returning null.
+const EDITOR_EQUIVALENT_ROLES: ReadonlySet<string> = new Set(['editor', 'curator', 'translator', 'ops'])
+
 export function mapAdminRoleToDashboardRole(role: string | null | undefined): DashboardRole | null {
   if (!role) return null
 
@@ -31,7 +42,7 @@ export function mapAdminRoleToDashboardRole(role: string | null | undefined): Da
     return 'super_admin'
   }
 
-  if (role === 'editor') {
+  if (EDITOR_EQUIVALENT_ROLES.has(role)) {
     return 'editor'
   }
 

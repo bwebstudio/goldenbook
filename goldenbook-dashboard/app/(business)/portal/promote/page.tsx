@@ -127,8 +127,8 @@ export default function PortalPromote() {
         if (bc.length > 0) setCity(bc[0].slug);
       }
       setAvailability(avail.sections);
-      setInventory((avail as any).inventory ?? {});
-      setInventoryCity((avail as any).city ?? '');
+      setInventory(avail.inventory ?? {});
+      setInventoryCity(avail.city ?? '');
       setLoaded(true);
     });
 
@@ -365,7 +365,7 @@ export default function PortalPromote() {
                                 : reason === "INVENTORY_FULL"
                                   ? t.promote.unavailableSoldOut
                                   : reason === "CITY_ROUTES_FULL"
-                                    ? (t.promote as any).unavailableCityRoutesFull ?? t.promote.unavailableSoldOut
+                                    ? t.promote.unavailableCityRoutesFull
                                     : t.promote.unavailableGeneric}
                       </span>
                     )}
