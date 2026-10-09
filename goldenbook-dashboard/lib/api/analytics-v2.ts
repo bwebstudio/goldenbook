@@ -13,7 +13,10 @@
 //   GET /api/v1/admin/analytics/attribution?period=7|30|90
 //   GET /api/v1/admin/analytics/place-counts
 //
-// Every reader excludes internal and QA traffic server-side.
+// Every reader excludes internal and QA traffic server-side. All but
+// place-counts also take `audience`: "core" leaves out task-app users (they
+// searched "day" or only digits in their first seconds), "all" keeps them.
+// The server defaults to "all"; the dashboard defaults to "core".
 //
 // All callers must be authenticated as a dashboard admin. Period values are
 // the string union "7" | "30" | "90"; defaults to "30" to match the server.
@@ -21,6 +24,7 @@
 import { apiGet } from "./client";
 
 export type AnalyticsPeriod = "7" | "30" | "90";
+export type AnalyticsAudience = "core" | "all";
 
 // ── Users ────────────────────────────────────────────────────────────────────
 export interface UsersAnalytics {
@@ -42,8 +46,8 @@ export interface UsersAnalytics {
   sessions: { date: string; ios: number; android: number; web: number; total: number }[];
 }
 
-export async function fetchUsersAnalytics(period: AnalyticsPeriod = "30"): Promise<UsersAnalytics> {
-  return apiGet<UsersAnalytics>("/api/v1/admin/analytics/users", { period });
+export async function fetchUsersAnalytics(period: AnalyticsPeriod = "30", audience: AnalyticsAudience = "core"): Promise<UsersAnalytics> {
+  return apiGet<UsersAnalytics>("/api/v1/admin/analytics/users", { period, audience });
 }
 
 // ── Content ──────────────────────────────────────────────────────────────────
@@ -57,8 +61,8 @@ export interface ContentAnalytics {
   topBookingCtr: { placeId: string; name: string; views: number; clicks: number; ctrPct: number }[];
 }
 
-export async function fetchContentAnalytics(period: AnalyticsPeriod = "30"): Promise<ContentAnalytics> {
-  return apiGet<ContentAnalytics>("/api/v1/admin/analytics/content", { period });
+export async function fetchContentAnalytics(period: AnalyticsPeriod = "30", audience: AnalyticsAudience = "core"): Promise<ContentAnalytics> {
+  return apiGet<ContentAnalytics>("/api/v1/admin/analytics/content", { period, audience });
 }
 
 // ── Features ─────────────────────────────────────────────────────────────────
@@ -70,8 +74,8 @@ export interface FeaturesAnalytics {
   routes:    { starts: number; completes: number; completionRate: number };
 }
 
-export async function fetchFeaturesAnalytics(period: AnalyticsPeriod = "30"): Promise<FeaturesAnalytics> {
-  return apiGet<FeaturesAnalytics>("/api/v1/admin/analytics/features", { period });
+export async function fetchFeaturesAnalytics(period: AnalyticsPeriod = "30", audience: AnalyticsAudience = "core"): Promise<FeaturesAnalytics> {
+  return apiGet<FeaturesAnalytics>("/api/v1/admin/analytics/features", { period, audience });
 }
 
 // ── Search ───────────────────────────────────────────────────────────────────
@@ -90,8 +94,8 @@ export interface SearchAnalytics {
   zeroResultQueries: { query: string; count: number }[];
 }
 
-export async function fetchSearchAnalytics(period: AnalyticsPeriod = "30"): Promise<SearchAnalytics> {
-  return apiGet<SearchAnalytics>("/api/v1/admin/analytics/search", { period });
+export async function fetchSearchAnalytics(period: AnalyticsPeriod = "30", audience: AnalyticsAudience = "core"): Promise<SearchAnalytics> {
+  return apiGet<SearchAnalytics>("/api/v1/admin/analytics/search", { period, audience });
 }
 
 // ── Retention ────────────────────────────────────────────────────────────────
@@ -110,8 +114,8 @@ export interface RetentionAnalytics {
   cohorts: RetentionCohort[];
 }
 
-export async function fetchRetentionAnalytics(): Promise<RetentionAnalytics> {
-  return apiGet<RetentionAnalytics>("/api/v1/admin/analytics/retention");
+export async function fetchRetentionAnalytics(audience: AnalyticsAudience = "core"): Promise<RetentionAnalytics> {
+  return apiGet<RetentionAnalytics>("/api/v1/admin/analytics/retention", { audience });
 }
 
 // ── Push ritual ──────────────────────────────────────────────────────────────
@@ -129,8 +133,8 @@ export interface PushAnalytics {
   daily: { date: string; sent: number; opened: number }[];
 }
 
-export async function fetchPushAnalytics(period: AnalyticsPeriod = "30"): Promise<PushAnalytics> {
-  return apiGet<PushAnalytics>("/api/v1/admin/analytics/push", { period });
+export async function fetchPushAnalytics(period: AnalyticsPeriod = "30", audience: AnalyticsAudience = "core"): Promise<PushAnalytics> {
+  return apiGet<PushAnalytics>("/api/v1/admin/analytics/push", { period, audience });
 }
 
 // ── Attribution ──────────────────────────────────────────────────────────────
@@ -143,8 +147,8 @@ export interface AttributionAnalytics {
   topCategories: { category: string | null; opens: number; saves: number }[];
 }
 
-export async function fetchAttributionAnalytics(period: AnalyticsPeriod = "30"): Promise<AttributionAnalytics> {
-  return apiGet<AttributionAnalytics>("/api/v1/admin/analytics/attribution", { period });
+export async function fetchAttributionAnalytics(period: AnalyticsPeriod = "30", audience: AnalyticsAudience = "core"): Promise<AttributionAnalytics> {
+  return apiGet<AttributionAnalytics>("/api/v1/admin/analytics/attribution", { period, audience });
 }
 
 // ── Place counts (dashboard home) ────────────────────────────────────────────

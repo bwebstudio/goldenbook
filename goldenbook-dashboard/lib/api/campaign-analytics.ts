@@ -1,4 +1,5 @@
 import { apiGet } from "./client";
+import type { AnalyticsAudience } from "./analytics-v2";
 
 export interface AnalyticsOverview {
   revenue: { total: number; purchases: number; period: number };
@@ -40,8 +41,10 @@ export interface DayOfWeekPerformance {
   count: number;
 }
 
-export async function fetchAnalyticsOverview(period = "30"): Promise<AnalyticsOverview> {
-  return apiGet("/api/v1/admin/analytics/overview", { period });
+// `audience` filters only what the app recorded (conversion funnel, views,
+// clicks); revenue is never filtered. See analytics-v2.ts.
+export async function fetchAnalyticsOverview(period = "30", audience: AnalyticsAudience = "core"): Promise<AnalyticsOverview> {
+  return apiGet("/api/v1/admin/analytics/overview", { period, audience });
 }
 
 export async function fetchCampaignPerformance(period = "30"): Promise<CampaignPerformance[]> {
@@ -49,8 +52,8 @@ export async function fetchCampaignPerformance(period = "30"): Promise<CampaignP
   return data.campaigns;
 }
 
-export async function fetchEstablishmentPerformance(period = "30"): Promise<EstablishmentPerformance[]> {
-  const data = await apiGet<{ establishments: EstablishmentPerformance[] }>("/api/v1/admin/analytics/establishments", { period });
+export async function fetchEstablishmentPerformance(period = "30", audience: AnalyticsAudience = "core"): Promise<EstablishmentPerformance[]> {
+  const data = await apiGet<{ establishments: EstablishmentPerformance[] }>("/api/v1/admin/analytics/establishments", { period, audience });
   return data.establishments;
 }
 

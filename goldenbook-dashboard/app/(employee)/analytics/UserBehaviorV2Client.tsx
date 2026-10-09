@@ -7,6 +7,8 @@
  * stacked view: Users, Retention, Content, Attribution, Features, Search,
  * Push. A single period selector (7/30/90 d) at the top re-fetches
  * everything (retention and the search trend use fixed 12-week windows).
+ * Beside it, "exclude task traffic" (on by default) asks for audience=core,
+ * which leaves out users sent by reward apps; off shows everyone.
  * A section whose endpoint failed says so instead of disappearing.
  *
  * Shows a clear empty state when the pipeline has no data yet — this is the
@@ -25,6 +27,7 @@ import {
   fetchRetentionAnalytics,
   fetchPushAnalytics,
   fetchAttributionAnalytics,
+  type AnalyticsAudience,
   type AnalyticsPeriod,
   type UsersAnalytics,
   type ContentAnalytics,
@@ -54,28 +57,30 @@ export default function UserBehaviorV2Client() {
   const t = useT();
   const a = t.behaviorV2;
   const [period, setPeriod] = useState<AnalyticsPeriod>("30");
+  const [audience, setAudience] = useState<AnalyticsAudience>("core");
   const [reloadKey, setReloadKey] = useState(0);
-  // `fetchState` is keyed on (period, reloadKey) so a fresh fetch starts in
-  // the "loading" phase without a separate setState + cascading render.
+  // `fetchState` is keyed on (period, audience, reloadKey) so a fresh fetch
+  // starts in the "loading" phase without a separate setState + cascading
+  // render.
   const [fetchState, setFetchState] = useState<
     | { phase: "loading"; key: string }
     | { phase: "error"; key: string }
     | { phase: "data"; key: string; data: Bundle }
-  >(() => ({ phase: "loading", key: `${period}:${reloadKey}` }));
+  >(() => ({ phase: "loading", key: `${period}:${audience}:${reloadKey}` }));
 
   const retry = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
-    const key = `${period}:${reloadKey}`;
+    const key = `${period}:${audience}:${reloadKey}`;
     let cancelled = false;
     Promise.allSettled([
-      fetchUsersAnalytics(period),
-      fetchContentAnalytics(period),
-      fetchFeaturesAnalytics(period),
-      fetchSearchAnalytics(period),
-      fetchRetentionAnalytics(),
-      fetchPushAnalytics(period),
-      fetchAttributionAnalytics(period),
+      fetchUsersAnalytics(period, audience),
+      fetchContentAnalytics(period, audience),
+      fetchFeaturesAnalytics(period, audience),
+      fetchSearchAnalytics(period, audience),
+      fetchRetentionAnalytics(audience),
+      fetchPushAnalytics(period, audience),
+      fetchAttributionAnalytics(period, audience),
     ]).then((results) => {
       if (cancelled) return;
       const [u, c, f, s, r, p, at] = results;
@@ -104,10 +109,10 @@ export default function UserBehaviorV2Client() {
       });
     });
     return () => { cancelled = true; };
-  }, [period, reloadKey]);
+  }, [period, audience, reloadKey]);
 
-  // Reset to "loading" whenever the request key changes (period or retry).
-  const currentKey = `${period}:${reloadKey}`;
+  // Reset to "loading" whenever the request key changes (filters or retry).
+  const currentKey = `${period}:${audience}:${reloadKey}`;
   const loading = fetchState.phase === "loading" || fetchState.key !== currentKey;
   const error = !loading && fetchState.phase === "error";
   const data = !loading && fetchState.phase === "data" ? fetchState.data : null;
@@ -130,7 +135,15 @@ export default function UserBehaviorV2Client() {
           <h2 className="text-xl font-bold text-text">{a.title}</h2>
           <p className="text-sm text-muted mt-0.5">{a.subtitle}</p>
         </div>
-        <PeriodSelector value={period} onChange={setPeriod} labels={a.period} />
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <PeriodSelector value={period} onChange={setPeriod} labels={a.period} />
+          <AudienceToggle
+            excludeTasks={audience === "core"}
+            onChange={(on) => setAudience(on ? "core" : "all")}
+            label={a.excludeTaskTraffic}
+            hint={a.excludeTaskTrafficHint}
+          />
+        </div>
       </header>
 
       {loading && <Card className="!py-8 text-center"><p className="text-sm text-muted">{t.common.loading}</p></Card>}
@@ -197,6 +210,51 @@ function PeriodSelector({
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─── Audience toggle ────────────────────────────────────────────────────────
+
+function AudienceToggle({
+  excludeTasks, onChange, label, hint,
+}: {
+  excludeTasks: boolean;
+  onChange: (excludeTasks: boolean) => void;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={excludeTasks}
+        onClick={() => onChange(!excludeTasks)}
+        className="inline-flex items-center gap-2 text-xs font-semibold text-text cursor-pointer"
+      >
+        <span
+          aria-hidden
+          className={`relative inline-flex h-4 w-7 rounded-full transition-colors ${
+            excludeTasks ? "bg-gold" : "bg-border"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-all ${
+              excludeTasks ? "left-3.5" : "left-0.5"
+            }`}
+          />
+        </span>
+        {label}
+      </button>
+      <span
+        title={hint}
+        aria-label={hint}
+        role="img"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-border text-[10px] font-bold text-muted cursor-help"
+      >
+        i
+      </span>
     </div>
   );
 }

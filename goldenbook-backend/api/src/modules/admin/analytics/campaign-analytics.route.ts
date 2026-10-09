@@ -1,9 +1,12 @@
 // Revenue and campaign readers for the dashboard analytics page.
 //
-// GET /api/v1/admin/analytics/overview?period=7|30|90
+// GET /api/v1/admin/analytics/overview?period=7|30|90&audience=all|core
 // GET /api/v1/admin/analytics/campaigns?period=7|30|90
-// GET /api/v1/admin/analytics/establishments?period=7|30|90
+// GET /api/v1/admin/analytics/establishments?period=7|30|90&audience=all|core
 // GET /api/v1/admin/analytics/time
+//
+// audience=core leaves task-app users out of the engagement counts
+// (internal-traffic.ts); revenue is never filtered by audience.
 //
 // Errors are not caught here. These used to resolve every failure to zero,
 // which the page rendered as "no sales"; now a failing query is a 500 and the
@@ -13,7 +16,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { authenticateDashboardUser } from '../../../shared/auth/dashboardAuth'
 import { db } from '../../../db/postgres'
-import { internalTrafficCtes, isRealEvent, isRealLegacyEvent } from './internal-traffic'
+import { internalTrafficCtes, isRealEvent, isRealLegacyEvent, parseAudience } from './internal-traffic'
 
 const periodSchema = z.object({
   period: z.enum(['7', '30', '90']).default('30'),
@@ -31,6 +34,7 @@ export async function campaignAnalyticsRoutes(app: FastifyInstance) {
     preHandler: [authenticateDashboardUser],
   }, async (request, reply) => {
     const days = parseInt(periodSchema.parse(request.query).period, 10)
+    const audience = parseAudience(request.query)
 
     const [revenueResult, dailyResult, activePlacementsResult, conversionResult] = await Promise.all([
       db.query<{ total: string; count: string }>(`
@@ -70,7 +74,7 @@ export async function campaignAnalyticsRoutes(app: FastifyInstance) {
       // place_analytics_events table (campaigns-tracking.route.ts), which has
       // no is_internal flag, so staff and QA sessions are excluded here.
       db.query<{ event_type: string; count: string }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT pae.event_type, COUNT(*)::text AS count
         FROM place_analytics_events pae
         WHERE pae.event_type IN ('campaign_slot_selected', 'campaign_checkout_started', 'campaign_checkout_completed')
@@ -154,6 +158,7 @@ export async function campaignAnalyticsRoutes(app: FastifyInstance) {
     preHandler: [authenticateDashboardUser],
   }, async (request, reply) => {
     const days = parseInt(periodSchema.parse(request.query).period, 10)
+    const audience = parseAudience(request.query)
 
     const { rows } = await db.query<{
       place_id: string
@@ -166,7 +171,7 @@ export async function campaignAnalyticsRoutes(app: FastifyInstance) {
       booking_clicks: string
       map_opens: string
     }>(`
-      WITH ${internalTrafficCtes(SINCE)},
+      WITH ${internalTrafficCtes(SINCE, audience)},
       pu AS (
         SELECT place_id,
                COUNT(*) AS total_purchases,

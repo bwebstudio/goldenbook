@@ -1081,6 +1081,8 @@ const en = {
     emptyTitle: "No data yet",
     emptyBody: "It can take a few hours for new data to appear after someone uses the app. Check back later.",
     period: { d7: "7 days", d30: "30 days", d90: "90 days" },
+    excludeTaskTraffic: "Exclude task traffic",
+    excludeTaskTrafficHint: "Users who searched \"day\" or only digits in their first seconds: they seem to come from reward apps. They are still included with the filter off.",
   },
 
   // ─── Campaign Analytics ──────────────────────────────────────────────────
