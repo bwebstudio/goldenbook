@@ -2,12 +2,18 @@ import type { SearchPlaceRow, SearchRouteRow, SearchCategoryRow } from './search
 
 interface MediaAssetDTO { bucket: string | null; path: string | null }
 
+export interface SearchCityDTO {
+  slug: string
+  name: string
+}
+
 export interface SearchPlaceDTO {
   id: string
   slug: string
   name: string
   summary: string | null
   heroImage: MediaAssetDTO
+  city: SearchCityDTO
 }
 
 export interface SearchRouteDTO {
@@ -30,6 +36,8 @@ export interface SearchResponseDTO {
   places: SearchPlaceDTO[]
   routes: SearchRouteDTO[]
   categories: SearchCategoryDTO[]
+  // Matches in other cities (max 5). Added later; older clients ignore it.
+  elsewhere: SearchPlaceDTO[]
 }
 
 export function toSearchPlaceDTO(row: SearchPlaceRow): SearchPlaceDTO {
@@ -39,6 +47,7 @@ export function toSearchPlaceDTO(row: SearchPlaceRow): SearchPlaceDTO {
     name: row.name,
     summary: row.summary,
     heroImage: { bucket: row.hero_bucket, path: row.hero_path },
+    city: { slug: row.city_slug, name: row.city_name },
   }
 }
 

@@ -135,11 +135,21 @@ export interface SearchCategoryDTO {
   iconName: string | null;
 }
 
+/** A place match that lives in a different destination from the one searched. */
+export interface SearchElsewherePlaceDTO extends SearchPlaceDTO {
+  city: { slug: string; name: string };
+}
+
 export interface SearchResults {
   query?: string;
   places: SearchPlaceDTO[];
   routes: SearchRouteDTO[];
   categories: SearchCategoryDTO[];
+  /**
+   * Place matches from other destinations. Optional: older backends don't
+   * send it, so treat missing and empty the same.
+   */
+  elsewhere?: SearchElsewherePlaceDTO[];
 }
 
 // --- Discover (matches backend DiscoverDTO exactly) ---

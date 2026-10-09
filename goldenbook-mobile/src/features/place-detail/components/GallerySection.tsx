@@ -69,6 +69,10 @@ export function GallerySection({ gallery }: GallerySectionProps) {
               key={`${item.bucket}/${item.path}/${idx}`}
               onPress={() => openViewer(idx)}
               activeOpacity={0.88}
+              accessibilityRole="imagebutton"
+              accessibilityLabel={t.a11y.openPhoto
+                .replace('{n}', String(idx + 1))
+                .replace('{total}', String(sorted.length))}
             >
               <View
                 style={{
@@ -130,6 +134,9 @@ export function GallerySection({ gallery }: GallerySectionProps) {
           {/* Close button */}
           <TouchableOpacity
             onPress={() => setViewerVisible(false)}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
             style={{
               position: 'absolute',
               top: insets.top + 10,

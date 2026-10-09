@@ -33,10 +33,19 @@ interface ProgressiveImageProps {
 
 // ─── Shimmer animation ────────────────────────────────────────────────────────
 
-function useShimmer() {
+/**
+ * Pulsing placeholder. Runs only while `active`: once the image has loaded
+ * (or failed) the loop is stopped, so a long list of loaded images doesn't
+ * keep dozens of animations ticking off-screen. Also stopped on unmount.
+ */
+function useShimmer(active: boolean) {
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (!active) {
+      anim.stopAnimation();
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(anim, {
@@ -53,7 +62,7 @@ function useShimmer() {
     );
     loop.start();
     return () => loop.stop();
-  }, [anim]);
+  }, [anim, active]);
 
   return anim;
 }
@@ -94,7 +103,8 @@ export function ProgressiveImage({
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
-  const shimmerAnim = useShimmer();
+  // No URI means nothing will ever load: keep the static placeholder only.
+  const shimmerAnim = useShimmer(!loaded && !error && !!uri);
   const shimmerOpacity = shimmerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0.06, 0.14],

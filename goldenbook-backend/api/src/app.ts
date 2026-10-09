@@ -3,6 +3,7 @@ import cors from '@fastify/cors'
 import { AppError } from './shared/errors/AppError'
 import { CampaignValidationError } from './modules/campaigns/campaigns.validation'
 import { env } from './config/env'
+import { resolveCorsOrigins } from './config/cors'
 
 import { healthRoutes } from './modules/health/health.route'
 import { destinationsRoutes } from './modules/destinations/destinations.route'
@@ -64,12 +65,17 @@ export function buildApp() {
     },
   })
 
-  // CORS — restrict origins in production, allow all in development
-  const corsOrigins = env.CORS_ORIGINS
-    ? env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)
-    : true
+  // CORS — restrict origins in production, allow all in development.
+  // See resolveCorsOrigins for the fallback when CORS_ORIGINS is unset.
+  const corsConfig = resolveCorsOrigins({
+    nodeEnv: env.NODE_ENV,
+    corsOrigins: env.CORS_ORIGINS,
+    dashboardUrl: env.DASHBOARD_URL,
+    appUrl: env.APP_URL,
+  })
+  if (corsConfig.warning) app.log.warn(corsConfig.warning)
   app.register(cors, {
-    origin: corsOrigins,
+    origin: corsConfig.origin,
     credentials: true,
   })
 

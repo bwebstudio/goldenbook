@@ -12,6 +12,11 @@ interface PlaceActionsProps {
   actions: Actions;
   location?: { latitude: number | null; longitude: number | null };
   city?: string;
+  /**
+   * Slug of the place's primary category (first of `categories`). Sent with
+   * booking_click and website_click so conversions can be split by category.
+   */
+  primaryCategory?: string;
   onSave?: () => void;
   isSaved?: boolean;
   isSaving?: boolean;
@@ -56,6 +61,7 @@ export function PlaceActions({
   actions,
   location,
   city,
+  primaryCategory,
   onSave,
   isSaved = false,
   isSaving = false,
@@ -64,7 +70,7 @@ export function PlaceActions({
   const t = useTranslation();
 
   const openUrl = (url: string) => {
-    Linking.openURL(url.trim()).catch(() => Alert.alert('Cannot open link'));
+    Linking.openURL(url.trim()).catch(() => Alert.alert('', t.place.cannotOpenLink));
   };
 
   const hasReservation = isHttpUrl(actions.bookingUrl);
@@ -73,9 +79,18 @@ export function PlaceActions({
   const canShowMap = !!(location?.latitude && location?.longitude) || !!actions.navigateUrl;
 
   const handleMap = () => {
-    track('map_open', { placeId, source: 'route' });
+    // map_open is tracked once, by the map screen on mount; we only tell it
+    // where it was opened from.
     if (location?.latitude && location?.longitude) {
-      router.push(`/map?lat=${location.latitude}&lng=${location.longitude}` as any);
+      router.push({
+        pathname: '/map',
+        params: {
+          lat: String(location.latitude),
+          lng: String(location.longitude),
+          src: 'place',
+          placeId,
+        },
+      } as never);
     } else if (actions.navigateUrl) {
       openUrl(actions.navigateUrl);
     }
@@ -94,6 +109,7 @@ export function PlaceActions({
             onPress={() => {
               track('booking_click', {
                 placeId,
+                ...(primaryCategory ? { category: primaryCategory } : {}),
                 metadata: { url_domain: safeDomain(actions.bookingUrl!) },
               });
               openUrl(actions.bookingUrl!);
@@ -114,6 +130,7 @@ export function PlaceActions({
           <TouchableOpacity
             onPress={handleMap}
             activeOpacity={0.85}
+            accessibilityRole="button"
             className="flex-row items-center justify-center gap-2 rounded-full border border-navy/5"
             style={{ ...ICON_BTN, flex: 1, height: 48 }}
           >
@@ -129,7 +146,7 @@ export function PlaceActions({
             disabled={isSaving}
             activeOpacity={0.6}
             accessibilityRole="button"
-            accessibilityLabel={isSaved ? 'Remove from saved' : 'Save'}
+            accessibilityLabel={isSaved ? t.a11y.removeFromSaved : t.a11y.save}
             className="items-center justify-center rounded-full border border-navy/5"
             style={{ ...ICON_BTN, opacity: isSaving ? 0.6 : 1 }}
           >
@@ -147,11 +164,14 @@ export function PlaceActions({
             onPress={() => {
               track('website_click', {
                 placeId,
+                ...(primaryCategory ? { category: primaryCategory } : {}),
                 metadata: { url_domain: safeDomain(actions.websiteUrl!) },
               });
               openUrl(actions.websiteUrl!);
             }}
             activeOpacity={0.6}
+            accessibilityRole="link"
+            accessibilityLabel={t.a11y.openWebsite}
             className="items-center justify-center rounded-full border border-navy/5"
             style={ICON_BTN}
           >
@@ -164,6 +184,8 @@ export function PlaceActions({
           <TouchableOpacity
             onPress={() => openUrl(`tel:${actions.reservationPhone}`)}
             activeOpacity={0.6}
+            accessibilityRole="button"
+            accessibilityLabel={t.a11y.call}
             className="items-center justify-center rounded-full border border-navy/5"
             style={ICON_BTN}
           >

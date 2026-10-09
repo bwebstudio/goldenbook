@@ -9,6 +9,7 @@ import { useTranslation } from '@/i18n';
 import { PlaceSaveButton } from '@/features/saved/components/PlaceSaveButton';
 import type { DiscoverPlaceCard } from '../types';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 function toSnapshot(place: DiscoverPlaceCard) {
   return {
@@ -56,7 +57,7 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
         </View>
         <View className="flex-1">
           <Text className="font-bold text-navy text-sm leading-snug" numberOfLines={2}>
-            {place.name}
+            {displayPlaceName(place.name)}
           </Text>
           {place.shortDescription && (
             <Text className="text-navy/50 text-[11px] mt-1 italic" numberOfLines={2}>
@@ -83,7 +84,7 @@ function HiddenSpotRow({ place }: { place: DiscoverPlaceCard }) {
         </View>
       </TouchableOpacity>
 
-      <PlaceSaveButton placeId={place.id} snapshot={toSnapshot(place)} size={22} />
+      <PlaceSaveButton placeId={place.id} snapshot={toSnapshot(place)} size={22} source="discover" />
     </View>
   );
 }
@@ -151,7 +152,7 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
               style={{ textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}
               numberOfLines={2}
             >
-              {place.name}
+              {displayPlaceName(place.name)}
             </Text>
             {subtitle ? (
               <Text
@@ -171,6 +172,7 @@ function EditorialPortraitCard({ place, width = 224 }: { place: DiscoverPlaceCar
         placeId={place.id}
         snapshot={toSnapshot(place)}
         size={18}
+        source="discover"
         inactiveColor="#FFFFFF"
         style={{
           position: 'absolute',

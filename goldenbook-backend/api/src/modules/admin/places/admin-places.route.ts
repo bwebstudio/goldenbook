@@ -395,8 +395,17 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
   // ── Delete place ──────────────────────────────────────────────────────────
   app.delete('/admin/places/:id', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = idParamsSchema.parse(request.params)
-    await deletePlace(id)
-    return reply.send({ deleted: true })
+    const objects = await deletePlace(id)
+    // The DB delete has committed; now remove the bytes of the images only
+    // this place used (same pattern as the permanent image delete above).
+    // deleteStorageObject never throws and logs its own failures.
+    let storageDeleted = 0
+    if (objects.length > 0) {
+      const { deleteStorageObject } = await import('../../../lib/storage/supabase-storage')
+      const results = await Promise.all(objects.map((o) => deleteStorageObject(o.bucket, o.path)))
+      storageDeleted = results.filter(Boolean).length
+    }
+    return reply.send({ deleted: true, storageDeleted })
   })
 
   // ── GET translations for a place ────────────────────────────────────────

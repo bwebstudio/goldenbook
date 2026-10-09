@@ -95,6 +95,8 @@ export default function PreferencesScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={t.common.goBack}
           style={styles.backBtn}
         >
           <Ionicons name="chevron-back" size={24} color={colors.navy.DEFAULT} />

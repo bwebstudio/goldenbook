@@ -18,9 +18,26 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
   : 'https://goldenbook-production.up.railway.app/api/v1'
 );
 
-// Stable session ID for NOW anti-repetition tracking and analytics. Lives for
-// the process lifetime; a new ID is generated on cold boot.
-export const SESSION_ID = `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+// Session ID for NOW anti-repetition tracking and analytics. A new ID is
+// generated on cold boot, and `rotateSessionId()` mints a fresh one when the
+// app comes back after a long stay in the background (see
+// useSessionLifecycle), so the time spent away never counts as session
+// duration. Always read it through `getSessionId()`: the value changes.
+function newSessionId(): string {
+  return `app-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+let currentSessionId = newSessionId();
+
+export function getSessionId(): string {
+  return currentSessionId;
+}
+
+/** Starts a new analytics session id and returns it. */
+export function rotateSessionId(): string {
+  currentSessionId = newSessionId();
+  return currentSessionId;
+}
 
 const DEVICE_TYPE: 'ios' | 'android' | 'web' =
   Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
@@ -53,11 +70,14 @@ export const apiClient = axios.create({
 type RetriableConfig = InternalAxiosRequestConfig & { _gbRetried?: boolean };
 
 apiClient.interceptors.request.use(async (config) => {
+  // Read the session id before awaiting the token, so a request issued just
+  // before a rotation is still stamped with the session it belongs to.
+  const sessionId = getSessionId();
   const token = await getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  config.headers['x-session-id']  = SESSION_ID;
+  config.headers['x-session-id']  = sessionId;
   config.headers['x-device-type'] = DEVICE_TYPE;
   config.headers['x-app-version'] = APP_VERSION;
   if (IS_INTERNAL_BUILD) config.headers['x-gb-internal'] = '1';

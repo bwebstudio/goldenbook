@@ -139,7 +139,12 @@ describe('Paid placement vs context tags', () => {
     expect(paidInResult).toBe(true)
   })
 
-  it('diversity rules never penalize paid placements', () => {
+  // Sponsored items are no longer exempt from diversity. diversity.ts applies
+  // a SOFT penalty (x0.95) when a sponsored slot would stack next to an item
+  // of the same type or tag: it keeps its ranking edge but cannot sit in a
+  // wall of identical sponsored results. These tests asserted the older
+  // "fully exempt" contract and had been failing ever since that change.
+  it('diversity applies only the soft penalty to paid placements', () => {
     const paid = scoreCandidate(
       makeCandidate({ id: 'paid', place_type: 'restaurant' }),
       makeContext({ paidPlaceIds: new Set(['paid']) }),
@@ -161,9 +166,12 @@ describe('Paid placement vs context tags', () => {
     const sorted = [organic1, paid, organic2, organic3]
     const diversified = applyDiversityRules(sorted)
 
-    // Paid placement should NOT have been penalized
+    // Paid sits next to a same-type organic, so it takes the soft penalty —
+    // and only that one, never the 0.85 / 0.90 organic penalties.
     const paidAfter = diversified.find((r) => r.place.id === 'paid')!
-    expect(paidAfter.totalScore).toBe(paid.totalScore)
+    expect(paidAfter.totalScore).toBeCloseTo(paid.totalScore * 0.95, 5)
+    // The edge over an organic in the same position must survive.
+    expect(paidAfter.totalScore).toBeGreaterThan(paid.totalScore * 0.85)
   })
 })
 
@@ -432,7 +440,7 @@ describe('Diversity + paid placement injection interaction', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('with 5+ candidates, diversity penalizes adjacent same-type but not paid', () => {
+  it('with 5+ candidates, diversity penalizes adjacent same-type organics harder than paid', () => {
     const ctx = makeContext({ paidPlaceIds: new Set(['paid-rest']) })
 
     const rest1 = scoreCandidate(makeCandidate({ id: 'r1', place_type: 'restaurant', context_tag_slugs: ['dinner'], popularity_score: 80 }), makeContext())
@@ -444,9 +452,10 @@ describe('Diversity + paid placement injection interaction', () => {
     const sorted = [rest1, paidRest, rest2, bar, cafe]
     const diversified = applyDiversityRules(sorted)
 
-    // Paid restaurant should NOT be penalized
+    // Paid restaurant follows a same-type organic, so it takes the soft
+    // penalty rather than the full organic one.
     const paidAfter = diversified.find((r) => r.place.id === 'paid-rest')!
-    expect(paidAfter.totalScore).toBe(paidRest.totalScore)
+    expect(paidAfter.totalScore).toBeCloseTo(paidRest.totalScore * 0.95, 5)
 
     // But organic rest2 (adjacent same type after paid) SHOULD be penalized
     const rest2After = diversified.find((r) => r.place.id === 'r2')!

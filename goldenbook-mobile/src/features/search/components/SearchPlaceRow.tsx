@@ -6,13 +6,20 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { track } from '@/analytics/track';
 import type { SearchPlaceDTO } from '@/types/api';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 interface Props {
   place: SearchPlaceDTO;
   rank?: number;
+  /**
+   * Set when the place belongs to another destination (the "elsewhere"
+   * results). Shown under the name so the user knows they are leaving the
+   * city they picked.
+   */
+  city?: { slug: string; name: string };
 }
 
-export function SearchPlaceRow({ place, rank }: Props) {
+export function SearchPlaceRow({ place, rank, city }: Props) {
   const router = useRouter();
   // 72×72 row thumbnail — thumb variant.
   const imageUrl = getStorageUrl(place.heroImage.bucket, place.heroImage.path, 'thumb');
@@ -20,18 +27,24 @@ export function SearchPlaceRow({ place, rank }: Props) {
   return (
     <TouchableOpacity
       onPress={() => {
+        const elsewhere = city ? { elsewhere: true, place_city: city.slug } : undefined;
         track('search_result_click', {
           placeId: place.id,
           source: 'search',
-          metadata: rank != null ? { rank } : undefined,
+          metadata: rank != null || elsewhere ? { ...(rank != null ? { rank } : {}), ...elsewhere } : undefined,
         });
+        // Place detail is fetched by slug alone, so this works whatever
+        // destination is currently selected.
         openPlace(router, place.slug, {
           source: 'search',
           placeId: place.id,
           ...(rank != null ? { rank } : {}),
+          ...(elsewhere ? { metadata: elsewhere } : {}),
         });
       }}
       activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={city ? `${displayPlaceName(place.name)}, ${city.name}` : place.name}
       className="flex-row items-center gap-4"
     >
       {/* Thumbnail */}
@@ -49,8 +62,16 @@ export function SearchPlaceRow({ place, rank }: Props) {
       {/* Content */}
       <View className="flex-1">
         <Text className="text-navy font-bold text-sm leading-snug" numberOfLines={1}>
-          {place.name}
+          {displayPlaceName(place.name)}
         </Text>
+        {city && (
+          <View className="flex-row items-center gap-1 mt-0.5">
+            <Ionicons name="location-outline" size={11} color="#D2B68A" />
+            <Text className="text-primary text-[10px] uppercase tracking-widest font-bold" numberOfLines={1}>
+              {city.name}
+            </Text>
+          </View>
+        )}
         {place.summary && (
           <Text className="text-navy/45 text-[11px] mt-0.5 italic leading-snug" numberOfLines={2}>
             {place.summary}

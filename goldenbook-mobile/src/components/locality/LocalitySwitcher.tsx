@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppStore } from '@/store/appStore';
+import { useTranslation } from '@/i18n';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { Locality } from '@/config/localities';
 
@@ -90,6 +91,7 @@ export function LocalitySwitcher({ visible, onClose }: LocalitySwitcherProps) {
   const selectedCity       = useAppStore((s) => s.selectedCity);
   const availableLocalities = useAppStore((s) => s.availableLocalities);
   const setCity            = useAppStore((s) => s.setCity);
+  const t                  = useTranslation();
 
   // Slide-up animation
   const slideAnim = useRef(new Animated.Value(400)).current;
@@ -128,7 +130,12 @@ export function LocalitySwitcher({ visible, onClose }: LocalitySwitcherProps) {
       statusBarTranslucent
     >
       {/* Backdrop */}
-      <Pressable style={styles.backdrop} onPress={onClose} />
+      <Pressable
+        style={styles.backdrop}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel={t.common.close}
+      />
 
       {/* Sheet */}
       <Animated.View
@@ -141,7 +148,7 @@ export function LocalitySwitcher({ visible, onClose }: LocalitySwitcherProps) {
           {/* Header */}
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetLabel}>GOLDENBOOK GO</Text>
-            <Text style={styles.sheetTitle}>Choose your destination</Text>
+            <Text style={styles.sheetTitle}>{t.destinationPicker.title}</Text>
             <View style={styles.divider} />
           </View>
 
@@ -163,7 +170,7 @@ export function LocalitySwitcher({ visible, onClose }: LocalitySwitcherProps) {
             onPress={onClose}
             activeOpacity={0.7}
           >
-            <Text style={styles.closeBtnText}>Cancel</Text>
+            <Text style={styles.closeBtnText}>{t.common.cancel}</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </Animated.View>

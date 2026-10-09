@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useMutationQueueStore, applyQueueToSaved } from '@/store/mutationQueueStore';
+import { useIsRestoring, useQueryClient } from '@tanstack/react-query';
+import { useMutationQueueStore, applyQueueToSaved, queueForUser } from '@/store/mutationQueueStore';
 import { useSettingsStore } from '@/store/settingsStore';
+import { useAuthStore } from '@/store/authStore';
 import type { SavedResponse } from '@/types/api';
 import { SAVED_QUERY_KEY } from './useSaved';
 
@@ -23,7 +24,8 @@ import { SAVED_QUERY_KEY } from './useSaved';
 //   • Idempotent. applyQueueToSaved is a pure projection that no-ops on
 //     already-applied changes. Re-runs (e.g. on locale change) won't
 //     duplicate or invert state.
-//   • Only mutates the ['saved', locale] cache for the CURRENT locale.
+//   • Only mutates the ['saved', userId, locale] cache for the CURRENT user
+//     and locale, using only that user's queued ops.
 //     Other locales' caches are left alone — they'll be re-applied if/when
 //     the user switches locales (the effect re-fires on locale change).
 //
@@ -31,9 +33,13 @@ import { SAVED_QUERY_KEY } from './useSaved';
 
 export function useReplayPendingSaves(): void {
   const queryClient = useQueryClient();
+  // Writing before the persisted cache is restored would make the restore
+  // discard the (older) saved list from disk.
+  const isRestoring = useIsRestoring();
   const isHydrated  = useMutationQueueStore((s) => s.isHydrated);
-  const queue       = useMutationQueueStore((s) => s.queue);
+  const fullQueue   = useMutationQueueStore((s) => s.queue);
   const locale      = useSettingsStore((s) => s.locale);
+  const userId      = useAuthStore((s) => s.user?.id ?? null);
 
   // Last queue length we replayed against. Used so we don't redundantly
   // setQueryData on every render (queue is referentially stable from
@@ -41,8 +47,10 @@ export function useReplayPendingSaves(): void {
   const lastSignature = useRef<string>('');
 
   useEffect(() => {
-    if (!isHydrated) return;
-    if (queue.length === 0) {
+    if (!isHydrated || isRestoring) return;
+    // Only the signed-in user's own ops are projected onto their own cache.
+    const queue = queueForUser(fullQueue, userId);
+    if (!userId || queue.length === 0) {
       // Nothing to replay — but we still need to bump the signature so a
       // post-flush state with an empty queue doesn't keep re-running the
       // earlier signature (cosmetic; setQueryData with same data is safe).
@@ -53,11 +61,11 @@ export function useReplayPendingSaves(): void {
     // Cheap, order-sensitive signature so we only call setQueryData when
     // the queue actually changes (length + last id is enough — the queue
     // only mutates by enqueue / drain).
-    const signature = `${queue.length}:${queue[queue.length - 1].id}:${locale}`;
+    const signature = `${userId}:${queue.length}:${queue[queue.length - 1].id}:${locale}`;
     if (lastSignature.current === signature) return;
     lastSignature.current = signature;
 
-    const key      = SAVED_QUERY_KEY(locale);
+    const key      = SAVED_QUERY_KEY(userId, locale);
     const existing = queryClient.getQueryData<SavedResponse>(key);
     const next     = applyQueueToSaved(existing, queue);
 
@@ -65,5 +73,5 @@ export function useReplayPendingSaves(): void {
     // object (no ops applied), don't notify subscribers.
     if (next === existing) return;
     queryClient.setQueryData<SavedResponse>(key, next);
-  }, [isHydrated, queue, locale, queryClient]);
+  }, [isHydrated, isRestoring, fullQueue, userId, locale, queryClient]);
 }

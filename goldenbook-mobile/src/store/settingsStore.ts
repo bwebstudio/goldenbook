@@ -2,7 +2,9 @@
  * settingsStore.ts
  *
  * Persists user-level app settings that are not auth- or locality-related.
- * Currently: locale preference.
+ * Currently: locale preference, whether the full intro splash has already
+ * been shown on this install, the answer to the 18:00 ritual, and the
+ * counters that pick a moment for the store review prompt.
  *
  * Locale resolution:
  *   1. If the user explicitly picked a language from Settings → Language,
@@ -89,6 +91,33 @@ interface SettingsState {
   isHydrated: boolean;
 
   /**
+   * True once the full GoldenAtlasSplash animation has played on this
+   * install. Later launches get the short version.
+   */
+  hasSeenIntroSplash: boolean;
+
+  /** Remember that the full splash animation has been shown. */
+  markIntroSplashSeen: () => void;
+
+  /**
+   * The user's answer to the 18:00 ritual: true / false once they chose,
+   * null while they never did. False also stops the silent token refresh,
+   * even if the OS permission is still granted.
+   */
+  pushOptIn: boolean | null;
+  /** When we last invited the user to the ritual (ISO), so we ask once. */
+  pushPromptedAt: string | null;
+  setPushOptIn: (value: boolean) => void;
+  markPushPrompted: () => void;
+
+  /** Saves and finished routes, counted to pick a good moment for a review. */
+  positiveMoments: number;
+  /** When we last asked the OS for a store review (ISO). */
+  reviewPromptedAt: string | null;
+  addPositiveMoment: () => number;
+  markReviewPrompted: () => void;
+
+  /**
    * Persist a new locale choice made explicitly by the user (e.g. from the
    * Language screen). Marks the choice as explicit so auto-detection will
    * never overwrite it again.
@@ -114,6 +143,24 @@ export const useSettingsStore = create<SettingsState>()(
       locale: 'pt',
       localeIsExplicit: false,
       isHydrated: false,
+      hasSeenIntroSplash: false,
+      pushOptIn: null,
+      pushPromptedAt: null,
+      positiveMoments: 0,
+      reviewPromptedAt: null,
+
+      setPushOptIn: (value) => set({ pushOptIn: value }),
+      markPushPrompted: () => set({ pushPromptedAt: new Date().toISOString() }),
+      addPositiveMoment: () => {
+        const next = get().positiveMoments + 1;
+        set({ positiveMoments: next });
+        return next;
+      },
+      markReviewPrompted: () => set({ reviewPromptedAt: new Date().toISOString() }),
+
+      markIntroSplashSeen: () => {
+        if (!get().hasSeenIntroSplash) set({ hasSeenIntroSplash: true });
+      },
 
       setLocale: (locale) =>
         set({
@@ -138,6 +185,11 @@ export const useSettingsStore = create<SettingsState>()(
       partialize: (state) => ({
         locale: state.locale,
         localeIsExplicit: state.localeIsExplicit,
+        hasSeenIntroSplash: state.hasSeenIntroSplash,
+        pushOptIn: state.pushOptIn,
+        pushPromptedAt: state.pushPromptedAt,
+        positiveMoments: state.positiveMoments,
+        reviewPromptedAt: state.reviewPromptedAt,
       }),
       onRehydrateStorage: () => (state) => {
         state?._setHydrated();

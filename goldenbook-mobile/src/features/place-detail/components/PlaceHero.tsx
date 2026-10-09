@@ -7,6 +7,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { useTranslation } from '@/i18n';
 import type { MediaAsset } from '../types';
+import { displayPlaceName } from '@/utils/placeName';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_HEIGHT = SCREEN_WIDTH * 0.95;
@@ -66,6 +67,8 @@ export function PlaceHero({ heroImage, name, cityName, rating, tags, categories,
       {/* Back button */}
       <TouchableOpacity
         onPress={() => router.back()}
+        accessibilityRole="button"
+        accessibilityLabel={t.common.goBack}
         className="absolute left-6 items-center justify-center rounded-full"
         style={{
           top: insets.top + 8,
@@ -82,7 +85,7 @@ export function PlaceHero({ heroImage, name, cityName, rating, tags, categories,
         <TouchableOpacity
           onPress={onShare}
           accessibilityRole="button"
-          accessibilityLabel="Share"
+          accessibilityLabel={t.a11y.share}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           className="absolute right-6 items-center justify-center rounded-full"
           style={{
@@ -122,7 +125,7 @@ export function PlaceHero({ heroImage, name, cityName, rating, tags, categories,
             style={{ fontFamily: 'PlayfairDisplay_700Bold', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 }}
             numberOfLines={3}
           >
-            {name}
+            {displayPlaceName(name)}
           </Text>
 
           {/* Context line: categories · subcategories · city */}

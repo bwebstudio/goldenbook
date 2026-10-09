@@ -1,4 +1,5 @@
 import { Share, Platform, Alert } from 'react-native';
+import { getTranslations } from '@/i18n';
 
 // ── Share URLs ──────────────────────────────────────────────────────────────
 //
@@ -26,7 +27,7 @@ export async function sharePlace(place: SharePlacePayload): Promise<void> {
 
   const parts = [headline];
   if (place.shortDescription) parts.push(place.shortDescription);
-  parts.push(`Discover it on Goldenbook Go\n${APP_STORE_URL}`);
+  parts.push(`${getTranslations().shareSheet.cta}\n${APP_STORE_URL}`);
 
   const message = parts.join('\n\n');
 
@@ -40,7 +41,7 @@ export async function sharePlace(place: SharePlacePayload): Promise<void> {
     );
   } catch (err) {
     if (__DEV__) console.warn('[sharePlace] failed:', err);
-    Alert.alert('', 'Could not open the share sheet. Please try again.');
+    Alert.alert('', getTranslations().shareSheet.failed);
   }
 }
 
@@ -58,7 +59,7 @@ export async function shareRoute(route: ShareRoutePayload): Promise<void> {
 
   const parts = [headline];
   if (route.summary) parts.push(route.summary);
-  parts.push(`Discover it on Goldenbook Go\n${APP_STORE_URL}`);
+  parts.push(`${getTranslations().shareSheet.cta}\n${APP_STORE_URL}`);
 
   const message = parts.join('\n\n');
 
@@ -72,6 +73,6 @@ export async function shareRoute(route: ShareRoutePayload): Promise<void> {
     );
   } catch (err) {
     if (__DEV__) console.warn('[shareRoute] failed:', err);
-    Alert.alert('', 'Could not open the share sheet. Please try again.');
+    Alert.alert('', getTranslations().shareSheet.failed);
   }
 }

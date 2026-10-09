@@ -237,9 +237,15 @@ export const en = {
     places: 'Places',
     routes: 'Routes',
     categories: 'Categories',
+    curatedRoute: 'Curated Route',
+    viewRoute: 'View Route',
+    explore: 'Explore',
+    elsewhere: 'In other destinations',
+    noResultsInCity: 'Nothing in {city} yet, but we found these elsewhere.',
   },
 
   place: {
+    cannotOpenLink: 'We couldn\u2019t open this link.',
     couldNotLoad: 'Could not load this place.\nCheck your connection and try again.',
     goldenbookPerspective: 'The Goldenbook Go Perspective',
     editorialStaff: 'Editorial Staff',
@@ -485,6 +491,39 @@ export const en = {
     checkInboxExpiresIn24h: 'Check your inbox. The link expires in 24 hours.',
   },
 
+  // ─── Share sheet ─────────────────────────────────────────────────────────
+  notificationsScreen: {
+    title: 'Notifications',
+    heroTitle: 'A plan every evening',
+    heroBody: 'At 6 pm, local time in your destination, we send you one idea for that night: a place worth going to, and the reason to go today.',
+    ritualLabel: 'Daily ritual at 6 pm',
+    ritualHint: 'One notification a day. Turn it off whenever you like.',
+    blocked: 'Notifications are turned off for Goldenbook Go in your phone settings.',
+    openSettings: 'Open settings',
+    failed: 'We could not turn on notifications. Please try again.',
+  },
+
+  pushInvite: {
+    title: 'A plan every evening?',
+    body: 'At 6 pm we send you one idea for that night in your destination. One a day, nothing more.',
+    notNow: 'Not now',
+    accept: 'Notify me',
+  },
+
+  splash: {
+    subtitle: 'Curated places. Exceptional experiences.',
+  },
+
+  shareSheet: {
+    failed: 'Could not open the share sheet. Please try again.',
+    cta: 'Discover it on Goldenbook Go',
+  },
+
+  // ─── Now: "See another option" ────────────────────────────────────────────
+  nowRefresh: {
+    failed: "We couldn't load another option. Please try again.",
+  },
+
   // ─── Auth-related errors (shown in red banners / alerts) ─────────────────
   authErrors: {
     signInFailedGeneric: 'Sign in failed. Please check your credentials.',
@@ -494,10 +533,14 @@ export const en = {
     passwordPolicy: 'Password must be at least 8 characters and include both letters and numbers.',
     resetFailed: 'Could not send reset email. Please try again.',
     resetConfirmFailed: 'Could not reset password.',
+    googleSignInTitle: 'Google sign-in',
+    googleSignInFailed: 'Google sign-in failed. Please try again.',
+    appleSignInFailed: 'Apple sign-in failed. Please try again.',
   },
 
   // ─── Map ─────────────────────────────────────────────────────────────────
   map: {
+    title: 'Explore',
     go: 'Go',
   },
 
@@ -505,6 +548,29 @@ export const en = {
   errorBoundary: {
     title: 'Something went wrong',
     body: 'Please close and reopen the app. If the issue persists, contact support.',
+  },
+
+  // ─── Destination picker (first launch + locality switcher) ───────────────
+  destinationPicker: {
+    heading: 'Choose your\ndestination',
+    subtitle: 'We\u2019ll personalise every recommendation\naround the city you\u2019re exploring.',
+    title: 'Choose your destination',
+    selectToContinue: 'Select a destination to continue',
+    choose: 'Choose a destination',
+    continueTo: 'Continue to {city}',
+  },
+
+  // ─── Screen-reader labels for icon-only buttons ──────────────────────────
+  a11y: {
+    openMenu: 'Open menu',
+    clearSearch: 'Clear search',
+    share: 'Share',
+    save: 'Save',
+    removeFromSaved: 'Remove from saved',
+    openWebsite: 'Open website',
+    call: 'Call',
+    openPhoto: 'Open photo {n} of {total}',
+    closePreview: 'Close preview',
   },
 };
 

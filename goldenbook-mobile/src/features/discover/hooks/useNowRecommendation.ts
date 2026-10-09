@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore } from '@/store/appStore'
 import { useOnboardingStore } from '@/store/onboardingStore'
 import { useSettingsStore } from '@/store/settingsStore'
+import { useAuthStore } from '@/store/authStore'
 import { useNetworkStore, selectIsOffline } from '@/store/networkStore'
 import { cacheKey, getCached, setCached } from '@/lib/cache'
 import { api } from '@/api/endpoints'
@@ -82,6 +83,13 @@ export function useNowRecommendation() {
   const interests        = useOnboardingStore((s) => s.interests)
   const explorationStyle = useOnboardingStore((s) => s.explorationStyle)
   const locale           = useSettingsStore((s) => s.locale)
+  // The section can mount under the splash before the persisted stores have
+  // been read; wait for them so we don't fire a request for the default city
+  // that is immediately superseded.
+  const appHydrated      = useAppStore((s) => s.isHydrated)
+  const settingsHydrated = useSettingsStore((s) => s.isHydrated)
+  const authHydrated     = useAuthStore((s) => s.isHydrated)
+  const storesReady = appHydrated && settingsHydrated && authHydrated
 
   // Stabilise the interests dependency: the underlying array reference can
   // change between renders even when the contents are identical (Zustand
@@ -97,16 +105,37 @@ export function useNowRecommendation() {
   // network call failed and we fell back). Drives the "showing your last
   // saved recommendation" copy on the section header.
   const [fromCache, setFromCache] = useState(false)
+  // True when the last "See another option" tap failed. Cleared on the next
+  // attempt or on any fresh load. The section shows a short message for it.
+  const [refreshError, setRefreshError] = useState(false)
+
+  // Request sequencing. Every load / refresh takes a ticket; a response is
+  // only applied if its ticket is still the latest one. This is what stops a
+  // slow response for the previous city (or language) from overwriting the
+  // fresh one when the user switches mid-request.
+  const requestSeq = useRef(0)
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      // Invalidate anything still in flight.
+      requestSeq.current++
+    }
+  }, [])
 
   // ── Fetch initial recommendation ──────────────────────────────────────────
 
   const load = useCallback(async () => {
     const key = buildNowCacheKey(city, locale)
     const isOffline = selectIsOffline(useNetworkStore.getState())
+    const seq = ++requestSeq.current
+    const isCurrent = () => mounted.current && seq === requestSeq.current
 
     try {
       setLoading(true)
       setError(false)
+      setRefreshError(false)
       // Drop the previous result first so the image component sees an actual
       // URI change (and the section falls back to the loading state) instead
       // of holding the old image while the new fetch races in the background.
@@ -115,6 +144,7 @@ export function useNowRecommendation() {
 
       if (isOffline) {
         const cached = await getCached<NowRecommendationResponse>(key)
+        if (!isCurrent()) return
         if (cached?.data) {
           setData(cached.data)
           setFromCache(true)
@@ -136,6 +166,9 @@ export function useNowRecommendation() {
         style: explorationStyle ?? undefined,
       })
 
+      // A newer request (city / language change, retry) superseded this one.
+      if (!isCurrent()) return
+
       if (__DEV__) {
         console.log('[NOW] /concierge/now →', JSON.stringify({
           placeId: result.place?.id,
@@ -155,11 +188,13 @@ export function useNowRecommendation() {
         void setCached(key, result, NOW_CACHE_TTL)
       }
     } catch (err) {
+      if (!isCurrent()) return
       console.error('[NOW] Error:', err)
       // Network call failed while NetInfo still thought we were online.
       // Fall back to the cache (same UX as the offline branch) before
       // surrendering to the error path.
       const cached = await getCached<NowRecommendationResponse>(key)
+      if (!isCurrent()) return
       if (cached?.data) {
         setData(cached.data)
         setFromCache(true)
@@ -168,11 +203,15 @@ export function useNowRecommendation() {
         setError(true)
       }
     } finally {
-      setLoading(false)
+      // Only the latest request owns the loading flag.
+      if (isCurrent()) setLoading(false)
     }
   }, [city, locale, interestsKey, explorationStyle])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (!storesReady || !city) return
+    load()
+  }, [load, storesReady, city])
 
   // ── Refresh ("See another option") ────────────────────────────────────────
 
@@ -181,14 +220,19 @@ export function useNowRecommendation() {
     // generates a different rotation each call. Bail early so we don't
     // burn a 10s axios timeout while the spinner is on screen.
     if (selectIsOffline(useNetworkStore.getState())) return
+    const seq = ++requestSeq.current
+    const isCurrent = () => mounted.current && seq === requestSeq.current
     try {
       setRefreshing(true)
+      setRefreshError(false)
       const result = await api.nowRefresh({
         city,
         locale,
         interests: interestsKey.length > 0 ? interestsKey.split(',') : undefined,
         style: explorationStyle ?? undefined,
       })
+
+      if (!isCurrent()) return
 
       if (__DEV__) {
         console.log('[NOW] /concierge/now/refresh →', JSON.stringify({
@@ -204,11 +248,17 @@ export function useNowRecommendation() {
         void setCached(buildNowCacheKey(city, locale), result, NOW_CACHE_TTL)
       }
     } catch (err) {
+      if (!isCurrent()) return
       console.error('[NOW] Refresh error:', err)
+      // Keep the current recommendation on screen and tell the user the
+      // alternative could not be fetched.
+      setRefreshError(true)
     } finally {
-      setRefreshing(false)
+      // A superseding load() resets `refreshing` state through its own path;
+      // clear it here only if we're still the latest, or if unmounted-safe.
+      if (mounted.current) setRefreshing(false)
     }
   }, [city, locale, interestsKey, explorationStyle])
 
-  return { data, loading, refreshing, error, fromCache, refresh, reload: load }
+  return { data, loading, refreshing, error, refreshError, fromCache, refresh, reload: load }
 }

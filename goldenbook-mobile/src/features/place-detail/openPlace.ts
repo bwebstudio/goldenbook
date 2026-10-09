@@ -18,6 +18,8 @@ export interface OpenPlaceOptions {
   source: PlaceSource;
   /** Place UUID. Omit only when the card genuinely doesn't have it yet. */
   placeId?: string;
+  /** Primary category slug of the place, when the card knows it. */
+  category?: string | null;
   /** Position in a list, carousel or result set, when there is one. */
   rank?: number;
   /** Anything else worth knowing about the context of the tap. */
@@ -27,12 +29,13 @@ export interface OpenPlaceOptions {
 export function openPlace(
   router: Router,
   slug: string,
-  { source, placeId, rank, metadata }: OpenPlaceOptions,
+  { source, placeId, category, rank, metadata }: OpenPlaceOptions,
 ): void {
   if (placeId) {
     track('place_open', {
       placeId,
       source,
+      ...(category ? { category } : {}),
       ...(rank != null || metadata
         ? { metadata: { ...(rank != null ? { rank } : {}), ...metadata } }
         : {}),
@@ -45,17 +48,24 @@ export function openPlace(
   } as never);
 }
 
-/**
- * Reads the origin back off the route params on the detail screen. Anything
- * unrecognised collapses to 'direct' rather than being stored as free text,
- * so the reports keep a closed vocabulary.
- */
+// Reads the origin back off the route params on the detail screen. Anything
+// unrecognised collapses to the fallback rather than being stored as free
+// text, so the reports keep a closed vocabulary.
 const KNOWN_SOURCES: readonly PlaceSource[] = [
-  'discover', 'now', 'map', 'search', 'saved', 'plan', 'route',
-  'category', 'nearby', 'concierge', 'notification', 'deep_link', 'direct',
+  'discover', 'now', 'map', 'search', 'saved', 'plan', 'route', 'routes',
+  'category', 'place', 'nearby', 'concierge', 'notification', 'deep_link', 'direct',
 ];
 
-export function parsePlaceSource(raw: unknown, fallback: PlaceSource = 'direct'): PlaceSource {
+/**
+ * Default for a detail screen opened without a `src` param. Every in-app
+ * entry point goes through openPlace() / openRoute(), which always set one,
+ * so a missing param means the screen was reached from outside the app (a
+ * universal link, a notification URL). Both copies of each detail route use
+ * this same default so one navigation is never logged two different ways.
+ */
+export const DETAIL_DEFAULT_SOURCE: PlaceSource = 'deep_link';
+
+export function parsePlaceSource(raw: unknown, fallback: PlaceSource = DETAIL_DEFAULT_SOURCE): PlaceSource {
   return typeof raw === 'string' && (KNOWN_SOURCES as readonly string[]).includes(raw)
     ? (raw as PlaceSource)
     : fallback;

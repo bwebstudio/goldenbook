@@ -7,6 +7,7 @@ import { PlaceSaveButton } from './PlaceSaveButton';
 import type { SavedPlaceDTO } from '@/types/api';
 import { colors, typography, spacing, radius } from '@/design/tokens';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 interface SavedPlaceCardProps {
   place: SavedPlaceDTO;
@@ -25,11 +26,11 @@ export const SavedPlaceCard = React.memo(function SavedPlaceCard({ place }: Save
       >
         <ProgressiveImage uri={imageUrl} height={72} borderRadius={radius.md} placeholderColor={colors.navy.DEFAULT} style={styles.image} />
         <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>{place.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>{displayPlaceName(place.name)}</Text>
           {place.shortDescription && <Text style={styles.description} numberOfLines={2}>{place.shortDescription}</Text>}
         </View>
       </TouchableOpacity>
-      <PlaceSaveButton placeId={place.id} snapshot={place} size={22} />
+      <PlaceSaveButton placeId={place.id} snapshot={place} size={22} source="saved" />
     </View>
   );
 });

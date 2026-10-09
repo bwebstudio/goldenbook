@@ -876,7 +876,9 @@ export async function businessPortalRoutes(app: FastifyInstance) {
       INSERT INTO place_translations (place_id, locale, name, ${field_name})
       SELECT $1, 'pt', p.name, $2 FROM places p WHERE p.id = $1
       ON CONFLICT (place_id, locale) DO UPDATE SET ${field_name} = $2, updated_at = now()
-    `, [place_id, new_value]).catch(() => {})
+    `, [place_id, new_value]).catch((err) => {
+      request.log.error({ err, placeId: place_id, field: field_name }, '[review-queue] failed to sync approved change to PT translation')
+    })
 
     // Mark as approved
     await db.query(
@@ -886,7 +888,11 @@ export async function businessPortalRoutes(app: FastifyInstance) {
 
     // Notify the submitter
     const { rows: crRows } = await db.query<{ created_by: string | null }>('SELECT created_by FROM place_change_requests WHERE id = $1', [id]).catch(() => ({ rows: [] as { created_by: string | null }[] }))
-    if (crRows[0]?.created_by) notifyChangeApproved(crRows[0].created_by, field_name).catch(() => {})
+    if (crRows[0]?.created_by) {
+      notifyChangeApproved(crRows[0].created_by, field_name).catch((err) => {
+        request.log.error({ err, changeRequestId: id }, '[review-queue] failed to notify submitter of approval')
+      })
+    }
 
     return reply.send({ approved: true })
   })

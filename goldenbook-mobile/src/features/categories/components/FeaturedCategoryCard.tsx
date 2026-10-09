@@ -5,6 +5,7 @@ import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import { getStorageUrl } from '@/utils/storage';
 import type { CategoryPlaceDTO } from '../types';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_HEIGHT = (SCREEN_WIDTH - 48) * 0.6;
@@ -69,7 +70,7 @@ export function FeaturedCategoryCard({ place }: FeaturedCategoryCardProps) {
           style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 18, textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}
           numberOfLines={2}
         >
-          {place.name}
+          {displayPlaceName(place.name)}
         </Text>
         {place.summary ? (
           <Text

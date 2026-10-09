@@ -243,14 +243,16 @@ export async function checkForAppUpdate(): Promise<void> {
  * after a short delay so the Alert lands on top of the first stable
  * screen, never on top of a still-transitioning Stack.
  */
-export function useVersionCheck(): void {
+export function useVersionCheck(ready: boolean): void {
   useEffect(() => {
-    if (didCheckThisSession) return;
+    // AppShell mounts under the splash overlay; wait until it is gone, so the
+    // Alert is visible and the auth session has hydrated.
+    if (!ready || didCheckThisSession) return;
     const t = setTimeout(() => {
       void checkForAppUpdate();
     }, 600);
     return () => clearTimeout(t);
-  }, []);
+  }, [ready]);
 }
 
 // Test-only helper. Not exported via the package surface; reach for it from

@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/store/settingsStore'
 import { useNetworkStore, selectIsOffline } from '@/store/networkStore'
 import { track } from '@/analytics/track'
 import { openPlace } from '@/features/place-detail/openPlace'
+import { displayPlaceName } from '@/utils/placeName';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window')
 const CARD_HEIGHT = SCREEN_HEIGHT * 0.38
@@ -97,14 +98,17 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
   const t = useTranslation()
   const locale = useSettingsStore((s) => s.locale)
   const citySlug = useAppStore((s) => s.selectedCity)
-  const { data, loading, refreshing, error, fromCache, refresh, reload } = useNowRecommendation()
+  const { data, loading, refreshing, error, refreshError, fromCache, refresh, reload } = useNowRecommendation()
   const setNowContext = useNowContextStore((s) => s.set)
   const isOffline = useNetworkStore(selectIsOffline)
   const destinationTimeZone = getTimeZoneForCity(data?.place?.city || cityName)
   const liveTime = useLiveClock(destinationTimeZone, locale)
 
   // Fire now_used once per loaded recommendation. Re-fires when the NOW
-  // engine surfaces a different place (data.place.id changes).
+  // engine surfaces a different place (data.place.id changes). This is an
+  // IMPRESSION (the card was shown), flagged as such in metadata.action so
+  // it is never read as engagement. Taps are measured by place_open with
+  // source 'now' (see openPlace below).
   const nowFiredForPlaceRef = useRef<string | null>(null)
   useEffect(() => {
     const pid = data?.place?.id
@@ -112,13 +116,15 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
       nowFiredForPlaceRef.current = pid
       track('now_used', {
         placeId: pid,
+        ...(data?.place?.category ? { category: data.place.category } : {}),
         metadata: {
+          action: 'impression',
           moment: data?.context?.moment ?? null,
           time_of_day: data?.context?.time_of_day ?? null,
         },
       })
     }
-  }, [data?.place?.id, data?.context?.moment, data?.context?.time_of_day])
+  }, [data?.place?.id, data?.place?.category, data?.context?.moment, data?.context?.time_of_day])
 
   // ── Navigate to Concierge with context ─────────────────────────────────────
 
@@ -215,7 +221,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
     <View>
       <TouchableOpacity
         onPress={() => {
-          openPlace(router, place.slug, { source: 'now', placeId: place.id })
+          openPlace(router, place.slug, { source: 'now', placeId: place.id, category: place.category })
         }}
         activeOpacity={0.96}
         className="mx-6 rounded-2xl overflow-hidden"
@@ -339,7 +345,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
               textShadowRadius: 3,
             }}
           >
-            {place.name}
+            {displayPlaceName(place.name)}
           </Text>
 
           {/* The reason to go now rather than later. Everything above this line
@@ -352,7 +358,7 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
 
           <View className="flex-row" style={{ gap: 10 }}>
             <TouchableOpacity
-              onPress={() => openPlace(router, place.slug, { source: 'now', placeId: place.id })}
+              onPress={() => openPlace(router, place.slug, { source: 'now', placeId: place.id, category: place.category })}
               activeOpacity={0.85}
               className="bg-primary rounded-lg px-5 py-3 items-center justify-center"
             >
@@ -420,6 +426,17 @@ export function NowRecommendationSection({ cityName }: NowRecommendationSectionP
               </Text>
             )}
           </TouchableOpacity>
+        )}
+
+        {/* "See another option" failed: the current card stays, and we say
+            so instead of letting the tap look ignored. */}
+        {refreshError && !refreshing && !isOffline && (
+          <Text
+            className="text-navy/45 text-[10.5px] text-center tracking-wide"
+            accessibilityLiveRegion="polite"
+          >
+            {t.nowRefresh.failed}
+          </Text>
         )}
 
         {/* Looking for something else? → Concierge */}

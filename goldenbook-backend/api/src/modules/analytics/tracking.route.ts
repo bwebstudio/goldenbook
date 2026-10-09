@@ -73,7 +73,9 @@ export async function trackingRoutes(app: FastifyInstance) {
         category ?? null,
         metadata ? JSON.stringify(metadata) : null,
       ],
-    ).catch(() => {})
+    ).catch((err) => {
+      request.log.error({ err, event }, '[tracking] failed to insert place_analytics_events row')
+    })
 
     return reply.status(204).send()
   })

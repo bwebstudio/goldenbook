@@ -30,6 +30,7 @@ import { usePlan } from '../hooks/usePlan';
 import { sharePlan } from '../share';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { PlanStop } from '../api';
+import { displayPlaceName } from '@/utils/placeName';
 
 const GOLD = '#D2B68A';
 const NAVY = '#222D52';
@@ -134,11 +135,19 @@ export function PlanSection() {
             isLast={i === plan.stops.length - 1}
             t={t}
             onPress={() => {
+              // now_used here is a tap on a plan stop (action 'open_place');
+              // the open itself is measured by place_open with source 'plan'.
               track('now_used', {
                 placeId: stop.placeId,
-                metadata: { surface: 'plan', position: i + 1, stops: plan.stops.length },
+                ...(stop.category ? { category: stop.category } : {}),
+                metadata: { surface: 'plan', action: 'open_place', position: i + 1, stops: plan.stops.length },
               });
-              openPlace(router, stop.slug, { source: 'plan', placeId: stop.placeId, rank: i + 1 });
+              openPlace(router, stop.slug, {
+                source: 'plan',
+                placeId: stop.placeId,
+                category: stop.category,
+                rank: i + 1,
+              });
             }}
           />
         ))}
@@ -230,7 +239,7 @@ function PlanStopRow({
 
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '600' }} numberOfLines={1}>
-            {stop.name}
+            {displayPlaceName(stop.name)}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 3 }}>
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10.5 }}>

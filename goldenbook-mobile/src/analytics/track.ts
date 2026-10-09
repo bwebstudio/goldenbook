@@ -10,7 +10,7 @@
 //   track('place_view', { placeId, source: 'discover' })
 //   track('booking_click', { placeId, metadata: { provider: 'booking.com' } })
 
-import { apiClient, SESSION_ID } from '@/api/client';
+import { apiClient, getSessionId } from '@/api/client';
 
 export type AnalyticsEventName =
   | 'app_session_start'
@@ -44,6 +44,8 @@ export type PlaceSource =
   | 'saved'
   | 'plan'        // tonight's plan
   | 'route'
+  | 'place'       // a place detail screen (e.g. its map button)
+  | 'routes'      // the Routes tab list (used for route detail / route_start)
   | 'category'
   | 'nearby'      // "gems near here" on another place
   | 'concierge'
@@ -54,6 +56,7 @@ export type PlaceSource =
 export interface TrackProps {
   placeId?: string;
   routeId?: string;
+  /** Primary category slug of the place involved (e.g. 'restaurant'). */
   category?: string;
   source?: PlaceSource;
   metadata?: Record<string, unknown>;
@@ -78,7 +81,7 @@ export function track(event: AnalyticsEventName, props: TrackProps = {}): void {
   // production builds by Metro / Hermes dead-code elimination.
   if (__DEV__) {
     // eslint-disable-next-line no-console
-    console.debug('[analytics]', event, { sessionId: SESSION_ID, ...payload });
+    console.debug('[analytics]', event, { sessionId: getSessionId(), ...payload });
   }
 
   apiClient
@@ -110,18 +113,18 @@ export interface SessionContext {
 
 export function sessionStart(ctx: SessionContext): void {
   apiClient
-    .post('/analytics/sessions/start', { sessionId: SESSION_ID, ...ctx })
+    .post('/analytics/sessions/start', { sessionId: getSessionId(), ...ctx })
     .catch(() => {});
 }
 
 export function sessionPing(): void {
   apiClient
-    .post('/analytics/sessions/ping', { sessionId: SESSION_ID })
+    .post('/analytics/sessions/ping', { sessionId: getSessionId() })
     .catch(() => {});
 }
 
 export function sessionEnd(): void {
   apiClient
-    .post('/analytics/sessions/end', { sessionId: SESSION_ID })
+    .post('/analytics/sessions/end', { sessionId: getSessionId() })
     .catch(() => {});
 }

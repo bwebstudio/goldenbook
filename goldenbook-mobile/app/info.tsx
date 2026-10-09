@@ -210,6 +210,8 @@ export default function InfoScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={t.common.goBack}
           style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="chevron-back" size={24} color="#222D52" />

@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { track } from '@/analytics/track';
+import { track, type PlaceSource } from '@/analytics/track';
+import { parsePlaceSource } from '@/features/place-detail/openPlace';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +22,8 @@ import { JourneyCompletionView } from '@/features/journey/components/JourneyComp
 import { getStorageUrl } from '@/utils/storage';
 import { ProgressiveImage } from '@/components/ui/ProgressiveImage';
 import type { RouteDetailDTO, RoutePlaceDTO } from '@/features/routes/types';
+import { displayPlaceName } from '@/utils/placeName';
+import { onPositiveMoment } from '@/features/engagement/positiveMoments';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IMAGE_HEIGHT = SCREEN_HEIGHT * 0.46;
@@ -28,7 +31,9 @@ const IMAGE_HEIGHT = SCREEN_HEIGHT * 0.46;
 // ─── Root ─────────────────────────────────────────────────────────────────────
 
 export default function JourneyScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { slug, src } = useLocalSearchParams<{ slug: string; src?: string }>();
+  // Same origin the route detail screen sent with route_start.
+  const source = parsePlaceSource(src);
   const t = useTranslation();
   const { data, isLoading, isError } = useRouteDetail(slug ?? '');
   const router = useRouter();
@@ -57,6 +62,7 @@ export default function JourneyScreen() {
   return (
     <JourneyContent
       data={data}
+      source={source}
       onBack={() => router.back()}
       onExploreMore={() => router.replace('/(tabs)/routes' as any)}
     />
@@ -67,10 +73,12 @@ export default function JourneyScreen() {
 
 function JourneyContent({
   data,
+  source,
   onBack,
   onExploreMore,
 }: {
   data: RouteDetailDTO;
+  source: PlaceSource;
   onBack: () => void;
   onExploreMore: () => void;
 }) {
@@ -88,16 +96,18 @@ function JourneyContent({
   useEffect(() => {
     if (state.journeyStatus === 'completed' && !completionFired.current) {
       completionFired.current = true;
+      onPositiveMoment('route_complete');
       const stepsCompleted = state.stepStatuses.filter(s => s === 'arrived' || s === 'completed').length;
       track('route_complete', {
         routeId: data.id,
+        source,
         metadata: {
           step_count: sortedPlaces.length,
           steps_completed: stepsCompleted,
         },
       });
     }
-  }, [state.journeyStatus, state.stepStatuses, data.id, sortedPlaces.length]);
+  }, [state.journeyStatus, state.stepStatuses, data.id, sortedPlaces.length, source]);
 
   // ── Completion view ────────────────────────────────────────────────────────
   if (state.journeyStatus === 'completed') {
@@ -149,7 +159,13 @@ function JourneyContent({
 
         {/* Header */}
         <View style={[styles.header, { top: insets.top + 8 }]}>
-          <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.8}>
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.backBtn}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.goBack}
+          >
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
 
@@ -180,7 +196,7 @@ function JourneyContent({
             style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
             numberOfLines={2}
           >
-            {currentPlace.name}
+            {displayPlaceName(currentPlace.name)}
           </Text>
           {currentPlace.location.address && (
             <Text className="text-white/55 text-xs mt-1.5 font-light">

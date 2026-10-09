@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/appStore';
 import { useRouter } from 'expo-router';
+import { useTranslation } from '@/i18n';
 import type { Destination } from '@/types/api';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 export function SearchDestinationRow({ destination }: Props) {
   const setCity = useAppStore((s) => s.setCity);
   const router = useRouter();
+  const t = useTranslation();
 
   const handlePress = () => {
     setCity(destination.slug);
@@ -39,7 +41,7 @@ export function SearchDestinationRow({ destination }: Props) {
 
       <View className="flex-row items-center gap-1">
         <Text className="text-primary text-[9px] uppercase tracking-widest font-bold">
-          Explore
+          {t.search.explore}
         </Text>
         <Ionicons name="chevron-forward" size={12} color="#D2B68A" />
       </View>

@@ -1,0 +1,5 @@
+{
+  "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para mostrarte sitios cercanos y recomendaciones de la zona.",
+  "NSLocationAlwaysAndWhenInUseUsageDescription": "Usamos tu ubicación para mostrarte sitios cercanos y recomendaciones de la zona.",
+  "NSLocationAlwaysUsageDescription": "Usamos tu ubicación para mostrarte sitios cercanos y recomendaciones de la zona."
+}

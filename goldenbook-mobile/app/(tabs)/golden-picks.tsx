@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { getStorageUrl } from '@/utils/storage';
 import { track } from '@/analytics/track';
 import type { DiscoverPlaceCard } from '@/types/api';
 import { openPlace } from '@/features/place-detail/openPlace';
+import { displayPlaceName } from '@/utils/placeName';
 
 // ─── Featured hero card (16:9 ratio, gradient overlay, editorial style) ────────
 
@@ -42,7 +43,7 @@ function FeaturedPickCard({ place }: { place: DiscoverPlaceCard }) {
           style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 20 }}
           numberOfLines={2}
         >
-          {place.name}
+          {displayPlaceName(place.name)}
         </Text>
         {place.shortDescription ? (
           <Text className="text-ivory/60 text-xs leading-relaxed" numberOfLines={2}>
@@ -77,7 +78,7 @@ function PickGridCard({ place }: { place: DiscoverPlaceCard }) {
           style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
           numberOfLines={2}
         >
-          {place.name}
+          {displayPlaceName(place.name)}
         </Text>
         {place.shortDescription ? (
           <Text className="text-navy/50 text-xs mt-1 leading-relaxed" numberOfLines={2}>
@@ -89,34 +90,16 @@ function PickGridCard({ place }: { place: DiscoverPlaceCard }) {
   );
 }
 
-// ─── 2-column grid ─────────────────────────────────────────────────────────────
+// ─── Grid cells ────────────────────────────────────────────────────────────────
 
-function PickGrid({ places, title }: { places: DiscoverPlaceCard[]; title: string }) {
-  if (!places.length) return null;
+// A trailing `null` keeps the last card half-width when the count is odd:
+// with numColumns, a lone flex-1 item would otherwise stretch across the row.
+type PickCell = DiscoverPlaceCard | null;
 
-  const rows: DiscoverPlaceCard[][] = [];
-  for (let i = 0; i < places.length; i += 2) {
-    rows.push(places.slice(i, i + 2));
-  }
+const GRID_GAP = 12;
 
-  return (
-    <View className="px-6">
-      <Text className="text-[10px] uppercase tracking-widest text-navy/40 font-bold mb-4">
-        {title}
-      </Text>
-      <View className="gap-3">
-        {rows.map((row, rowIndex) => (
-          <View key={rowIndex} className="flex-row gap-3">
-            {row.map((place) => (
-              <PickGridCard key={place.id} place={place} />
-            ))}
-            {/* Fill the empty slot when there's an odd number of items */}
-            {row.length === 1 && <View style={{ flex: 1 }} />}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
+function GridRowGap() {
+  return <View style={{ height: GRID_GAP }} />;
 }
 
 // ─── Screen ────────────────────────────────────────────────────────────────────
@@ -149,6 +132,7 @@ export default function GoldenPicksScreen() {
   const featuredPick = picks[0] ?? null;
   const restPicks = picks.slice(1);
   const hasItems = picks.length > 0;
+  const gridCells: PickCell[] = restPicks.length % 2 === 1 ? [...restPicks, null] : restPicks;
 
   return (
     <View className="flex-1 bg-ivory">
@@ -160,6 +144,8 @@ export default function GoldenPicksScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t.common.goBack}
           className="mr-3 p-1"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -173,89 +159,106 @@ export default function GoldenPicksScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <FlatList<PickCell>
+        data={gridCells}
+        numColumns={2}
+        keyExtractor={(item, index) => item?.id ?? `filler-${index}`}
+        renderItem={({ item }) =>
+          item ? <PickGridCard place={item} /> : <View style={{ flex: 1 }} />
+        }
+        columnWrapperStyle={{ gap: GRID_GAP, paddingHorizontal: 24 }}
+        ItemSeparatorComponent={GridRowGap}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 32 }}
-      >
-        {/* Intro — mirrors CategoryIntro exactly */}
-        <View className="px-6 pt-8 pb-6">
-          <Text
-            className="text-navy font-bold leading-tight mb-3"
-            style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 32 }}
-          >
-            {t.goldenPicks.title}
-          </Text>
-
-          <Text className="text-navy/60 text-sm leading-relaxed mb-4">
-            {t.goldenPicks.curatedBy}
-          </Text>
-
-          {picks.length > 0 && (
-            <View className="flex-row items-center gap-1.5">
-              <View className="w-1 h-1 rounded-full bg-primary" />
-              <Text className="text-[10px] uppercase tracking-widest text-primary font-bold">
-                {picks.length} {picks.length === 1 ? t.category.place : t.category.places}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {!hasItems ? (
-          /* Empty state — mirrors EmptyCategoryState */
-          <View className="items-center justify-center px-10 py-20">
-            <Text className="text-2xl mb-4">✦</Text>
-            <Text
-              className="text-navy font-bold text-lg text-center mb-2"
-              style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
-            >
-              {t.category.nothingHereYet}
-            </Text>
-            <Text className="text-navy/40 text-sm text-center leading-relaxed">
-              {t.category.stillCurating}
-            </Text>
-          </View>
-        ) : (
+        initialNumToRender={6}
+        windowSize={7}
+        ListHeaderComponent={
           <>
-            {/* Featured item */}
-            {featuredPick && (
-              <View className="mb-6">
-                <Text className="text-[10px] uppercase tracking-widest text-navy/40 font-bold px-6 mb-4">
-                  {t.goldenPicks.featured}
-                </Text>
-                <FeaturedPickCard place={featuredPick} />
-              </View>
-            )}
+            {/* Intro — mirrors CategoryIntro exactly */}
+            <View className="px-6 pt-8 pb-6">
+              <Text
+                className="text-navy font-bold leading-tight mb-3"
+                style={{ fontFamily: 'PlayfairDisplay_700Bold', fontSize: 32 }}
+              >
+                {t.goldenPicks.title}
+              </Text>
 
-            {/* Divider */}
-            {restPicks.length > 0 && (
-              <View className="h-px bg-navy/5 mx-6 mb-6" />
+              <Text className="text-navy/60 text-sm leading-relaxed mb-4">
+                {t.goldenPicks.curatedBy}
+              </Text>
+
+              {picks.length > 0 && (
+                <View className="flex-row items-center gap-1.5">
+                  <View className="w-1 h-1 rounded-full bg-primary" />
+                  <Text className="text-[10px] uppercase tracking-widest text-primary font-bold">
+                    {picks.length} {picks.length === 1 ? t.category.place : t.category.places}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {!hasItems ? (
+              /* Empty state — mirrors EmptyCategoryState */
+              <View className="items-center justify-center px-10 py-20">
+                <Text className="text-2xl mb-4">✦</Text>
+                <Text
+                  className="text-navy font-bold text-lg text-center mb-2"
+                  style={{ fontFamily: 'PlayfairDisplay_700Bold' }}
+                >
+                  {t.category.nothingHereYet}
+                </Text>
+                <Text className="text-navy/40 text-sm text-center leading-relaxed">
+                  {t.category.stillCurating}
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Featured item */}
+                {featuredPick && (
+                  <View className="mb-6">
+                    <Text className="text-[10px] uppercase tracking-widest text-navy/40 font-bold px-6 mb-4">
+                      {t.goldenPicks.featured}
+                    </Text>
+                    <FeaturedPickCard place={featuredPick} />
+                  </View>
+                )}
+
+                {/* Divider */}
+                {restPicks.length > 0 && (
+                  <View className="h-px bg-navy/5 mx-6 mb-6" />
+                )}
+              </>
             )}
 
             {/* All picks — 2-column grid */}
             {restPicks.length > 0 && (
-              <View className="mb-8">
-                <PickGrid places={restPicks} title={t.goldenPicks.allPicks} />
-              </View>
+              <Text className="text-[10px] uppercase tracking-widest text-navy/40 font-bold mb-4 px-6">
+                {t.goldenPicks.allPicks}
+              </Text>
             )}
           </>
-        )}
-
-        {/* View on map CTA — mirrors CategoryScreen */}
-        {hasItems && (
-          <View className="px-6 mt-2">
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => router.push('/map')}
-              className="flex-row items-center justify-center gap-2 border border-navy/15 rounded-full py-3.5"
-            >
-              <Ionicons name="map-outline" size={16} color="#222D52" />
-              <Text className="text-navy font-bold text-sm tracking-wide">
-                {t.category.viewOnMap}
-              </Text>
-            </TouchableOpacity>
+        }
+        ListFooterComponent={
+          // `mb-8` used to sit under the grid; keep that space above the CTA.
+          <View style={{ marginTop: restPicks.length > 0 ? 32 : 0 }}>
+            {/* View on map CTA — mirrors CategoryScreen */}
+            {hasItems && (
+              <View className="px-6 mt-2">
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => router.push('/map?src=discover' as any)}
+                  className="flex-row items-center justify-center gap-2 border border-navy/15 rounded-full py-3.5"
+                >
+                  <Ionicons name="map-outline" size={16} color="#222D52" />
+                  <Text className="text-navy font-bold text-sm tracking-wide">
+                    {t.category.viewOnMap}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
-      </ScrollView>
+        }
+      />
     </View>
   );
 }

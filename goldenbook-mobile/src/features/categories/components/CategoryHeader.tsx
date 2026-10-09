@@ -2,6 +2,7 @@ import { TouchableOpacity, View, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from '@/i18n';
 
 interface CategoryHeaderProps {
   title: string;
@@ -11,6 +12,7 @@ interface CategoryHeaderProps {
 export function CategoryHeader({ title, cityName }: CategoryHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const t = useTranslation();
 
   return (
     <View
@@ -19,6 +21,8 @@ export function CategoryHeader({ title, cityName }: CategoryHeaderProps) {
     >
       <TouchableOpacity
         onPress={() => router.navigate('/(tabs)')}
+        accessibilityRole="button"
+        accessibilityLabel={t.common.goBack}
         activeOpacity={0.7}
         className="mr-3 p-1"
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

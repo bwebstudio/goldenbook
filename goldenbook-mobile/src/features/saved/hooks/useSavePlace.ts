@@ -5,16 +5,23 @@ import { useNetworkStore } from '@/store/networkStore';
 import { useMutationQueueStore } from '@/store/mutationQueueStore';
 import { savedApi } from '../api';
 import { useSaved, SAVED_QUERY_KEY } from './useSaved';
-import { track } from '@/analytics/track';
+import { useAuthStore } from '@/store/authStore';
+import { track, type PlaceSource } from '@/analytics/track';
 import type { SavedResponse, SavedPlaceDTO } from '@/types/api';
+import { onPositiveMoment } from '@/features/engagement/positiveMoments';
 
 interface UseSavePlaceOptions {
   snapshot?: Partial<SavedPlaceDTO> & { id: string };
+  /** Surface the heart was tapped on, sent with favorite_add / remove. */
+  source?: PlaceSource;
+  /** Primary category slug of the place, when known. */
+  category?: string | null;
 }
 
 export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {}) {
   const queryClient = useQueryClient();
   const locale = useSettingsStore((s) => s.locale);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const { data: saved, isLoading: savedLoading } = useSaved();
 
   const isSaved = !!placeId && (saved?.savedPlaces.some((p) => p.id === placeId) ?? false);
@@ -30,7 +37,9 @@ export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {})
       // Read from ref, not from the closure — fixes the race condition
       // where isSaved was stale because useSaved() hadn't loaded yet.
       const currentlySaved = isSavedRef.current;
-      track(currentlySaved ? 'favorite_remove' : 'favorite_add', { placeId });
+      // favorite_add / remove are tracked in onSuccess, once the change is
+      // either accepted by the server or safely queued for offline replay.
+      // Tracking here also counted taps the server then rejected.
 
       const kind = currentlySaved ? 'unsavePlace' : 'savePlace';
       const isOnline = useNetworkStore.getState().isOnline;
@@ -55,27 +64,38 @@ export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {})
       // heart turned red instantly; the network round-trip is invisible.
       if (!isOnline) {
         useMutationQueueStore.getState().enqueueSave(kind, placeId, snapshot);
-        return;
+        return { wasSaved: currentlySaved, queued: true };
       }
 
       try {
-        return currentlySaved
-          ? await savedApi.unsavePlace(placeId)
-          : await savedApi.savePlace(placeId);
+        if (currentlySaved) await savedApi.unsavePlace(placeId);
+        else await savedApi.savePlace(placeId);
+        return { wasSaved: currentlySaved, queued: false };
       } catch (err: any) {
         // Network error (no response from server) — keep the optimistic
         // update and enqueue for replay. Distinguishes from a real 4xx
         // rejection by `err.response` being undefined.
         if (!err?.response) {
           useMutationQueueStore.getState().enqueueSave(kind, placeId, snapshot);
-          return;
+          return { wasSaved: currentlySaved, queued: true };
         }
         throw err;
       }
     },
 
+    onSuccess: (result) => {
+      if (!result) return;
+      track(result.wasSaved ? 'favorite_remove' : 'favorite_add', {
+        placeId,
+        ...(options.source ? { source: options.source } : {}),
+        ...(options.category ? { category: options.category } : {}),
+        ...(result.queued ? { metadata: { queued_offline: true } } : {}),
+      });
+      if (!result.wasSaved) onPositiveMoment('save');
+    },
+
     onMutate: async () => {
-      const key = SAVED_QUERY_KEY(locale);
+      const key = SAVED_QUERY_KEY(userId, locale);
       await queryClient.cancelQueries({ queryKey: ['saved'] });
       const prev = queryClient.getQueryData<SavedResponse>(key);
 
@@ -112,7 +132,7 @@ export function useSavePlace(placeId: string, options: UseSavePlaceOptions = {})
     onError: (err, _vars, ctx) => {
       console.warn('[useSavePlace] mutation failed:', err);
       if (ctx?.prev) {
-        queryClient.setQueryData(SAVED_QUERY_KEY(locale), ctx.prev);
+        queryClient.setQueryData(SAVED_QUERY_KEY(userId, locale), ctx.prev);
       }
     },
 
