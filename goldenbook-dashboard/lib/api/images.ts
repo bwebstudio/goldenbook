@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete, apiPut } from "./client";
+import { apiGet, apiPost, apiDelete, apiPut, apiPostBinary } from "./client";
 
 export interface PlaceImageDTO {
   id: string;
@@ -35,4 +35,20 @@ export async function addImage(placeId: string, data: {
   width?: number | null; height?: number | null; sizeBytes?: number | null;
 }): Promise<PlaceImageDTO> {
   return apiPost<PlaceImageDTO>(`/api/v1/admin/places/${placeId}/images`, data);
+}
+
+/**
+ * Upload an already prepared image (see lib/utils/image.ts). The API stores
+ * it and links it to the place in one request; the browser no longer writes
+ * to the bucket, whose write policies are closed to the public anon key.
+ */
+export async function uploadPlaceImage(
+  placeId: string,
+  file: Blob,
+  dims: { width: number; height: number },
+): Promise<PlaceImageDTO> {
+  return apiPostBinary<PlaceImageDTO>(`/api/v1/admin/places/${placeId}/images/upload`, file, file.type, {
+    width: String(dims.width),
+    height: String(dims.height),
+  });
 }

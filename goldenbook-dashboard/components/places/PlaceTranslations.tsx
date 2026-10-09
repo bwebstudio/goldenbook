@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useT } from "@/lib/i18n";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   fetchPlaceTranslations,
   updateTranslationOverride,
   regenerateTranslation,
+  unlockTranslation,
   type PlaceTranslation,
   type AutoLocale,
   type TranslationFields,
@@ -24,7 +26,7 @@ export type RegenerateBlock = "no-pt-name" | "pt-unsaved" | "not-dirty" | null;
 
 /** Used when the i18n bundle predates the `regenerateNeedsSave` key. */
 const REGENERATE_NEEDS_SAVE_FALLBACK =
-  "Save the Portuguese changes first — translations are generated from the stored text.";
+  "Save the Portuguese changes first. Translations are generated from the stored text.";
 
 /**
  * Pure helper — exported so it can be unit-tested. Decides whether the
@@ -98,6 +100,12 @@ interface Props {
    * regenerate in that state and ask the editor to save first.
    */
   ptUnsaved?: boolean;
+  /**
+   * Bumped by the parent after each successful place save. A PT save
+   * regenerates the unlocked EN/ES rows server-side, so the panel reloads to
+   * show them (and the current lock status) instead of the pre-save text.
+   */
+  reloadKey?: number;
 }
 
 interface LocaleFormState {
@@ -147,7 +155,7 @@ function ptSourceToBody(pt: PtSourceFields): TranslationFields {
   };
 }
 
-export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUnsaved = false }: Props) {
+export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUnsaved = false, reloadKey = 0 }: Props) {
   const t = useT();
   const pf = t.placeForm;
   const ptName = ptSource.name;
@@ -158,6 +166,8 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUn
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Partial<Record<AutoLocale | "all", "save" | "regenerate">>>({});
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  // Locale awaiting confirmation of "unlock and translate again from PT".
+  const [confirmUnlock, setConfirmUnlock] = useState<AutoLocale | null>(null);
 
   // Snapshot of the PT source at "the last point translations were known
   // to be in sync with PT" — i.e. either component mount (fresh page load
@@ -205,6 +215,13 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUn
   }, [placeId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Reload after a parent save (skip the initial mount, `load` covers it).
+  const firstReloadKey = useRef(reloadKey);
+  useEffect(() => {
+    if (reloadKey === firstReloadKey.current) return;
+    load();
+  }, [reloadKey, load]);
 
   const ptHasName = Boolean(ptName?.trim());
 
@@ -338,6 +355,30 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUn
     }
   }
 
+  // Hand a locked (manual) EN/ES row back to auto-translation. The API
+  // re-translates the SAVED Portuguese, never the form, so unsaved PT edits
+  // block this exactly like they block regenerate.
+  async function handleUnlock(locale: AutoLocale) {
+    setConfirmUnlock(null);
+    if (ptUnsaved) {
+      setMessage({ kind: "err", text: pf.unlockNeedsSave });
+      return;
+    }
+    setBusy((prev) => ({ ...prev, [locale]: "regenerate" }));
+    setMessage(null);
+    try {
+      await unlockTranslation(placeId, locale);
+      setMessage({ kind: "ok", text: pf.unlockDone.replace("{{locale}}", locale.toUpperCase()) });
+      await load();
+      setTimeout(() => setMessage(null), 4000);
+    } catch (err) {
+      const text = err instanceof Error ? `${pf.unlockFailed} ${err.message}` : pf.unlockFailed;
+      setMessage({ kind: "err", text });
+    } finally {
+      setBusy((prev) => ({ ...prev, [locale]: undefined }));
+    }
+  }
+
   if (loading) {
     return <p className="text-sm text-muted py-3">{t.common.loading}</p>;
   }
@@ -366,7 +407,7 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUn
           : null;
   const regenerateLabelDirty =
     (pf as { regenerateAllPending?: string }).regenerateAllPending ??
-    "Portuguese content changed — regenerate translations";
+    "Portuguese content changed: regenerate translations";
   const regenerateLabel = busy.all === "regenerate"
     ? pf.regenerating
     : ptDirty
@@ -432,6 +473,7 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUn
           onChange={(k, v) => setField("en", k, v)}
           onSave={() => handleSave("en")}
           onRegenerate={() => handleRegenerate(["en"])}
+          onUnlock={() => setConfirmUnlock("en")}
         />
         <LocaleBlock
           locale="es"
@@ -445,8 +487,19 @@ export default function PlaceTranslations({ placeId, getPtSource, ptSource, ptUn
           onChange={(k, v) => setField("es", k, v)}
           onSave={() => handleSave("es")}
           onRegenerate={() => handleRegenerate(["es"])}
+          onUnlock={() => setConfirmUnlock("es")}
         />
       </div>
+
+      <ConfirmDialog
+        open={confirmUnlock !== null}
+        title={pf.unlockConfirmTitle}
+        description={pf.unlockConfirmDesc.replace("{{locale}}", (confirmUnlock ?? "").toUpperCase())}
+        confirmLabel={pf.unlockConfirm}
+        cancelLabel={t.common.cancel}
+        onConfirm={() => { if (confirmUnlock) handleUnlock(confirmUnlock); }}
+        onCancel={() => setConfirmUnlock(null)}
+      />
     </div>
   );
 }
@@ -463,6 +516,7 @@ interface LocaleBlockProps {
   onChange: (key: keyof LocaleFormState, value: string) => void;
   onSave: () => void;
   onRegenerate: () => void;
+  onUnlock: () => void;
 }
 
 function LocaleBlock({
@@ -477,6 +531,7 @@ function LocaleBlock({
   onChange,
   onSave,
   onRegenerate,
+  onUnlock,
 }: LocaleBlockProps) {
   const t = useT();
   const pf = t.placeForm;
@@ -521,6 +576,14 @@ function LocaleBlock({
         </span>
       </div>
 
+      {/* A locked row is skipped by every automatic translation, so a PT
+          edit never reaches it. Say so where the editor is looking. */}
+      {isOverride && (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+          {pf.lockedNotice}
+        </p>
+      )}
+
       <div className="flex flex-col gap-3">
         <TransField label={pf.fieldName} value={form.name} onChange={(v) => onChange("name", v)} cls={inputCls} />
         <TransField label={pf.shortDescription} value={form.shortDescription} onChange={(v) => onChange("shortDescription", v)} cls={inputCls} />
@@ -538,15 +601,29 @@ function LocaleBlock({
         >
           {busy === "save" ? t.common.saving : pf.saveTranslation}
         </button>
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={!ptHasName || busy === "regenerate" || regenerateBusy}
-          className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted hover:text-text hover:border-gold/50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          title={ptHasName ? undefined : pf.regenerateNeedsPt}
-        >
-          {busy === "regenerate" ? pf.regenerating : pf.regenerateFromPt}
-        </button>
+        {/* Regenerate skips locked rows server-side, so on a locked row the
+            useful action is the explicit unlock (with confirmation). */}
+        {isOverride ? (
+          <button
+            type="button"
+            onClick={onUnlock}
+            disabled={!ptHasName || busy === "regenerate" || regenerateBusy}
+            className="px-3 py-1.5 rounded-lg border border-amber-300 text-xs font-semibold text-amber-800 hover:bg-amber-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title={ptHasName ? undefined : pf.regenerateNeedsPt}
+          >
+            {busy === "regenerate" ? pf.unlocking : pf.unlockAndRetranslate}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            disabled={!ptHasName || busy === "regenerate" || regenerateBusy}
+            className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted hover:text-text hover:border-gold/50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title={ptHasName ? undefined : pf.regenerateNeedsPt}
+          >
+            {busy === "regenerate" ? pf.regenerating : pf.regenerateFromPt}
+          </button>
+        )}
       </div>
     </div>
   );

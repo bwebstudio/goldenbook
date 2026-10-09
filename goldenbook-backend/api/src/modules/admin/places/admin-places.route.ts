@@ -2,6 +2,9 @@
 //
 // POST /api/v1/admin/places     — create a new place
 // PUT  /api/v1/admin/places/:id — update an existing place by internal UUID
+//      (both accept `openingHours`; PUT reports `autoTranslation` per locale)
+// POST /api/v1/admin/places/:id/translations/:locale/unlock — clear a manual
+//      EN/ES lock and re-translate it from the saved Portuguese
 //
 // NOTE: These endpoints currently have no authentication middleware because
 // the dashboard does not yet have an admin auth pipeline. Before opening this
@@ -18,7 +21,7 @@ import { getPlaceBySlugAdmin } from '../../places/places.query'
 import { buildPlaceDetailDTO } from '../../places/places.route'
 import { normalizeLocale } from '../../../shared/i18n/locale'
 import { getAdminPlacesList } from './admin-places-list.query'
-import { getPlaceImages, setCoverImage, setGalleryOrder, moveImageToGallery, removeImageFromGallery, deleteImage, addImageToPlace } from './admin-images.query'
+import { getPlaceImages, setCoverImage, setGalleryOrder, moveImageToGallery, removeImageFromGallery, deleteImageFromPlace, addImageToPlace } from './admin-images.query'
 import { searchGooglePlaces, previewPlaceFromGoogle, ingestGooglePhotos } from './generate-place'
 import {
   updatePlaceUnifiedSchema,
@@ -56,6 +59,50 @@ function replyGooglePlacesError(reply: FastifyReply, log: FastifyBaseLogger, err
   else if (status === 400) code = 'GOOGLE_PLACES_BAD_REQUEST'
 
   return reply.status(502).send({ error: code, message })
+}
+
+type EditorialRow = {
+  name: string; short_description: string | null; full_description: string | null
+  goldenbook_note: string | null; insider_tip: string | null
+}
+
+/**
+ * Write one auto-translated locale row. Shared by the regenerate endpoint and
+ * the unlock endpoint.
+ *
+ * Without `unlock` the write is a no-op on a row flagged as a manual override:
+ * even though callers filter overridden locales out first, the WHERE clause
+ * ensures a concurrent override write between that check and this INSERT
+ * can't be silently clobbered. With `unlock` the editor explicitly asked to
+ * hand the locale back to auto-translation, so the flag is cleared in the
+ * same statement (the sync trigger mirrors it onto is_override).
+ */
+async function writeAutoTranslation(
+  placeId: string,
+  locale: 'en' | 'es' | 'pt',
+  translated: EditorialRow,
+  sourceLocale: 'en' | 'es' | 'pt',
+  { unlock = false }: { unlock?: boolean } = {},
+): Promise<void> {
+  await db.query(`
+    INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override, translated_from)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
+    ON CONFLICT (place_id, locale) DO UPDATE SET
+      name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
+      goldenbook_note = EXCLUDED.goldenbook_note, insider_tip = EXCLUDED.insider_tip,
+      translated_from = EXCLUDED.translated_from, updated_at = now()
+      ${unlock ? ', translation_override = false' : ''}
+    ${unlock ? '' : 'WHERE COALESCE(place_translations.translation_override, false) = false'}
+  `, [
+    placeId,
+    locale,
+    translated.name,
+    translated.short_description,
+    translated.full_description,
+    translated.goldenbook_note,
+    translated.insider_tip,
+    sourceLocale,
+  ])
 }
 
 export async function adminPlacesRoutes(app: FastifyInstance) {
@@ -358,16 +405,24 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
   app.delete('/admin/places/:id/images/:imageId/permanent', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { id } = idParamsSchema.parse(request.params)
     const { imageId } = z.object({ imageId: z.string().uuid() }).parse(request.params)
-    const result = await deleteImage(id, imageId)
-    // Actually remove the bytes. `deleteImage` only clears the DB rows and
+    const result = await deleteImageFromPlace(id, imageId)
+    // Actually remove the bytes. `deleteImageFromPlace` only clears the DB rows and
     // returns the asset location; nothing used to act on it, so every deleted
     // image stayed in the bucket and kept counting against the Storage quota.
+    // `storageObject` is null when another place (or a destination, route or
+    // avatar) still uses the same asset: then only this place's link is gone.
     let storageDeleted = false
-    if (result) {
+    if (result?.storageObject) {
       const { deleteStorageObject } = await import('../../../lib/storage/supabase-storage')
-      storageDeleted = await deleteStorageObject(result.bucket, result.path)
+      storageDeleted = await deleteStorageObject(result.storageObject.bucket, result.storageObject.path)
     }
-    return reply.send({ deleted: !!result, storageDeleted, asset: result })
+    return reply.send({
+      deleted: !!result,
+      storageDeleted,
+      // True when the asset was kept because something else still references it.
+      sharedAssetKept: !!result && !result.assetDeleted,
+      asset: result?.storageObject ?? null,
+    })
   })
 
   // ── Add image to place ────────────────────────────────────────────────────
@@ -414,11 +469,14 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
     const { rows } = await db.query<{
       locale: string; name: string; short_description: string | null; full_description: string | null
       goldenbook_note: string | null; insider_tip: string | null
-      translation_override: boolean
+      translation_override: boolean; translated_from: string | null
     }>(`
       SELECT locale, name, short_description, full_description,
              goldenbook_note, insider_tip,
-             COALESCE(translation_override, false) AS translation_override
+             COALESCE(translation_override, false) AS translation_override,
+             -- Shown in the Translations panel ("Origem"); it was declared in
+             -- the dashboard type but never selected, so it always read as unknown.
+             translated_from
       FROM place_translations WHERE place_id = $1
       ORDER BY locale
     `, [id])
@@ -664,28 +722,9 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
 
         if (body.persist) {
           // Belt-and-suspenders: even though `resolveRegenerateTargets`
-          // already filtered out overridden locales, the WHERE clause here
-          // ensures a concurrent override write between policy check and
-          // INSERT can't be silently clobbered. If the row exists with
-          // override=true the conflict's UPDATE is a no-op.
-          await db.query(`
-            INSERT INTO place_translations (place_id, locale, name, short_description, full_description, goldenbook_note, insider_tip, translation_override, translated_from)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
-            ON CONFLICT (place_id, locale) DO UPDATE SET
-              name = EXCLUDED.name, short_description = EXCLUDED.short_description, full_description = EXCLUDED.full_description,
-              goldenbook_note = EXCLUDED.goldenbook_note, insider_tip = EXCLUDED.insider_tip,
-              translated_from = EXCLUDED.translated_from, updated_at = now()
-            WHERE COALESCE(place_translations.translation_override, false) = false
-          `, [
-            id,
-            targetLocale,
-            translated.name,
-            translated.short_description,
-            translated.full_description,
-            translated.goldenbook_note,
-            translated.insider_tip,
-            body.source,
-          ])
+          // already filtered out overridden locales, the write is guarded
+          // against a concurrent override (see writeAutoTranslation).
+          await writeAutoTranslation(id, targetLocale, translated, body.source)
         }
         succeeded.push(targetLocale)
       } catch (err) {
@@ -705,6 +744,62 @@ export async function adminPlacesRoutes(app: FastifyInstance) {
       skippedOverridden,
       persisted: body.persist,
       results,
+    })
+  })
+
+  // ── POST unlock a manual translation and re-translate it from PT ────────
+  //
+  // EN/ES rows flagged translation_override = true (every manual edit, plus
+  // many migrated places) are skipped by every automatic path, so editing the
+  // Portuguese silently leaves them stale. This is the explicit way back:
+  // translate the SAVED Portuguese row (never in-form text, so EN/ES can't get
+  // ahead of what PT actually stores) and write it with the flag cleared.
+  //
+  // DeepL runs before anything is written; if it fails the row keeps both its
+  // content and its lock, and the editor gets a 502 to retry.
+  app.post('/admin/places/:id/translations/:locale/unlock', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const { id, locale } = z.object({
+      id: z.string().uuid('Place id must be a valid UUID'),
+      // PT is the source and is never locked against the editor; only the
+      // translated locales can be unlocked.
+      locale: z.enum(['en', 'es']),
+    }).parse(request.params)
+
+    const { rows } = await db.query<EditorialRow>(
+      `SELECT name, short_description, full_description, goldenbook_note, insider_tip
+         FROM place_translations WHERE place_id = $1 AND locale = 'pt' LIMIT 1`,
+      [id],
+    )
+    if (!rows[0]?.name?.trim()) {
+      return reply.status(400).send({
+        error: 'NO_SOURCE_TRANSLATION',
+        message: 'No saved Portuguese text to translate from. Save the place in Portuguese first.',
+      })
+    }
+
+    const { translatePlaceFields } = await import('../../../lib/translation/deepl')
+    let translated: EditorialRow
+    try {
+      translated = await translatePlaceFields(rows[0], locale, 'pt')
+    } catch (err) {
+      request.log.error({ placeId: id, locale, error: err instanceof Error ? err.message : err }, 'unlock_translation_failed')
+      return reply.status(502).send({
+        error: 'TRANSLATION_FAILED',
+        message: 'The translation service is unavailable. The manual translation was kept; try again shortly.',
+      })
+    }
+
+    await writeAutoTranslation(id, locale, translated, 'pt', { unlock: true })
+    return reply.send({
+      unlocked: true,
+      locale,
+      translation: {
+        name: translated.name,
+        shortDescription: translated.short_description,
+        fullDescription: translated.full_description,
+        goldenbookNote: translated.goldenbook_note,
+        insiderTip: translated.insider_tip,
+      },
     })
   })
 

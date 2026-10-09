@@ -3,10 +3,9 @@
 import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { fetchPlaceImages, setCoverImage, reorderGallery, deleteImagePermanent, addImage, type PlaceImageDTO } from "@/lib/api/images";
+import { fetchPlaceImages, setCoverImage, reorderGallery, deleteImagePermanent, uploadPlaceImage, type PlaceImageDTO } from "@/lib/api/images";
 import { getStorageUrl } from "@/lib/utils/storage";
 import { prepareImageForUpload, UnsupportedImageError } from "@/lib/utils/image";
-import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
 
 const BASE_GALLERY_LIMIT = 4;
 const MAX_GALLERY_LIMIT = 15;
@@ -81,27 +80,10 @@ export default function PlaceMedia({ placeId, userRole = "editor" }: Props) {
       const prepared = await prepareImageForUpload(file);
       const upload = prepared.file;
 
-      const supabase = getSupabaseBrowserClient();
-      const ext = upload.name.split('.').pop() ?? 'jpg';
-      const path = `places/${placeId}/${Date.now()}.${ext}`;
-      const bucket = 'place-images';
-
-      const { error } = await supabase.storage.from(bucket).upload(path, upload, {
-        contentType: upload.type,
-        upsert: false,
-      });
-
-      if (error) throw error;
-
-      await addImage(placeId, {
-        bucket,
-        path: `${bucket}/${path}`,
-        mimeType: upload.type,
-        // Dimensions are known now that the image has been decoded, so store
-        // them instead of the NULLs this used to write.
+      // The API stores the bytes and links the image in one request.
+      await uploadPlaceImage(placeId, upload, {
         width: prepared.width,
         height: prepared.height,
-        sizeBytes: upload.size,
       });
 
       await load();

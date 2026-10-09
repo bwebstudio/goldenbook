@@ -60,6 +60,13 @@ export interface AdminPlacePayload {
   // import flow passes 'en' so the API translates the imported English text
   // into Portuguese before persisting the canonical row.
   sourceLocale?:         "pt" | "en";
+  // Weekly opening hours, one entry per weekday (0 = Sunday). Omit to leave
+  // the stored hours untouched; [] clears them ("hours unknown").
+  openingHours?: {
+    dayOfWeek: number;
+    closed: boolean;
+    intervals: { opens: string; closes: string }[];
+  }[];
 }
 
 // Response from POST /api/v1/admin/places and PUT /api/v1/admin/places/:id.
@@ -70,6 +77,16 @@ export interface AdminPlaceResponseDTO {
   status:   string;
   featured: boolean;
   citySlug: string;
+  /**
+   * PUT only, when a Portuguese editorial field was saved: what happened to
+   * EN/ES. `skippedLocked` are manual translations that did not follow the
+   * edit. Absent on older API builds.
+   */
+  autoTranslation?: {
+    updated: ("en" | "es")[];
+    skippedLocked: ("en" | "es")[];
+    failed: ("en" | "es")[];
+  };
 }
 
 // Response from GET /api/v1/admin/categories

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiPatch } from "./client";
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete, apiPostBinary } from "./client";
 
 // ─── Subscription ───────────────────────────────────────────────────────────
 
@@ -174,8 +174,57 @@ export async function fetchBusinessPlace(locale = "pt"): Promise<BusinessPlaceWi
 }
 
 export async function fetchBusinessImages(): Promise<BusinessImageDTO[]> {
-  const data = await apiGet<{ items: BusinessImageDTO[] }>("/api/v1/business/images");
+  const data = await apiGet<BusinessImageState>("/api/v1/business/images");
   return data.items;
+}
+
+/** A pending image change waiting in the editorial review queue. */
+export interface PendingImageChangeDTO {
+  id: string;
+  kind: "add" | "remove";
+  /** place_images.id the client asked to remove (null for uploads). */
+  image_id: string | null;
+  bucket: string | null;
+  path: string | null;
+  width: number | null;
+  height: number | null;
+  created_at: string;
+}
+
+export interface BusinessImageState {
+  items: BusinessImageDTO[];
+  pending: PendingImageChangeDTO[];
+  slotsLeft: number;
+}
+
+export async function fetchBusinessImageState(): Promise<BusinessImageState> {
+  const data = await apiGet<Partial<BusinessImageState>>("/api/v1/business/images");
+  return { items: data.items ?? [], pending: data.pending ?? [], slotsLeft: data.slotsLeft ?? 0 };
+}
+
+/**
+ * Send an already prepared image (see lib/utils/image.ts) to the API, which
+ * stores it and files it for editorial review. Business clients have no
+ * access to the admin image endpoints or to the bucket policies they rely on.
+ */
+export async function uploadBusinessImage(
+  file: Blob,
+  dims: { width: number; height: number },
+): Promise<{ requestId: string; pendingApproval: boolean }> {
+  return apiPostBinary("/api/v1/business/images", file, file.type, {
+    width: String(dims.width),
+    height: String(dims.height),
+  });
+}
+
+/** Ask the editorial team to remove a live image. */
+export async function requestBusinessImageRemoval(imageId: string): Promise<void> {
+  await apiDelete(`/api/v1/business/images/${imageId}`);
+}
+
+/** Withdraw a pending image change (a pending upload is deleted). */
+export async function cancelBusinessImageRequest(requestId: string): Promise<void> {
+  await apiDelete(`/api/v1/business/images/requests/${requestId}`);
 }
 
 export async function updateBusinessPlace(body: Record<string, unknown>): Promise<Record<string, unknown>> {

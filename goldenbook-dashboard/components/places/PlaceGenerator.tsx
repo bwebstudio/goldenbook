@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { searchGooglePlaces, previewPlaceFromGoogle, createPlace, ingestGooglePhotos, fetchAdminCategories, type PlacePreview } from "@/lib/api/places";
+import { googlePeriodsToWeek, validateOpeningDay, weekToPayload } from "@/lib/utils/opening-hours";
 import type { AdminCategoryDTO } from "@/types/api/place";
 import { ApiError } from "@/lib/api/client";
 import { useLocale } from "@/lib/i18n";
@@ -149,6 +150,16 @@ export default function PlaceGenerator() {
         ? (preview.websiteUrl ?? preview.googleMapsUrl ?? undefined)
         : undefined;
 
+      // The previewed Google hours used to be dropped on save, leaving every
+      // generated place without hours. Persist them with the place, unless
+      // Google returned something our validation rejects (overlapping
+      // periods): then create the place without hours rather than failing.
+      const week = googlePeriodsToWeek(preview.openingHours);
+      const openingHours =
+        preview.openingHours.length > 0 && week.every((d) => validateOpeningDay(d) === null)
+          ? weekToPayload(week)
+          : undefined;
+
       const result = await createPlace({
         name: preview.name,
         slug: preview.slug,
@@ -182,6 +193,7 @@ export default function PlaceGenerator() {
         bookingEnabled: isReservable && !!bookingUrl,
         bookingMode: isReservable && bookingUrl ? "direct_website" : "none",
         reservationRelevant: isReservable,
+        openingHours,
       });
 
       // Ingest Google photos BEFORE redirect (otherwise navigation cancels the request)
@@ -366,12 +378,18 @@ export default function PlaceGenerator() {
             <div className="rounded-xl border border-border bg-white px-5 py-4">
               <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{isPt ? "Horário" : "Opening hours"}</p>
               <div className="grid grid-cols-2 gap-1 text-sm">
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, i) => {
-                  const slots = preview.openingHours.filter(h => h.dayOfWeek === i);
+                {/* Rendered from the same week that is saved, so the preview
+                    matches what the place gets (e.g. Google's "open 24h"). */}
+                {googlePeriodsToWeek(preview.openingHours).map((d, i) => {
+                  const day = (isPt
+                    ? ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+                    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])[i];
                   return (
                     <div key={i} className="flex justify-between py-0.5">
                       <span className="text-muted">{day}</span>
-                      <span className="text-text">{slots.length > 0 ? slots.map(s => `${s.opensAt}–${s.closesAt}`).join(', ') : 'Fechado'}</span>
+                      <span className="text-text">
+                        {d.closed ? (isPt ? 'Fechado' : 'Closed') : d.intervals.map(s => `${s.opens}–${s.closes}`).join(', ')}
+                      </span>
                     </div>
                   );
                 })}

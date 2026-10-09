@@ -4,6 +4,19 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import { fetchReviewQueue, approveChange, rejectChange, type ChangeRequest } from "@/lib/api/review-queue";
+import { getStorageUrl } from "@/lib/utils/storage";
+
+// Business-portal image requests carry an asset, not text: show the picture.
+const IMAGE_FIELDS = new Set(["new_image", "image_removal"]);
+
+function ImageChangePreview({ item }: { item: ChangeRequest }) {
+  const url = getStorageUrl(item.image_bucket, item.image_path, "card");
+  if (!url) return <p className="text-xs text-muted">-</p>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt="" className={`h-32 w-auto max-w-full rounded-lg border border-border object-cover ${item.field_name === "image_removal" ? "opacity-60" : ""}`} />
+  );
+}
 
 type Filter = "pending" | "approved" | "rejected";
 
@@ -158,8 +171,15 @@ export default function ReviewQueueClient() {
                   </div>
                 </div>
 
+                {/* Image change preview */}
+                {IMAGE_FIELDS.has(item.field_name) && (
+                  <div className="px-4 sm:px-5 pb-4">
+                    <ImageChangePreview item={item} />
+                  </div>
+                )}
+
                 {/* Compact preview */}
-                {!isExp && (
+                {!isExp && !IMAGE_FIELDS.has(item.field_name) && (
                   <div className="px-4 sm:px-5 pb-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -175,7 +195,7 @@ export default function ReviewQueueClient() {
                 )}
 
                 {/* Expanded diff */}
-                {isExp && (
+                {isExp && !IMAGE_FIELDS.has(item.field_name) && (
                   <div className="border-t border-border">
                     <div className="grid grid-cols-1 sm:grid-cols-2 sm:divide-x divide-border">
                       <div className="p-4 sm:p-5">

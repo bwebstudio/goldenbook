@@ -77,3 +77,19 @@ export async function regenerateTranslation(
     options,
   );
 }
+
+export interface UnlockTranslationResponse {
+  unlocked: boolean;
+  locale: AutoLocale;
+  translation: Required<TranslationFields>;
+}
+
+// Clear the manual-override lock on EN or ES and re-translate it from the
+// SAVED Portuguese row (never from unsaved form text). Afterwards the locale
+// follows every Portuguese save automatically again.
+export async function unlockTranslation(placeId: string, locale: AutoLocale): Promise<UnlockTranslationResponse> {
+  return apiPost<UnlockTranslationResponse>(
+    `/api/v1/admin/places/${placeId}/translations/${locale}/unlock`,
+    {},
+  );
+}

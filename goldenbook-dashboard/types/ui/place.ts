@@ -53,6 +53,8 @@ export interface UIPlaceDetail {
   bookingUrl: string | null;
   categories: { id: string; slug: string; name: string }[];
   subcategories: { id: string; slug: string; name: string }[];
+  /** Flat rows as stored (one per day x interval); see lib/utils/opening-hours. */
+  openingHours: { dayOfWeek: number; opensAt: string | null; closesAt: string | null; isClosed: boolean }[];
   mainImage: string | null;
   gallery: string[];
   // Booking fields
