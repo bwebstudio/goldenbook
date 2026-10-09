@@ -16,22 +16,19 @@ describe('internalTrafficCtes', () => {
     expect(sql).toContain('lower(a.email) = lower(au.email)')
   })
 
-  it('marks QA sessions with the same digits-only marker as the flag script', () => {
-    expect(internalTrafficCtes()).toContain(`q.query ~ '${DIGITS_ONLY_QUERY}'`)
-    // POSIX class: this is a Postgres regex, not a JS one. The flag script
-    // imports this same constant.
+  it('does not treat digits-only searches as QA sessions', () => {
+    // 1,200 real users ran one between April and October 2026; they are an
+    // audience, not staff tests. Only search statistics leave those queries out.
+    expect(internalTrafficCtes()).not.toContain('search_queries')
+    expect(isRealSearch('q')).toContain(`q.query !~ '${DIGITS_ONLY_QUERY}'`)
+    // POSIX class: this is a Postgres regex, not a JS one.
     expect(DIGITS_ONLY_QUERY).toBe('^[0-9[:space:]]+$')
-  })
-
-  it('never puts a NULL session id in the set (NOT EXISTS would still be safe, IN would not)', () => {
-    expect(internalTrafficCtes()).toContain('q.session_id IS NOT NULL')
   })
 
   it('is unbounded without a window and bounded with one', () => {
     expect(internalTrafficCtes()).not.toContain('started_at >=')
     const sql = internalTrafficCtes(`now() - ($1 || ' days')::interval`)
     expect(sql).toContain(`s.started_at >= (now() - ($1 || ' days')::interval) - interval '1 day'`)
-    expect(sql).toContain(`q.created_at >= (now() - ($1 || ' days')::interval) - interval '1 day'`)
   })
 
   it('materializes both CTEs so each is computed once per query', () => {

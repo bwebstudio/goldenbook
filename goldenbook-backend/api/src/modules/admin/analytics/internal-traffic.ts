@@ -8,18 +8,22 @@
 //
 //   1. rows from a user whose email is in admin_users. public.users has no
 //      email; ids are shared with auth.users, which does.
-//   2. any session that ran a digits-only search ("111", "1111"), the same
-//      QA marker the flag script uses. The whole session goes, not just the
-//      search, because a test session is a test session end to end.
-//   3. sessions already flagged is_internal, so an anonymous event whose
+//   2. sessions already flagged is_internal, so an anonymous event whose
 //      session was flagged after the fact is dropped too.
+//
+// Digits-only searches ("111", "1111") are NOT treated as QA sessions any
+// more. They were assumed to be staff tests, but 1,200 distinct users ran one
+// between April and October 2026, with the same retention, install hours and
+// locale mix as everyone else: they are real users of an unexpected audience.
+// Those queries are only kept out of search statistics (isRealSearch), since
+// they say nothing about search quality.
 //
 // Usage: prefix the query with `WITH ${internalTrafficCtes(since)}` and add
 // `isRealEvent('ae')` / `isRealSession('s')` / `isRealSearch('q')` to the
-// WHERE clause. Both CTEs are tiny (a handful of staff, a few hundred
-// sessions) and MATERIALIZED, so the predicates plan as hash anti-joins.
+// WHERE clause. Both CTEs are small (a handful of staff and their sessions)
+// and MATERIALIZED, so the predicates plan as hash anti-joins.
 
-/** The QA marker. Keep in sync with flag-internal-traffic.ts. */
+/** Digits-only queries: excluded from search statistics only. */
 export const DIGITS_ONLY_QUERY = String.raw`^[0-9[:space:]]+$`
 
 const IDENT = /^[a-z_][a-z0-9_]*$/i
@@ -41,7 +45,6 @@ function alias(a: string): string {
  */
 export function internalTrafficCtes(since?: string): string {
   const sessionWindow = since ? `AND s.started_at >= (${since}) - interval '1 day'` : ''
-  const searchWindow = since ? `AND q.created_at >= (${since}) - interval '1 day'` : ''
   return `
   internal_users AS MATERIALIZED (
     SELECT au.id
@@ -53,12 +56,6 @@ export function internalTrafficCtes(since?: string): string {
       FROM user_sessions s
      WHERE (s.is_internal OR s.user_id IN (SELECT id FROM internal_users))
        ${sessionWindow}
-    UNION
-    SELECT q.session_id
-      FROM search_queries q
-     WHERE q.session_id IS NOT NULL
-       AND q.query ~ '${DIGITS_ONLY_QUERY}'
-       ${searchWindow}
   )`
 }
 
