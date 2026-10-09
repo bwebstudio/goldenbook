@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "@/lib/i18n";
-import type { CampaignAvailabilityResponse, AvailabilityInventoryItem } from "@/types/api/campaign";
+import type { CampaignAvailabilityResponse } from "@/types/api/campaign";
 import { fetchCampaignAvailability, createCampaignCheckout, trackCampaignEvent } from "@/lib/api/campaigns";
 
 const SECTION_LABELS: Record<string, string> = {
@@ -65,7 +65,7 @@ export default function CampaignAvailabilityClient({ campaignId, placeId }: Prop
 
   // ── Derived availability maps ─────────────────────────────────────────────
 
-  const inventory = data?.inventory ?? [];
+  const inventory = useMemo(() => data?.inventory ?? [], [data]);
 
   // All available items
   const availableItems = useMemo(

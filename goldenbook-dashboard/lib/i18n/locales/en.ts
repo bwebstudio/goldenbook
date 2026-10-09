@@ -644,6 +644,7 @@ const en = {
     hoursCopyToAll: "Copy to all days",
     hoursNextDay: "next day",
     hoursErrorOverlap: "Intervals overlap.",
+    hoursErrorPreviousNight: "Opens before the previous day's late hours have closed.",
     hoursErrorSameTime: "Opening and closing time cannot be the same.",
     hoursErrorInvalid: "Use the HH:MM format.",
     hoursErrorNoIntervals: "Add at least one interval or mark the day as closed.",

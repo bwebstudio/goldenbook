@@ -51,6 +51,9 @@ const STATUS_STYLES: Record<string, string> = {
   inactive: "bg-gray-100 text-gray-500",
 };
 
+type TypeFilter = "all" | "editorial" | "sponsored";
+type StatusFilter = "all" | "active" | "expiring";
+
 interface Props {
   items: VisibilityGlobalDTO[];
   cities: string[];
@@ -61,8 +64,8 @@ export default function PlacementsClient({ items, cities, surfaces }: Props) {
   const t = useT();
   const [cityFilter, setCityFilter] = useState("all");
   const [surfaceFilter, setSurfaceFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "editorial" | "sponsored">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "expiring">("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const STATUS_LABELS: Record<string, string> = {
     active: t.empPlacements.statusActive,
@@ -141,12 +144,12 @@ export default function PlacementsClient({ items, cities, surfaces }: Props) {
           <option value="all">{t.empPlacements.allSections}</option>
           {surfaces.map(s => <option key={s} value={s}>{surfaceLabel(s)}</option>)}
         </select>
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as any)} className={filterSelectClass}>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value as TypeFilter)} className={filterSelectClass}>
           <option value="all">{t.empPlacements.allTypes}</option>
           <option value="editorial">{t.empPlacements.editorial}</option>
           <option value="sponsored">{t.empPlacements.sponsored}</option>
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className={filterSelectClass}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)} className={filterSelectClass}>
           <option value="all">{t.empPlacements.allStatuses}</option>
           <option value="active">{t.empPlacements.activeOnly}</option>
           <option value="expiring">{t.empPlacements.expiringSoon}</option>

@@ -25,6 +25,10 @@ export default async function CampaignsPage() {
     return (
       <div className="bg-white rounded-2xl border border-border p-12 text-center">
         <p className="text-lg text-muted">Could not load campaigns.</p>
+        {/* A hard reload is intentional: "Retry" must re-run this server
+            render from scratch, which a soft <Link> to the same URL does not
+            guarantee. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/campaigns" className="text-gold font-semibold mt-2 inline-block">Retry</a>
       </div>
     );

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/lib/i18n";
 import {
   fetchCuratedRoutes,
@@ -93,7 +92,6 @@ interface Props {
 }
 
 export default function CuratedRoutesClient({ initialRoutes }: Props) {
-  const router = useRouter();
   const t = useT();
   const { locale } = useLocale();
   const labels = useLabels();

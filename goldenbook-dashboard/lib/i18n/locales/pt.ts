@@ -639,6 +639,7 @@ const pt: TranslationKeys = {
     hoursCopyToAll: "Copiar para todos os dias",
     hoursNextDay: "dia seguinte",
     hoursErrorOverlap: "Os intervalos sobrepõem-se.",
+    hoursErrorPreviousNight: "Abre antes de fechar o horário noturno do dia anterior.",
     hoursErrorSameTime: "A hora de abertura e a de fecho não podem ser iguais.",
     hoursErrorInvalid: "Use o formato HH:MM.",
     hoursErrorNoIntervals: "Adicione pelo menos um intervalo ou marque o dia como fechado.",

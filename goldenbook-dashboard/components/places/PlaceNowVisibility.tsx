@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchNowContextTags, fetchPlaceNowConfig, type NowContextTag } from "@/lib/api/places";
-import { useT, useLocale } from "@/lib/i18n";
+import { useLocale } from "@/lib/i18n";
 
 // ─── Time windows ──────────────────────────────────────────────────────────
 

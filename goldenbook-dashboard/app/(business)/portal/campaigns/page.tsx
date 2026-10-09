@@ -66,8 +66,7 @@ export default function PortalCampaigns() {
         });
       }
 
-      // Map purchases — avoid duplicates if a request was also created
-      const requestSessionIds = new Set<string>();
+      // Map purchases
       for (const p of purchases) {
         mapped.push({
           id: p.id,

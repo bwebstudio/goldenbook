@@ -255,13 +255,16 @@ export default function PortalOverview() {
 
 function SubscriptionCard({ subscription }: { subscription: BusinessSubscription }) {
   const t = useT();
+  // Reference time captured once at mount (render must stay pure); day-level
+  // granularity makes a per-render clock unnecessary.
+  const [now] = useState(() => Date.now());
   const sb = t.subscription;
   const status = subscription.status;
   if (!status) return null;
 
   const daysTo = (iso: string | null) => {
     if (!iso) return null;
-    return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+    return Math.ceil((new Date(iso).getTime() - now) / 86_400_000);
   };
 
   // Pick the row's color, label and primary action from the lifecycle state.

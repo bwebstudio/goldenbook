@@ -1,19 +1,29 @@
 // Central API client for the Goldenbook backend.
-// Base URL is read from NEXT_PUBLIC_API_BASE_URL (set in .env.local).
-// Backend runs on port 3000 by default.
+//
+// Two transports, one API:
+//   - Server (server components, route handlers): straight to the backend with
+//     the access token read from the httpOnly cookie.
+//   - Browser: same-origin calls to the backend proxy (app/api/backend), which
+//     attaches the token server-side. Browser JS never sees the tokens.
+//
+// Backend base URL: NEXT_PUBLIC_API_BASE_URL (see resolveApiBaseUrl).
 
-import { AUTH_COOKIE_NAMES, getBrowserAccessToken, getCookieValue } from "@/lib/api/auth";
+import { AUTH_COOKIE_NAMES, getCookieValue, resolveApiBaseUrl } from "@/lib/api/auth";
+import { createRefreshCoordinator } from "@/lib/auth/refresh-coordinator";
+import {
+  AUTH_STATE,
+  AUTH_STATE_HEADER,
+  BACKEND_PROXY_PREFIX,
+  CSRF_HEADER,
+  PROXY_MAX_BODY_BYTES,
+  SERVER_NOW_HEADER,
+  SESSION_MARKER_HEADER,
+  parseExpiresAt,
+} from "@/lib/auth/session-policy";
 
-function resolveBaseUrl(): string {
-  let url = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
-  // Ensure protocol is present — missing https:// causes ERR_INVALID_URL
-  if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
-    url = `https://${url}`;
-  }
-  return url;
-}
+const BASE_URL = resolveApiBaseUrl();
 
-const BASE_URL = resolveBaseUrl();
+const isBrowser = () => typeof window !== "undefined";
 
 // ─── Logout guard ───────────────────────────────────────────────────────────
 // When set to true, ALL outbound API requests are blocked immediately.
@@ -42,148 +52,155 @@ export class ApiError extends Error {
   }
 }
 
-async function getAccessToken(): Promise<string | null> {
-  if (typeof window !== "undefined") {
-    return getBrowserAccessToken();
+const PLACE_ID_COOKIE = "gb_active_place_id";
+
+function getActivePlaceId(): string | null {
+  if (!isBrowser()) return null;
+  return getCookieValue(document.cookie, PLACE_ID_COOKIE);
+}
+
+export function setActivePlaceId(placeId: string) {
+  if (!isBrowser()) return;
+  document.cookie = `${PLACE_ID_COOKIE}=${encodeURIComponent(placeId)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
+/** Full URL for `path` (+ query) on the transport this environment uses. */
+function buildUrl(path: string, params?: Record<string, string>): string {
+  const qs = params ? new URLSearchParams(params).toString() : "";
+  const query = qs ? `${path.includes("?") ? "&" : "?"}${qs}` : "";
+  return isBrowser() ? `${BACKEND_PROXY_PREFIX}${path}${query}` : `${BASE_URL}${path}${query}`;
+}
+
+async function buildHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
+  if (isBrowser()) {
+    const placeId = getActivePlaceId();
+    return {
+      ...(extraHeaders ?? {}),
+      [CSRF_HEADER]: "1",
+      ...(placeId ? { "X-Place-Id": placeId } : {}),
+    };
   }
 
   const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
-  return cookieStore.get(AUTH_COOKIE_NAMES.accessToken)?.value ?? null;
-}
-
-const PLACE_ID_COOKIE = "gb_active_place_id";
-
-function getActivePlaceId(): string | null {
-  if (typeof window === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${PLACE_ID_COOKIE}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-export function setActivePlaceId(placeId: string) {
-  if (typeof window === "undefined") return;
-  document.cookie = `${PLACE_ID_COOKIE}=${encodeURIComponent(placeId)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-}
-
-async function buildHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {
-  const accessToken = await getAccessToken();
-  const placeId = getActivePlaceId();
-
+  const accessToken = cookieStore.get(AUTH_COOKIE_NAMES.accessToken)?.value ?? null;
   return {
     ...(extraHeaders ?? {}),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    ...(placeId ? { "X-Place-Id": placeId } : {}),
   };
 }
 
-// ─── Single-flight + cross-tab refresh ───────────────────────────────────────
-// Parallel requests (e.g. Promise.all on a page) can all 401 at the same time
-// when the access token has just expired. If each one independently POSTs to
-// /api/auth/refresh, they race on the SAME refresh token. Supabase rotates
-// refresh tokens (single use), so the first call invalidates the token and the
-// others fail with "Invalid Refresh Token: Already Used".
-//
-// Two layers of protection:
-//   1. `_refreshInFlight` coalesces concurrent refreshes WITHIN a tab.
-//   2. The Web Locks API (`navigator.locks`) serializes refreshes ACROSS tabs,
-//      so opening the dashboard in several tabs no longer breaks the session
-//      (the multi-tab "Already Used" 401 that broke saves / image loads).
-// Plus: before and after each refresh we compare the cookie token — if another
-// tab already rotated it, we simply reuse the new token instead of refreshing
-// again (which would fail "Already Used").
-let _refreshInFlight: Promise<boolean> | null = null;
+// ─── Session refresh (browser) ───────────────────────────────────────────────
+// See lib/auth/refresh-coordinator.ts for why this is single-flight within a
+// tab and serialised across tabs with a Web Lock.
 
-function readAccessToken(): string | null {
-  if (typeof document === "undefined") return null;
-  return getCookieValue(document.cookie, AUTH_COOKIE_NAMES.accessToken);
+// Server clock minus client clock, in seconds. Learned from our own routes so a
+// skewed laptop clock does not trigger a refresh on every request.
+let _clockOffsetS = 0;
+
+function rememberServerTime(response: Response) {
+  const server = Number(response.headers.get(SERVER_NOW_HEADER));
+  if (Number.isFinite(server) && server > 0) {
+    _clockOffsetS = server - Math.floor(Date.now() / 1000);
+  }
 }
 
-// `usedToken` is the access token the 401'd request was sent with. If the cookie
-// already holds a different token, another tab refreshed it — reuse it.
-async function refreshBrowserSession(usedToken?: string | null): Promise<boolean> {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  if (_refreshInFlight) {
-    return _refreshInFlight;
-  }
-
-  const doRefresh = async (): Promise<boolean> => {
-    // Another tab may have rotated the cookie since this request was sent.
-    const current = readAccessToken();
-    if (usedToken && current && current !== usedToken) {
-      return true;
-    }
-
-    try {
-      const response = await fetch("/api/auth/refresh", { method: "POST", cache: "no-store" });
-      if (response.ok) return true;
-    } catch {
-      // fall through to the cross-tab check below
-    }
-
-    // Refresh failed (commonly "Already Used" when another tab won the race).
-    // If the cookie changed underneath us, that other tab succeeded — reuse it.
-    const after = readAccessToken();
-    return !!(after && after !== usedToken);
-  };
-
-  _refreshInFlight = (async () => {
-    try {
-      const locks = (typeof navigator !== "undefined"
-        ? (navigator as unknown as { locks?: { request?: <T>(name: string, cb: () => Promise<T>) => Promise<T> } }).locks
-        : undefined);
-      if (locks?.request) {
-        return await locks.request("gb-token-refresh", doRefresh);
-      }
-      return await doRefresh();
-    } catch {
-      return false;
-    } finally {
-      _refreshInFlight = null;
-    }
-  })();
-
-  return _refreshInFlight;
+function readSessionMarker(): number | null {
+  if (!isBrowser()) return null;
+  return parseExpiresAt(getCookieValue(document.cookie, AUTH_COOKIE_NAMES.expiresAt));
 }
 
-async function requestWithAuthRetry(input: RequestInfo | URL, init: RequestInit): Promise<Response> {
-  // Abort immediately if we're in the middle of logging out
-  if (_loggingOut) {
-    return new Response(JSON.stringify({ error: "LOGGING_OUT" }), { status: 401 });
+interface LockManagerLike {
+  request: (name: string, cb: () => Promise<unknown>) => Promise<unknown>;
+}
+
+// HTTP status of the last /api/auth/refresh call (0 = network error). Lets
+// /auth/recover tell a dead session (401) from an outage (503 / 0).
+let _lastRefreshStatus: number | null = null;
+
+const refreshCoordinator = createRefreshCoordinator({
+  readMarker: readSessionMarker,
+  now: () => Math.floor(Date.now() / 1000) + _clockOffsetS,
+  callRefresh: async (failedMarker) => {
+    _lastRefreshStatus = 0;
+    const response = await fetch("/api/auth/refresh", {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        [CSRF_HEADER]: "1",
+        ...(failedMarker !== null ? { [SESSION_MARKER_HEADER]: String(failedMarker) } : {}),
+      },
+    });
+    _lastRefreshStatus = response.status;
+    rememberServerTime(response);
+    return response.ok;
+  },
+  withLock: <T,>(fn: () => Promise<T>): Promise<T> => {
+    const locks = (navigator as Navigator & { locks?: LockManagerLike }).locks;
+    // The lock resolves with fn's own result.
+    return locks?.request ? (locks.request("gb-token-refresh", fn) as Promise<T>) : fn();
+  },
+});
+
+/**
+ * Run the serialised refresh from outside the API client (used by
+ * /auth/recover after proxy.ts lost a refresh race on navigation).
+ */
+export async function refreshSessionNow(
+  staleMarker: number | null,
+): Promise<{ ok: boolean; definitive: boolean }> {
+  _lastRefreshStatus = null;
+  // `staleMarker` is the generation proxy.ts failed to refresh. If the cookie
+  // already holds a newer one, it is adopted without spending a token.
+  const ok = await refreshCoordinator.refreshAfterRejection(staleMarker ?? readSessionMarker());
+  // null: no refresh call was needed (another tab had already rotated).
+  const status = _lastRefreshStatus as number | null;
+  const definitive = !ok && status !== null && status !== 0 && status !== 503 && status < 500;
+  return { ok, definitive };
+}
+
+function loggingOutResponse(): Response {
+  return new Response(JSON.stringify({ error: "LOGGING_OUT" }), { status: 401 });
+}
+
+async function requestWithAuthRetry(url: string, init: RequestInit): Promise<Response> {
+  if (_loggingOut) return loggingOutResponse();
+
+  if (!isBrowser()) {
+    return fetch(url, init);
   }
 
-  let response = await fetch(input, init);
+  // Refresh BEFORE sending when the session is about to expire. Saves a 401
+  // round trip and, for uploads, sending the body twice.
+  await refreshCoordinator.ensureFresh();
+  if (_loggingOut) return loggingOutResponse();
 
-  if (response.status !== 401 || typeof window === "undefined" || _loggingOut) {
-    return response;
+  // The generation this request goes out with. If it is rejected, the refresh
+  // path compares against it to detect a rotation done by another tab.
+  const usedMarker = readSessionMarker();
+  let response = await fetch(url, init);
+  rememberServerTime(response);
+
+  if (response.status !== 401 || _loggingOut) return response;
+
+  const state = response.headers.get(AUTH_STATE_HEADER);
+  if (state !== AUTH_STATE.refreshRequired && state !== AUTH_STATE.tokenRejected) {
+    return response; // no session at all: refreshing cannot help
   }
 
-  // The token this request was sent with — lets the refresh path detect whether
-  // another tab already rotated the cookie (avoids the multi-tab "Already Used").
-  const usedToken = readAccessToken();
+  const refreshed = await refreshCoordinator.refreshAfterRejection(usedMarker);
+  if (!refreshed || _loggingOut) return response;
 
-  const refreshed = await refreshBrowserSession(usedToken);
-  if (!refreshed || _loggingOut) {
-    return response;
-  }
-
-  response = await fetch(input, {
-    ...init,
-    headers: await buildHeaders(init.headers as Record<string, string> | undefined),
-  });
-
+  // Headers carry no token in the browser (the proxy adds it from the fresh
+  // cookie), so the same init can be replayed. Bodies are strings or Blobs,
+  // both of which can be sent again.
+  response = await fetch(url, init);
+  rememberServerTime(response);
   return response;
 }
 
 export async function apiGet<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(`${BASE_URL}${path}`);
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  }
-
-  const res = await requestWithAuthRetry(url.toString(), {
+  const res = await requestWithAuthRetry(buildUrl(path, params), {
     // next: { revalidate: 60 } — enable ISR caching if desired
     cache: "no-store",
     headers: await buildHeaders(),
@@ -197,7 +214,7 @@ export async function apiGet<T>(path: string, params?: Record<string, string>): 
 }
 
 async function apiWrite<T>(method: "POST" | "PUT" | "PATCH", path: string, body: unknown): Promise<T> {
-  const res = await requestWithAuthRetry(`${BASE_URL}${path}`, {
+  const res = await requestWithAuthRetry(buildUrl(path), {
     method,
     headers: await buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
@@ -219,7 +236,7 @@ async function apiWrite<T>(method: "POST" | "PUT" | "PATCH", path: string, body:
 }
 
 export async function apiDelete(path: string): Promise<void> {
-  const res = await requestWithAuthRetry(`${BASE_URL}${path}`, {
+  const res = await requestWithAuthRetry(buildUrl(path), {
     method: "DELETE",
     headers: await buildHeaders(),
     cache: "no-store",
@@ -236,7 +253,7 @@ export async function apiDelete(path: string): Promise<void> {
 }
 
 export async function apiPutVoid(path: string, body: unknown): Promise<void> {
-  const res = await requestWithAuthRetry(`${BASE_URL}${path}`, {
+  const res = await requestWithAuthRetry(buildUrl(path), {
     method: "PUT",
     headers: await buildHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
@@ -263,10 +280,15 @@ export async function apiPostBinary<T>(
   contentType: string,
   params?: Record<string, string>,
 ): Promise<T> {
-  const url = new URL(`${BASE_URL}${path}`);
-  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  // In the browser the body goes through the backend proxy, which runs on
+  // Vercel Functions (4.5 MB request cap). Image preparation keeps uploads
+  // below PROXY_MAX_BODY_BYTES; fail clearly here rather than with an opaque
+  // 413 from the platform.
+  if (isBrowser() && body.size > PROXY_MAX_BODY_BYTES) {
+    throw new ApiError(413, `File too large for upload (${body.size} bytes)`, { error: "PAYLOAD_TOO_LARGE" });
+  }
 
-  const res = await requestWithAuthRetry(url.toString(), {
+  const res = await requestWithAuthRetry(buildUrl(path, params), {
     method: "POST",
     headers: await buildHeaders({ "Content-Type": contentType }),
     body,

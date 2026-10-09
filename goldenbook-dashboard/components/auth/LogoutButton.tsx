@@ -1,7 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
-import { markLoggingOut } from "@/lib/api/client";
+import { logoutSession } from "@/lib/auth/logout";
 import { useT } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -14,16 +13,8 @@ export default function LogoutButton() {
   async function handleLogout() {
     setIsLoading(true);
 
-    // Signal the API client to stop all requests immediately
-    markLoggingOut();
-
-    try {
-      const supabase = getSupabaseBrowserClient();
-      await supabase.auth.signOut();
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-      // Ignore signOut errors — session may already be invalid
-    }
+    // Stops all API requests, revokes the session server-side, clears cookies.
+    await logoutSession();
 
     // Navigate without router.refresh() to avoid re-rendering
     // server components (which would trigger requireDashboardUser → redirect loop)

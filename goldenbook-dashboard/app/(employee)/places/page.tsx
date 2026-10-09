@@ -46,6 +46,10 @@ export default async function PlacesPage() {
             <h3 className="text-xl font-bold text-text">Could not load places</h3>
             <p className="text-base text-muted mt-2 max-w-sm">{errorMessage}</p>
           </div>
+          {/* A hard reload is intentional: "Try again" must re-run this
+              server render from scratch, which a soft <Link> to the same URL
+              does not guarantee. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/places"
             className="px-6 py-3 rounded-xl bg-gold text-white text-base font-semibold hover:bg-gold-dark transition-colors"

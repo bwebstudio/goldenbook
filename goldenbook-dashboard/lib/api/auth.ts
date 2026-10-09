@@ -1,8 +1,18 @@
 import type { DashboardMeResponse, DashboardSession, DashboardUser } from "@/types/auth";
-import { getSupabaseBrowserClient } from "@/lib/auth/supabaseClient";
 
-const _raw = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
-const API_BASE_URL = _raw.startsWith("http") ? _raw : `https://${_raw}`;
+/**
+ * Backend base URL. Missing protocol is tolerated (a bare host in the env var
+ * used to cause ERR_INVALID_URL).
+ */
+export function resolveApiBaseUrl(): string {
+  let url = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+  if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
+  }
+  return url;
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
@@ -16,6 +26,23 @@ interface SupabaseTokenResponse {
   access_token: string;
   refresh_token: string;
   expires_in: number;
+}
+
+/** A Supabase token-endpoint failure. `status` is 0 for network errors. */
+export class SupabaseAuthError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = "SupabaseAuthError";
+  }
+
+  /**
+   * True when Supabase definitively rejected the grant (expired, revoked or
+   * already-used refresh token). False for outages and network blips, which
+   * are worth retrying.
+   */
+  get isRejection(): boolean {
+    return this.status >= 400 && this.status < 500 && this.status !== 429;
+  }
 }
 
 function assertPublicEnv() {
@@ -46,18 +73,23 @@ async function parseErrorMessage(response: Response): Promise<string> {
 async function callSupabaseTokenEndpoint(body: Record<string, unknown>): Promise<DashboardSession> {
   assertPublicEnv();
 
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${body.grant_type}`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${body.grant_type}`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch (err) {
+    throw new SupabaseAuthError(err instanceof Error ? err.message : "Network error", 0);
+  }
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response));
+    throw new SupabaseAuthError(await parseErrorMessage(response), response.status);
   }
 
   const data = (await response.json()) as SupabaseTokenResponse;
@@ -131,38 +163,19 @@ export function getCookieValue(cookieHeader: string | null | undefined, name: st
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export async function getBrowserAccessToken(): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-
-  // During logout, don't attempt to read/refresh the Supabase session
-  // as it triggers internal retries that cascade into re-renders.
-  const { isLoggingOut } = await import("@/lib/api/client");
-  if (isLoggingOut()) return null;
-
-  // The cookie is the source of truth for this dashboard. The Next.js proxy
-  // refreshes it on every protected navigation, and /api/auth/refresh
-  // rewrites it after a 401 retry. The Supabase browser client has
-  // `autoRefreshToken: false` (set in supabaseClient.ts) so its local
-  // localStorage session is NOT kept in sync — a stale localStorage entry
-  // from an older login would otherwise be returned in front of the fresh
-  // cookie, and the backend would 401 the request as "expired token".
-  const fromCookie = getCookieValue(document.cookie, AUTH_COOKIE_NAMES.accessToken);
-  if (fromCookie) return fromCookie;
-
-  // Only fall back to Supabase localStorage when there is no cookie at all
-  // (early bootstrap, or a browser that wiped the cookie). Even then this
-  // is best-effort — the dashboard auth flow does not seed localStorage,
-  // so this branch usually returns null and the caller surfaces a 401.
+/**
+ * Best-effort server-side sign-out: revokes the refresh token at Supabase so a
+ * copy of the cookie stops working too. Never throws.
+ */
+export async function revokeSupabaseSession(accessToken: string): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !accessToken) return;
   try {
-    const supabase = getSupabaseBrowserClient();
-    const { data } = await supabase.auth.getSession();
-    return data.session?.access_token ?? null;
+    await fetch(`${SUPABASE_URL}/auth/v1/logout?scope=local`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
   } catch {
-    return null;
+    // The cookies are cleared anyway; the token expires on its own.
   }
-}
-
-export function shouldRefreshSession(expiresAt: number | null | undefined, bufferSeconds = 60): boolean {
-  if (!expiresAt) return true;
-  return expiresAt <= Math.floor(Date.now() / 1000) + bufferSeconds;
 }

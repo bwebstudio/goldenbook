@@ -776,11 +776,14 @@ function SubscriptionChip({
   graceEndsAt: string | null;
   labels: EmpUsersLabels;
 }) {
+  // Reference time captured once at mount (render must stay pure); day-level
+  // granularity makes a per-render clock unnecessary.
+  const [now] = useState(() => Date.now());
   if (!status) return null;
 
   const daysTo = (iso: string | null) => {
     if (!iso) return null;
-    return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+    return Math.ceil((new Date(iso).getTime() - now) / 86_400_000);
   };
 
   let cls = "bg-gray-100 text-gray-600";

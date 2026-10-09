@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { applySessionCookies, clearSessionCookies } from "@/lib/auth/cookies";
 import { fetchCurrentUser } from "@/lib/api/auth";
+import { isSameOriginRequest } from "@/lib/auth/session-policy";
 
+// Exchanges the tokens from a fresh password sign-in (done in the browser by
+// supabase-js with persistSession: false) for httpOnly cookies. After this the
+// browser forgets the tokens.
 export async function POST(request: NextRequest) {
+  // Without this, a cross-site form could plant an attacker's session
+  // (login CSRF).
+  if (!isSameOriginRequest(request.headers)) {
+    return NextResponse.json({ message: "Forbidden." }, { status: 403 });
+  }
+
   try {
     const body = (await request.json()) as {
       accessToken?: string;

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete, apiPut, apiPostBinary } from "./client";
+import { apiGet, apiPost, apiDelete, apiPostBinary } from "./client";
 
 export interface PlaceImageDTO {
   id: string;

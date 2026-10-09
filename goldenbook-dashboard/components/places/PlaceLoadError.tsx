@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n";
 
@@ -10,7 +11,7 @@ import { useT } from "@/lib/i18n";
  * token refresh — e.g. right after a save triggers router.refresh() — used to
  * leave the editor staring at an English wall with no way forward but to leave.
  */
-export default function PlaceLoadError({ slug }: { slug: string }) {
+export default function PlaceLoadError() {
   const router = useRouter();
   const t = useT();
 
@@ -36,12 +37,12 @@ export default function PlaceLoadError({ slug }: { slug: string }) {
           >
             {t.common.retry}
           </button>
-          <a
+          <Link
             href="/places"
             className="px-6 py-3 rounded-xl border border-border text-base font-semibold text-muted hover:border-gold/50 hover:text-text transition-colors bg-white"
           >
             {t.common.back}
-          </a>
+          </Link>
         </div>
       </div>
     </div>

@@ -14,12 +14,22 @@
 // Everything is done with canvas, so there is no dependency to add and no
 // server round-trip.
 
+import { PROXY_MAX_BODY_BYTES } from '@/lib/auth/session-policy';
+
 /** Longest edge we keep. Comfortably above any rendering the app does. */
 const MAX_EDGE = 2560;
 /** JPEG quality. 0.82 is visually clean for photography at this size. */
 const JPEG_QUALITY = 0.82;
 /** Files at or below this are passed through untouched if already web-safe. */
 const PASSTHROUGH_BYTES = 400 * 1024;
+
+/**
+ * Largest upload we produce. Uploads go through the dashboard's same-origin
+ * backend proxy, which runs on Vercel Functions (4.5 MB request cap), so this
+ * is tied to PROXY_MAX_BODY_BYTES. A 2560px JPEG at 0.82 is nearly always far
+ * below it; very noisy photos are re-encoded harder rather than rejected.
+ */
+export const UPLOAD_MAX_BYTES = PROXY_MAX_BODY_BYTES;
 
 /** Formats every browser can decode and every client can render. */
 const WEB_SAFE = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -52,7 +62,24 @@ function loadBitmap(file: File): Promise<HTMLImageElement> {
   });
 }
 
-function canvasToFile(canvas: HTMLCanvasElement, name: string): Promise<File> {
+/**
+ * Fallback encodings, in order, for an image whose normal encoding is above
+ * {@link UPLOAD_MAX_BYTES}: lower quality first, then smaller dimensions.
+ */
+export function shrinkPlan(width: number, height: number): Array<{ width: number; height: number; quality: number }> {
+  const plan = [
+    { width, height, quality: 0.72 },
+    { width, height, quality: 0.62 },
+  ];
+  let scale = 1;
+  for (let i = 0; i < 4; i++) {
+    scale *= 0.8;
+    plan.push({ width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)), quality: 0.72 });
+  }
+  return plan;
+}
+
+function canvasToFile(canvas: HTMLCanvasElement, name: string, quality = JPEG_QUALITY): Promise<File> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
@@ -60,7 +87,7 @@ function canvasToFile(canvas: HTMLCanvasElement, name: string): Promise<File> {
         resolve(new File([blob], name, { type: 'image/jpeg', lastModified: Date.now() }));
       },
       'image/jpeg',
-      JPEG_QUALITY,
+      quality,
     );
   });
 }
@@ -79,6 +106,35 @@ function canvasToFile(canvas: HTMLCanvasElement, name: string): Promise<File> {
  * everywhere.
  */
 export async function prepareImageForUpload(file: File): Promise<PreparedImage> {
+  const prepared = await prepareImage(file);
+  if (prepared.file.size <= UPLOAD_MAX_BYTES) return prepared;
+  return shrinkToFit(file, prepared);
+}
+
+/** Re-encode harder until the file fits {@link UPLOAD_MAX_BYTES}. */
+async function shrinkToFit(original: File, prepared: PreparedImage): Promise<PreparedImage> {
+  const img = await loadBitmap(prepared.file);
+  const baseName = original.name.replace(/\.[^.]+$/, '') || 'image';
+  let best = prepared;
+  for (const step of shrinkPlan(prepared.width, prepared.height)) {
+    const canvas = document.createElement('canvas');
+    canvas.width = step.width;
+    canvas.height = step.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return best;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, step.width, step.height);
+    const out = await canvasToFile(canvas, `${baseName}.jpg`, step.quality);
+    if (out.size < best.file.size) {
+      best = { file: out, width: step.width, height: step.height, recompressed: true };
+    }
+    if (out.size <= UPLOAD_MAX_BYTES) return best;
+  }
+  // Still too big: the API client rejects it with a clear error.
+  return best;
+}
+
+async function prepareImage(file: File): Promise<PreparedImage> {
   if (!file.type.startsWith('image/')) throw new UnsupportedImageError(file.type);
   if (!WEB_SAFE.has(file.type)) throw new UnsupportedImageError(file.type);
 
