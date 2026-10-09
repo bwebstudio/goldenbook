@@ -1,20 +1,21 @@
 // Admin KPIs that sit beside the v2 tabs: retention, the 18:00 push ritual,
 // place-open attribution, and the catalogue counts for the dashboard home.
 //
-// GET /api/v1/admin/analytics/retention
-// GET /api/v1/admin/analytics/push?period=7|30|90
-// GET /api/v1/admin/analytics/attribution?period=7|30|90
+// GET /api/v1/admin/analytics/retention?audience=all|core
+// GET /api/v1/admin/analytics/push?period=7|30|90&audience=all|core
+// GET /api/v1/admin/analytics/attribution?period=7|30|90&audience=all|core
 // GET /api/v1/admin/analytics/place-counts
 //
 // All require a dashboard admin session and exclude internal and QA traffic
-// through internal-traffic.ts. Errors propagate: the dashboard has to be able
+// through internal-traffic.ts (audience=core also drops task-app users,
+// default all). Errors propagate: the dashboard has to be able
 // to tell "couldn't load" from "nothing happened".
 
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../../../db/postgres'
 import { authenticateDashboardUser } from '../../../shared/auth/dashboardAuth'
-import { internalTrafficCtes, isNotStaff, isRealEvent } from './internal-traffic'
+import { internalTrafficCtes, isNotStaff, isRealEvent, parseAudience } from './internal-traffic'
 import { toCohortRows, RETENTION_WINDOWS } from './retention'
 
 const periodSchema = z.object({
@@ -33,11 +34,12 @@ export async function adminAnalyticsKpisRoutes(app: FastifyInstance) {
   // anonymous traffic cannot be followed across days, so it is not a cohort.
   // First activity is taken over all history, otherwise a returning user
   // would be counted as new at the start of the window.
-  app.get('/admin/analytics/retention', { preHandler: [authenticateDashboardUser] }, async (_request, reply) => {
+  app.get('/admin/analytics/retention', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
+    const audience = parseAudience(request.query)
     const { rows } = await db.query<{
       week: string; users: string; d1: string; d1to7: string; d8to30: string; today: string
     }>(`
-      WITH ${internalTrafficCtes()},
+      WITH ${internalTrafficCtes(undefined, audience)},
       active_days AS (
         SELECT ae.user_id, ae.created_at::date AS day
           FROM analytics_events ae
@@ -94,11 +96,12 @@ export async function adminAnalyticsKpisRoutes(app: FastifyInstance) {
   // POST /me/push/opened within 48h of the send. Staff devices are left out.
   app.get('/admin/analytics/push', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { period } = periodSchema.parse(request.query)
+    const audience = parseAudience(request.query)
     const d = parseInt(period, 10)
 
     const [devices, tokenState, daily] = await Promise.all([
       db.query<{ platform: string | null; city: string | null; count: string }>(`
-        WITH ${internalTrafficCtes()}
+        WITH ${internalTrafficCtes(undefined, audience)}
         SELECT t.device_type AS platform, t.city_slug AS city, COUNT(*)::text AS count
           FROM push_tokens t
          WHERE t.is_active
@@ -107,7 +110,7 @@ export async function adminAnalyticsKpisRoutes(app: FastifyInstance) {
       `),
 
       db.query<{ active: string; inactive: string; backoff: string }>(`
-        WITH ${internalTrafficCtes()}
+        WITH ${internalTrafficCtes(undefined, audience)}
         SELECT COUNT(*) FILTER (WHERE t.is_active)::text                            AS active,
                COUNT(*) FILTER (WHERE NOT t.is_active)::text                        AS inactive,
                COUNT(*) FILTER (WHERE t.is_active AND t.unopened_streak >= 3)::text AS backoff
@@ -116,7 +119,7 @@ export async function adminAnalyticsKpisRoutes(app: FastifyInstance) {
       `),
 
       db.query<{ date: string; sent: string; opened: string }>(`
-        WITH ${internalTrafficCtes()},
+        WITH ${internalTrafficCtes(undefined, audience)},
         per_day AS (
           SELECT s.sent_on AS day,
                  COUNT(*) AS sent,
@@ -175,11 +178,12 @@ export async function adminAnalyticsKpisRoutes(app: FastifyInstance) {
   // its own bucket rather than hidden.
   app.get('/admin/analytics/attribution', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { period } = periodSchema.parse(request.query)
+    const audience = parseAudience(request.query)
     const d = parseInt(period, 10)
 
     const [sources, categories] = await Promise.all([
       db.query<{ source: string | null; count: string }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT ae.source, COUNT(*)::text AS count
           FROM analytics_events ae
          WHERE ae.event_name = 'place_view'
@@ -190,7 +194,7 @@ export async function adminAnalyticsKpisRoutes(app: FastifyInstance) {
       `, [d]),
 
       db.query<{ category: string | null; opens: string; saves: string }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT ae.category,
                COUNT(*) FILTER (WHERE ae.event_name = 'place_view')::text   AS opens,
                COUNT(*) FILTER (WHERE ae.event_name = 'favorite_add')::text AS saves

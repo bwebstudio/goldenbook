@@ -121,19 +121,6 @@ const TAG_GROUPS: { key: string; en: string; pt: string; tags: string[] }[] = [
   },
 ];
 
-// Suggested tags by place type — highlighted but not auto-selected
-const SUGGESTED_TAGS: Record<string, string[]> = {
-  restaurant: ["lunch", "dinner", "fine-dining", "romantic", "terrace", "viewpoint", "family", "wine"],
-  bar:        ["cocktails", "wine", "late-night", "live-music", "rooftop", "terrace"],
-  cafe:       ["coffee", "brunch", "quick-stop", "lunch", "rainy-day"],
-  hotel:      ["wellness", "romantic", "viewpoint", "terrace", "rooftop"],
-  shop:       ["shopping", "local-secret", "quick-stop"],
-  museum:     ["culture", "rainy-day", "family", "local-secret"],
-  landmark:   ["culture", "viewpoint", "family", "local-secret"],
-  activity:   ["culture", "wellness", "family", "viewpoint", "local-secret", "wine"],
-  beach:      ["viewpoint", "sunset", "family", "wellness"],
-};
-
 // ─── Exported types ──────────────────────────────────────────────────────────
 
 export interface NowFormValues {
@@ -168,7 +155,6 @@ const WINDOW_LABELS: Record<string, Record<string, string>> = {
 
 interface PlaceContextualRelevanceProps {
   placeId: string;
-  placeType?: string;
   value: NowFormValues;
   onChange: (next: NowFormValues) => void;
   classificationAuto?: AutoClassification | null;
@@ -177,7 +163,7 @@ interface PlaceContextualRelevanceProps {
   momentTagsAuto?: string[] | null;
 }
 
-export default function PlaceNowVisibility({ placeId, placeType, value, onChange, classificationAuto, contextWindowsAuto, contextTagsAuto, momentTagsAuto }: PlaceContextualRelevanceProps) {
+export default function PlaceNowVisibility({ placeId, value, onChange, classificationAuto, contextWindowsAuto, contextTagsAuto, momentTagsAuto }: PlaceContextualRelevanceProps) {
   const [allTags, setAllTags] = useState<NowContextTag[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [droppedWindows, setDroppedWindows] = useState<string[]>([]);
@@ -217,7 +203,6 @@ export default function PlaceNowVisibility({ placeId, placeType, value, onChange
   }, [placeId]);
 
   const tagMap = new Map(allTags.map((t) => [t.slug, t]));
-  const suggested = new Set(SUGGESTED_TAGS[placeType ?? ""] ?? []);
 
   function toggleTag(slug: string) {
     const next = value.nowTagSlugs.includes(slug)

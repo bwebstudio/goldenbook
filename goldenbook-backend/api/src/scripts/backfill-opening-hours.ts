@@ -37,6 +37,17 @@ import { searchGooglePlaces } from '../modules/admin/places/generate-place'
 
 const DRY_RUN = process.argv.includes('--dry-run')
 const ONLY_TYPE = process.argv.find((a) => a.startsWith('--type='))?.slice('--type='.length)
+// --ids-file=<path to a JSON array of place ids>: restrict the run to those
+// places. Used to backfill only places with no hours from any source, leaving
+// out the ones whose hours the team had typed in the old Firestore app.
+const ONLY_IDS: string[] | undefined = (() => {
+  const arg = process.argv.find((a) => a.startsWith('--ids-file='))
+  if (!arg) return undefined
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const ids = JSON.parse(require('node:fs').readFileSync(arg.slice('--ids-file='.length), 'utf8'))
+  if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string')) throw new Error('--ids-file must hold a JSON array of ids')
+  return ids
+})()
 const LIMIT = (() => {
   const arg = process.argv.find((a) => a.startsWith('--limit='))
   if (!arg) return undefined
@@ -96,6 +107,11 @@ interface Candidate {
 async function loadCandidates(): Promise<Candidate[]> {
   const params: unknown[] = []
   let typeClause = ''
+  let idsClause = ''
+  if (ONLY_IDS) {
+    params.push(ONLY_IDS)
+    idsClause = `AND p.id = ANY($${params.length}::uuid[])`
+  }
   if (ONLY_TYPE) {
     typeClause = `AND p.place_type = $1`
     params.push(ONLY_TYPE)
@@ -109,6 +125,7 @@ async function loadCandidates(): Promise<Candidate[]> {
     WHERE  p.status = 'published'
       AND  p.place_type <> 'hotel'
       ${typeClause}
+      ${idsClause}
       AND  NOT EXISTS (SELECT 1 FROM opening_hours oh WHERE oh.place_id = p.id)
     ORDER  BY d.slug, p.place_type, p.name
     ${limitClause}

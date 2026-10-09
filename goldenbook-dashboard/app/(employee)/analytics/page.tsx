@@ -16,9 +16,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AnalyticsPage() {
   const [overviewResult, campaignsResult, establishmentsResult, timeResult, insightsResult] = await Promise.allSettled([
-    fetchAnalyticsOverview("30"),
+    // Same default audience as the toggle above: task-app users left out of
+    // the funnel and per-place engagement (revenue is never filtered).
+    fetchAnalyticsOverview("30", "core"),
     fetchCampaignPerformance(),
-    fetchEstablishmentPerformance(),
+    fetchEstablishmentPerformance("30", "core"),
     fetchTimePerformance(),
     fetchAdminInsights(),
   ]);

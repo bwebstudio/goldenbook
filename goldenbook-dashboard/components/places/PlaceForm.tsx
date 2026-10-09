@@ -776,7 +776,6 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
           >
             <PlaceNowVisibility
               placeId={place.id}
-              placeType={form.placeType}
               value={nowForm}
               onChange={(next) => { setNowForm(next); markDirty(); }}
               classificationAuto={place.classificationAuto}

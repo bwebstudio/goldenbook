@@ -2,13 +2,14 @@
 // for the dashboard. All aggregate over the unified analytics_events +
 // user_sessions tables produced by the mobile app's track() helper.
 //
-// GET /api/v1/admin/analytics/users?period=7|30|90
-// GET /api/v1/admin/analytics/content?period=7|30|90
-// GET /api/v1/admin/analytics/features?period=7|30|90
-// GET /api/v1/admin/analytics/search?period=7|30|90
+// GET /api/v1/admin/analytics/users?period=7|30|90&audience=all|core
+// GET /api/v1/admin/analytics/content?period=7|30|90&audience=all|core
+// GET /api/v1/admin/analytics/features?period=7|30|90&audience=all|core
+// GET /api/v1/admin/analytics/search?period=7|30|90&audience=all|core
 //
 // All endpoints require a dashboard admin session. Every query excludes
-// internal and QA traffic through internal-traffic.ts, never by hand.
+// internal and QA traffic through internal-traffic.ts, never by hand;
+// audience=core also leaves task-app users out (default all).
 //
 // Daily series bucket the rows once (range predicate on created_at, GROUP BY
 // day) and then LEFT JOIN that onto generate_series, so empty days become
@@ -18,7 +19,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { db } from '../../../db/postgres'
 import { authenticateDashboardUser } from '../../../shared/auth/dashboardAuth'
-import { internalTrafficCtes, isRealEvent, isRealSession, isRealSearch } from './internal-traffic'
+import { internalTrafficCtes, isRealEvent, isRealSession, isRealSearch, parseAudience } from './internal-traffic'
 
 const periodSchema = z.object({
   period: z.enum(['7', '30', '90']).default('30'),
@@ -73,6 +74,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
   // ── GET /admin/analytics/users ──────────────────────────────────────────
   app.get('/admin/analytics/users', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { period } = periodSchema.parse(request.query)
+    const audience = parseAudience(request.query)
     const d = days(period)
     // WAU/MAU always need 30 days of activity, whatever the chart shows.
     const scanDays = Math.max(d, 30)
@@ -81,7 +83,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       // Daily active users. dauToday is the last row, so the headline and
       // the rightmost bar cannot disagree.
       db.query<{ date: string; dau: string }>(`
-        WITH ${internalTrafficCtes(SINCE)},
+        WITH ${internalTrafficCtes(SINCE, audience)},
         ${activityCte(`(now()::date - ($1::int))::timestamptz`)},
         per_day AS (
           SELECT ts::date AS day, COUNT(DISTINCT user_id) AS dau
@@ -96,7 +98,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       `, [d]),
 
       db.query<{ wau: string; mau: string; sessions_per_user: string | null }>(`
-        WITH ${internalTrafficCtes(SINCE)},
+        WITH ${internalTrafficCtes(SINCE, audience)},
         ${activityCte(`now() - interval '30 days'`)}
         SELECT
           COUNT(DISTINCT user_id) FILTER (WHERE ts >= now() - interval '7 days')::text AS wau,
@@ -110,7 +112,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       `, [scanDays, d]),
 
       db.query<{ date: string; ios: string; android: string; web: string; total: string }>(`
-        WITH ${internalTrafficCtes(SINCE)},
+        WITH ${internalTrafficCtes(SINCE, audience)},
         per_day AS (
           SELECT us.started_at::date AS day,
                  COUNT(*) FILTER (WHERE us.device_type = 'ios')     AS ios,
@@ -136,7 +138,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       // background inflates it by orders of magnitude (prod: median ~19s,
       // mean ~579s), so the median is the headline and p75/p90 the spread.
       db.query<{ n: string; p50: string | null; p75: string | null; p90: string | null }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT COUNT(*)::text AS n,
                PERCENTILE_CONT(0.5)  WITHIN GROUP (ORDER BY s.duration_sec)::text AS p50,
                PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY s.duration_sec)::text AS p75,
@@ -177,6 +179,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
   // ── GET /admin/analytics/content ────────────────────────────────────────
   app.get('/admin/analytics/content', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { period } = periodSchema.parse(request.query)
+    const audience = parseAudience(request.query)
     const d = days(period)
 
     // One pass over the window's place events; every list below is a
@@ -185,7 +188,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       kind: string; key: string; name: string | null
       count: string; views: string | null; clicks: string | null
     }>(`
-      WITH ${internalTrafficCtes(SINCE)},
+      WITH ${internalTrafficCtes(SINCE, audience)},
       ev AS (
         SELECT ae.event_name, ae.place_id, ae.category, ae.city
           FROM analytics_events ae
@@ -263,6 +266,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
   // ── GET /admin/analytics/features ───────────────────────────────────────
   app.get('/admin/analytics/features', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { period } = periodSchema.parse(request.query)
+    const audience = parseAudience(request.query)
     const d = days(period)
 
     // Same session-fallback pattern: resolve user_id via the linked
@@ -273,7 +277,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       search_count: string; search_users: string
       route_starts: string; route_completes: string
     }>(`
-      WITH ${internalTrafficCtes(SINCE)}
+      WITH ${internalTrafficCtes(SINCE, audience)}
       SELECT
         COUNT(*) FILTER (WHERE ae.event_name='now_used')::text                                             AS now_count,
         COUNT(DISTINCT COALESCE(ae.user_id, s.user_id)) FILTER (WHERE ae.event_name='now_used')::text      AS now_users,
@@ -311,11 +315,12 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
   // the user kept typing, so "lis" on the way to "lisboa" is not a miss.
   app.get('/admin/analytics/search', { preHandler: [authenticateDashboardUser] }, async (request, reply) => {
     const { period } = periodSchema.parse(request.query)
+    const audience = parseAudience(request.query)
     const d = days(period)
 
     const [top, zero, agg, trend] = await Promise.all([
       db.query<{ query: string; count: string; avg_results: string }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT lower(trim(q.query)) AS query,
                COUNT(*)::text AS count,
                ROUND(AVG(q.result_count), 1)::text AS avg_results
@@ -330,7 +335,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       `, [d]),
 
       db.query<{ query: string; count: string }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT lower(trim(q.query)) AS query, COUNT(*)::text AS count
           FROM search_queries q
          WHERE q.created_at >= ${SINCE}
@@ -344,7 +349,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       `, [d]),
 
       db.query<{ total: string; zero: string; avg_results: string | null }>(`
-        WITH ${internalTrafficCtes(SINCE)}
+        WITH ${internalTrafficCtes(SINCE, audience)}
         SELECT COUNT(*)::text AS total,
                COUNT(*) FILTER (WHERE q.result_count = 0)::text AS zero,
                ROUND(AVG(q.result_count), 1)::text AS avg_results
@@ -358,7 +363,7 @@ export async function adminAnalyticsV2Routes(app: FastifyInstance) {
       // Weekly zero-result rate over a fixed window, so a 7-day period still
       // shows whether content gaps are closing.
       db.query<{ week: string; total: string; zero: string }>(`
-        WITH ${internalTrafficCtes(`date_trunc('week', now()) - ($1::int - 1) * interval '1 week'`)},
+        WITH ${internalTrafficCtes(`date_trunc('week', now()) - ($1::int - 1) * interval '1 week'`, audience)},
         per_week AS (
           SELECT date_trunc('week', q.created_at)::date AS week,
                  COUNT(*) AS total,

@@ -1055,6 +1055,8 @@ const pt: TranslationKeys = {
     emptyTitle: "Ainda sem dados",
     emptyBody: "Pode demorar algumas horas para que novos dados apareçam depois de alguém usar a app. Volte mais tarde.",
     period: { d7: "7 dias", d30: "30 dias", d90: "90 dias" },
+    excludeTaskTraffic: "Excluir tráfego de tarefas",
+    excludeTaskTrafficHint: "Utilizadores que pesquisaram \"day\" ou só números nos primeiros segundos: parecem vir de apps de recompensas. Continuam incluídos com o filtro desligado.",
   },
 
   campAnalytics: {
