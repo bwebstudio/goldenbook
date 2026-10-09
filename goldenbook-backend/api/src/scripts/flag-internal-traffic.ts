@@ -25,9 +25,11 @@
 //   npx tsx api/src/scripts/flag-internal-traffic.ts --confirm
 
 import { db } from '../db/postgres'
+import { DIGITS_ONLY_QUERY } from '../modules/admin/analytics/internal-traffic'
 
 const CONFIRM = process.argv.includes('--confirm')
-const DIGITS_ONLY = String.raw`^[0-9[:space:]]+$`
+// Shared with the dashboard readers, which exclude the same sessions at query time.
+const DIGITS_ONLY = DIGITS_ONLY_QUERY
 
 async function count(sql: string, params: unknown[] = []): Promise<number> {
   const { rows: [r] } = await db.query<{ n: string }>(sql, params)

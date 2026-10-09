@@ -253,6 +253,40 @@ export async function apiPutVoid(path: string, body: unknown): Promise<void> {
   }
 }
 
+/**
+ * POST a binary body (e.g. an image) with its own Content-Type. Same auth,
+ * X-Place-Id and refresh handling as the JSON helpers.
+ */
+export async function apiPostBinary<T>(
+  path: string,
+  body: Blob,
+  contentType: string,
+  params?: Record<string, string>,
+): Promise<T> {
+  const url = new URL(`${BASE_URL}${path}`);
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+
+  const res = await requestWithAuthRetry(url.toString(), {
+    method: "POST",
+    headers: await buildHeaders({ "Content-Type": contentType }),
+    body,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    let message = `API error ${res.status} for POST ${path}`;
+    let data: Record<string, unknown> = {};
+    try {
+      const json = await res.json() as Record<string, unknown>;
+      if (json.message && typeof json.message === "string") message = json.message;
+      data = json;
+    } catch { /* ignore parse failure */ }
+    throw new ApiError(res.status, message, data);
+  }
+
+  return res.json() as Promise<T>;
+}
+
 export function apiPost<T>(path: string, body: unknown): Promise<T> {
   return apiWrite<T>("POST", path, body);
 }

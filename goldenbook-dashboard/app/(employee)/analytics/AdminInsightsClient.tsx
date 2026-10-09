@@ -27,16 +27,16 @@ export default function AdminInsightsClient({ insights }: { insights: AdminInsig
   const textInsights: string[] = [];
   if (topSections.length > 0) {
     const top = topSections[0];
-    textInsights.push(`${SECTION_LABELS[top.section] ?? top.section} — €${Math.round(top.revenue)} (${top.count} ${ca.purchases.toLowerCase()})`);
+    textInsights.push(`${SECTION_LABELS[top.section] ?? top.section}: €${Math.round(top.revenue)} (${top.count} ${ca.purchases.toLowerCase()})`);
   }
   if (topCities.length > 0) {
     const c = topCities[0];
-    textInsights.push(`${c.city.charAt(0).toUpperCase() + c.city.slice(1)} — €${Math.round(c.revenue)}`);
+    textInsights.push(`${c.city.charAt(0).toUpperCase() + c.city.slice(1)}: €${Math.round(c.revenue)}`);
   }
   if (insights.bestTimeBucket && insights.bestTimeBucket.pct > 0) {
-    textInsights.push(`${BUCKET_LABELS[insights.bestTimeBucket.timeBucket] ?? insights.bestTimeBucket.timeBucket} — ${insights.bestTimeBucket.pct}% sell-through`);
+    textInsights.push(`${BUCKET_LABELS[insights.bestTimeBucket.timeBucket] ?? insights.bestTimeBucket.timeBucket}: ${insights.bestTimeBucket.pct}% ${ca.sellThrough}`);
   } else if (demandSignals.length > 0 && demandSignals[0].demandScore > 50) {
-    textInsights.push(`${SECTION_LABELS[demandSignals[0].section] ?? demandSignals[0].section} — ${demandSignals[0].demandScore}% sell-through`);
+    textInsights.push(`${SECTION_LABELS[demandSignals[0].section] ?? demandSignals[0].section}: ${demandSignals[0].demandScore}% ${ca.sellThrough}`);
   }
 
   return (
