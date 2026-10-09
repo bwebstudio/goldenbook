@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { searchGooglePlaces, previewPlaceFromGoogle, createPlace, ingestGooglePhotos, fetchAdminCategories, type PlacePreview } from "@/lib/api/places";
-import { googlePeriodsToWeek, validateOpeningDay, weekToPayload } from "@/lib/utils/opening-hours";
+import { googlePeriodsToWeek, weekHasProblems, weekToPayload } from "@/lib/utils/opening-hours";
 import type { AdminCategoryDTO } from "@/types/api/place";
 import { ApiError } from "@/lib/api/client";
 import { useLocale } from "@/lib/i18n";
@@ -156,7 +156,7 @@ export default function PlaceGenerator() {
       // periods): then create the place without hours rather than failing.
       const week = googlePeriodsToWeek(preview.openingHours);
       const openingHours =
-        preview.openingHours.length > 0 && week.every((d) => validateOpeningDay(d) === null)
+        preview.openingHours.length > 0 && !weekHasProblems(week)
           ? weekToPayload(week)
           : undefined;
 
@@ -300,6 +300,9 @@ export default function PlaceGenerator() {
               <div className="grid grid-cols-3 gap-2">
                 {preview.photoUrls.map((url, i) => (
                   <div key={i} className="relative aspect-[4/3] rounded-lg overflow-hidden bg-gray-100">
+                    {/* Transient Google Places preview URLs: not in images.remotePatterns
+                        and not worth optimizing (shown once before import). */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={url}
                       alt={`${preview.name} photo ${i + 1}`}
@@ -566,7 +569,9 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
 
   const [name, setName] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slug, setSlug] = useState("");
+  const [manualSlug, setManualSlug] = useState("");
+  // Auto-fill slug from name until the editor edits it explicitly.
+  const slug = slugTouched ? manualSlug : slugify(name);
   const [citySlug, setCitySlug] = useState<string>("lisboa");
   const [placeType, setPlaceType] = useState<string>("restaurant");
   const [categorySlug, setCategorySlug] = useState<string>("");
@@ -588,20 +593,12 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
       .finally(() => setCatsLoading(false));
   }, []);
 
-  // Auto-fill slug from name until the editor edits it explicitly.
-  useEffect(() => {
-    if (!slugTouched) setSlug(slugify(name));
-  }, [name, slugTouched]);
-
   const selectedCategory = useMemo(
     () => categories.find((c) => c.slug === categorySlug) ?? null,
     [categories, categorySlug],
   );
 
   const subcategories = selectedCategory?.subcategories ?? [];
-
-  // Reset subcategory whenever the parent category changes.
-  useEffect(() => { setSubcategorySlug(""); }, [categorySlug]);
 
   const canSubmit =
     name.trim().length >= 2 &&
@@ -700,7 +697,7 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
           <input
             type="text"
             value={slug}
-            onChange={(e) => { setSlug(slugify(e.target.value)); setSlugTouched(true); }}
+            onChange={(e) => { setManualSlug(slugify(e.target.value)); setSlugTouched(true); }}
             placeholder="tasca-do-manuel"
             className={`${INPUT_CLS} font-mono`}
           />
@@ -725,7 +722,11 @@ function ManualEntryForm({ onCancel }: { onCancel: () => void }) {
           <Field label={isPt ? "Categoria" : "Category"} required>
             <select
               value={categorySlug}
-              onChange={(e) => setCategorySlug(e.target.value)}
+              onChange={(e) => {
+                setCategorySlug(e.target.value);
+                // Reset subcategory whenever the parent category changes.
+                setSubcategorySlug("");
+              }}
               disabled={catsLoading}
               className={INPUT_CLS}
             >

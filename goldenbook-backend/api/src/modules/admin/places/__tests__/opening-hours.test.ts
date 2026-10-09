@@ -77,3 +77,21 @@ describe('toOpeningHourRows', () => {
     }
   })
 })
+
+describe('validateOpeningWeek across days', () => {
+  it('rejects a morning that opens before the previous night closes', () => {
+    expect(validateOpeningWeek([open(5, ['22:00', '04:00']), open(6, ['02:00', '10:00'])])).toMatch(/Day 6 opens before day 5/)
+  })
+
+  it('accepts a morning that opens after the previous night closes', () => {
+    expect(validateOpeningWeek([open(5, ['22:00', '04:00']), open(6, ['10:00', '14:00'])])).toBeNull()
+  })
+
+  it('wraps Saturday night into Sunday', () => {
+    expect(validateOpeningWeek([open(6, ['23:00', '03:00']), open(0, ['01:00', '05:00'])])).toMatch(/Day 0 opens before day 6/)
+  })
+
+  it('closing at midnight never collides with the next day', () => {
+    expect(validateOpeningWeek([open(5, ['19:00', '00:00']), open(6, ['00:00', '23:59'])])).toBeNull()
+  })
+})

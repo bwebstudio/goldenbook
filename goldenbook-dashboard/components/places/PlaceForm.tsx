@@ -12,13 +12,11 @@ import {
 } from "@/types/forms/place";
 import { createPlace, updatePlace, deletePlaceById } from "@/lib/api/places";
 import { fetchPlaceTranslations } from "@/lib/api/translations";
-import { applySuggestion, dismissSuggestion, generateSuggestionForPlace } from "@/lib/api/suggestions";
 import { ApiError } from "@/lib/api/client";
 import { useT, useLocale } from "@/lib/i18n";
 import FormSection from "@/components/ui/FormSection";
 import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
-import Toggle from "@/components/ui/Toggle";
 import PlaceCandidates from "@/components/places/PlaceCandidates";
 import PlaceVisibility from "@/components/places/PlaceVisibility";
 import PlaceNowVisibility, { type NowFormValues, EMPTY_NOW_FORM } from "@/components/places/PlaceNowVisibility";
@@ -30,7 +28,7 @@ import {
   rowsToWeek,
   emptyWeek,
   isWeekEmpty,
-  validateOpeningDay,
+  weekHasProblems,
   weekToPayload,
   weeksEqual,
 } from "@/lib/utils/opening-hours";
@@ -243,16 +241,19 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
       return;
     }
 
+    const hoursChanged = isEditing
+      ? !weeksEqual(rowsToWeek(place.openingHours), hours)
+      : !isWeekEmpty(hours);
+
     // Each day's problem is already shown inline; refuse the save rather than
-    // round-tripping to an API validation error.
-    if (hours.some((d) => validateOpeningDay(d) !== null)) {
+    // round-tripping to an API validation error. Only when the hours are being
+    // saved: some imported hours overlap (HERDADE 1980, THE ROYAL COCKTAIL
+    // CLUB), and that must not block editing the rest of the place.
+    if (hoursChanged && weekHasProblems(hours)) {
       setSaveError(pf.hoursInvalidSave);
       document.getElementById("opening-hours")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    const hoursChanged = isEditing
-      ? !weeksEqual(rowsToWeek(place.openingHours), hours)
-      : !isWeekEmpty(hours);
 
     setSaveStatus("saving");
     setSaveError(null);
@@ -364,13 +365,14 @@ export default function PlaceForm({ place, cities = [], categories = [], userRol
 
   // ── Cancel ────────────────────────────────────────────────────────────────
 
-  const handleCancelClick = useCallback(() => {
+  // Plain function: the React Compiler memoizes it automatically.
+  function handleCancelClick() {
     if (isDirty) {
       setShowCancelConfirm(true);
     } else {
       router.push("/places");
     }
-  }, [isDirty, router]);
+  }
 
   function confirmCancel() {
     setShowCancelConfirm(false);

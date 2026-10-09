@@ -73,10 +73,24 @@ export function googlePeriodsToWeek(
       intervals: [{ opens: "00:00", closes: "23:59" }],
     }));
   }
-  return rowsToWeek(periods.map((p) => ({ ...p, isClosed: false })));
+  // Google also reports an all-day period as 00:00 to 00:00, which reads as
+  // "opens and closes at the same time" and failed validation, so the whole
+  // week was dropped on save.
+  return rowsToWeek(
+    periods.map((p) => ({
+      ...p,
+      closesAt: p.opensAt === "00:00" && p.closesAt === "00:00" ? "23:59" : p.closesAt,
+      isClosed: false,
+    })),
+  );
 }
 
-export type OpeningDayProblem = "invalid-time" | "same-time" | "overlap" | "no-intervals";
+export type OpeningDayProblem =
+  | "invalid-time"
+  | "same-time"
+  | "overlap"
+  | "no-intervals"
+  | "overlaps-previous-night";
 
 function toMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
@@ -103,6 +117,37 @@ export function validateOpeningDay(day: OpeningDay): OpeningDayProblem | null {
     if (spans[i].start < spans[i - 1].end) return "overlap";
   }
   return null;
+}
+
+/**
+ * validateOpeningDay plus the one rule that needs the neighbouring day: an
+ * overnight interval spills into the next morning, so the next day must not
+ * open before it closes ("Fri 22:00-04:00" with "Sat 02:00-10:00"). The
+ * problem is reported on the day that opens too early. Mirrors the API.
+ */
+export function validateOpeningDayInWeek(
+  week: readonly OpeningDay[],
+  dayOfWeek: number,
+): OpeningDayProblem | null {
+  const day = week.find((d) => d.dayOfWeek === dayOfWeek);
+  if (!day) return null;
+  const own = validateOpeningDay(day);
+  if (own || day.closed) return own;
+
+  const prev = week.find((d) => d.dayOfWeek === (dayOfWeek + 6) % 7);
+  if (!prev || prev.closed || validateOpeningDay(prev)) return null;
+  const spill = Math.max(
+    0,
+    ...prev.intervals.filter(isOvernight).map((iv) => toMinutes(iv.closes)),
+  );
+  if (spill === 0) return null;
+  const firstOpen = Math.min(...day.intervals.map((iv) => toMinutes(iv.opens)));
+  return firstOpen < spill ? "overlaps-previous-night" : null;
+}
+
+/** True when any day of the week has a problem. */
+export function weekHasProblems(week: readonly OpeningDay[]): boolean {
+  return week.some((d) => validateOpeningDayInWeek(week, d.dayOfWeek) !== null);
 }
 
 export function isOvernight(iv: OpeningInterval): boolean {

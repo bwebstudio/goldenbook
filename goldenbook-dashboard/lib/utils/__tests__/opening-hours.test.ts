@@ -8,6 +8,8 @@ import {
   weeksEqual,
   emptyWeek,
   isOvernight,
+  validateOpeningDayInWeek,
+  weekHasProblems,
 } from "../opening-hours";
 
 describe("rowsToWeek", () => {
@@ -89,5 +91,33 @@ describe("copyDayToAll / weeksEqual", () => {
     expect(copied[1].intervals[0].closes).toBe("18:00");
     expect(weeksEqual(week, copied)).toBe(false);
     expect(weeksEqual(week, rowsToWeek([{ dayOfWeek: 1, opensAt: "09:00:00", closesAt: "18:00:00", isClosed: false }]))).toBe(true);
+  });
+});
+
+describe("cross-day checks", () => {
+  const week = (days: Record<number, [string, string][]>) =>
+    emptyWeek().map((d) =>
+      days[d.dayOfWeek]
+        ? { ...d, closed: false, intervals: days[d.dayOfWeek].map(([opens, closes]) => ({ opens, closes })) }
+        : d,
+    );
+
+  it("flags the day that opens before the previous night closes", () => {
+    const w = week({ 5: [["22:00", "04:00"]], 6: [["02:00", "10:00"]] });
+    expect(validateOpeningDayInWeek(w, 6)).toBe("overlaps-previous-night");
+    expect(validateOpeningDayInWeek(w, 5)).toBeNull();
+    expect(weekHasProblems(w)).toBe(true);
+  });
+
+  it("accepts a late night followed by a normal morning", () => {
+    expect(weekHasProblems(week({ 5: [["22:00", "04:00"]], 6: [["10:00", "14:00"]] }))).toBe(false);
+  });
+});
+
+describe("googlePeriodsToWeek 24h", () => {
+  it("maps Google's 00:00 to 00:00 to an all-day interval instead of failing", () => {
+    const w = googlePeriodsToWeek([{ dayOfWeek: 1, opensAt: "00:00", closesAt: "00:00" }]);
+    expect(w[1].intervals).toEqual([{ opens: "00:00", closes: "23:59" }]);
+    expect(weekHasProblems(w)).toBe(false);
   });
 });

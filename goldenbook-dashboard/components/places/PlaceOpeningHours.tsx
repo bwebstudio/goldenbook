@@ -9,7 +9,7 @@ import {
   copyDayToAll,
   isOvernight,
   isWeekEmpty,
-  validateOpeningDay,
+  validateOpeningDayInWeek,
 } from "@/lib/utils/opening-hours";
 
 interface Props {
@@ -37,6 +37,7 @@ export default function PlaceOpeningHours({ value, onChange }: Props) {
     "same-time":    pf.hoursErrorSameTime,
     "invalid-time": pf.hoursErrorInvalid,
     "no-intervals": pf.hoursErrorNoIntervals,
+    "overlaps-previous-night": pf.hoursErrorPreviousNight,
   };
 
   function updateDay(dayOfWeek: number, patch: (d: OpeningDay) => OpeningDay) {
@@ -92,7 +93,7 @@ export default function PlaceOpeningHours({ value, onChange }: Props) {
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border bg-white">
         {WEEK_ORDER.map((dow) => {
           const day = value[dow];
-          const problem = validateOpeningDay(day);
+          const problem = validateOpeningDayInWeek(value, dow);
           const isOpen = !day.closed;
           return (
             <div key={dow} className="px-4 py-3 flex flex-col gap-2 md:flex-row md:items-start md:gap-4">

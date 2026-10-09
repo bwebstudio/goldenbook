@@ -55,9 +55,14 @@ function toMinutes(t: string): number {
  *   - opens != closes (24h is 00:00-23:59)
  *   - intervals of a day do not overlap; an overnight interval runs into the
  *     next day, so it can only be the last one of its day
+ *   - the next day does not open before that overnight interval closes
  */
 export function validateOpeningWeek(days: readonly OpeningDayInput[]): string | null {
   const seen = new Set<number>()
+  // Minutes past midnight that each day's overnight interval reaches into the
+  // next day, and each open day's earliest opening, for the cross-day check.
+  const spillByDay = new Map<number, number>()
+  const firstOpenByDay = new Map<number, number>()
   for (const day of days) {
     if (seen.has(day.dayOfWeek)) return `Day ${day.dayOfWeek} appears more than once`
     seen.add(day.dayOfWeek)
@@ -81,6 +86,16 @@ export function validateOpeningWeek(days: readonly OpeningDayInput[]): string | 
     const sorted = (spans as { start: number; end: number }[]).sort((a, b) => a.start - b.start)
     for (let i = 1; i < sorted.length; i++) {
       if (sorted[i].start < sorted[i - 1].end) return `Day ${day.dayOfWeek} has overlapping intervals`
+    }
+    firstOpenByDay.set(day.dayOfWeek, sorted[0].start)
+    const spill = Math.max(0, ...sorted.map((s) => s.end - 24 * 60))
+    if (spill > 0) spillByDay.set(day.dayOfWeek, spill)
+  }
+  for (const [dow, spill] of spillByDay) {
+    const next = (dow + 1) % 7
+    const firstOpen = firstOpenByDay.get(next)
+    if (firstOpen !== undefined && firstOpen < spill) {
+      return `Day ${next} opens before day ${dow}'s overnight interval closes`
     }
   }
   return null
